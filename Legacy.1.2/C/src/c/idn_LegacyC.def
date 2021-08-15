@@ -1,0 +1,9 @@
+;
+; The following symbols are exported for
+; the idn_LegacyC DataBlade module.
+;
+DESCRIPTION 'This is the idn_LegacyC DataBlade module.'
+
+EXPORTS
+	cRoutine
+	cTraceOn

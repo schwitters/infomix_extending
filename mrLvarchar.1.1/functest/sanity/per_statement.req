@@ -1,0 +1,1815 @@
+
+Database selected.
+
+-- ---------------------------------------------------------------
+-- 
+-- Module          : Functional Test for idn_mrLvarchar UDT
+-- Filename        : per_statement.sql
+-- Description     : Base i/o tests for intermediate large values
+--                   stored in separately allocated memory with a
+--                   PER_STATEMENT duration.
+-- 
+--   Tests:
+--
+--      1. Input / Output 
+--      2. Assign
+--	3. Length
+--      4. Sbspace
+--      5. Refcount
+--      6. LOHandles
+--      7. Update: mr threshold check -- small value to large 
+--      8. Concat
+--      9. Delete
+--     10. Import/Export
+--     11. Equal/NotEqual
+--     12. Order by, distinct (Compare)
+--     13. Send/Receive
+--     14. Clip: includes mr threshold check -- update large value to small 
+--     15. B-tree functional index
+--     16. ConcatAll aggregate: including insert using result
+--     17. Union query
+--
+--   Additional trace output is to /tmp/mrLvarchar_stm.trc.
+-- ---------------------------------------------------------------
+
+--
+-- Turn tracing on.
+--
+execute procedure TraceSet_mrLvarchar ("/tmp/mrLvarchar_stm.trc", 20);
+Routine executed.
+
+
+
+--
+-- Set explain on.
+--
+
+set explain on;
+Explain set.
+
+
+
+--
+-- Set intermediate storage to PER_STATEMENT.
+--
+execute function mrLvarcharTemp("PER_STATEMENT");
+
+
+(expression)  PER_STATEMENT 
+
+1 row(s) retrieved.
+
+
+
+--
+-- 1. Input / Output 
+--
+-- Calling the Input routine directly executes the Input
+-- routine to convert the text value into the UDT, then
+-- executes the Output routine to display the result.
+--
+-- The threshold is 2040 bytes of data (2048 - 8 bytes header info)
+-- This Aesop's fable is 2244 characters, so is over the threshold.
+--
+execute function idn_mrLvarcharIn(
+'A fable by Aesop: The Buffoon and the Countryman : A RICH NOBLEMAN once opened the theaters without charge to the people, and gave a public notice that he would handsomely reward any person who invented a new amusement for the occasion. Various public performers contended for the prize.  Among them came a Buffoon well known among the populace for his jokes, and said that he had a kind of entertainment which had never been brought out on any stage before.  This report being spread about made a great stir, and the theater was crowded in every part. The Buffoon appeared alone upon the platform, without any apparatus or confederates, and the very sense of expectation caused an intense silence.  He suddenly bent his head towards his bosom and imitated the squeaking of a little pig so admirably with his voice that the audience declared he had a porker under his cloak, and demanded that it should be shaken out.  When that was done and nothing was found, they cheered the actor, and loaded him with the loudest applause.  A Countryman in the crowd, observing all that has passed, said, "So help me, Hercules, he shall not beat me at that trick!"  and at once proclaimed that he would do the same thing on the next day, though in a much more natural way.  On the morrow a still larger crowd assembled in the theater, but now partiality for their favorite actor very generally prevailed, and the audience came rather to ridicule the Countryman than to see the spectacle.  Both of the performers appeared on the stage.  The Buffoon grunted and squeaked away first, and obtained, as on the preceding day, the applause and cheers of the spectators.  Next the Countryman commenced, and pretending that he concealed a little pig beneath his clothes (which in truth he did, but not suspected by the audience ) contrived to take hold of and to pull his ear causing the pig to squeak.  The Crowd, however, cried out with one consent that the Buffoon had given a far more exact imitation, and clamored for the Countryman to be kicked out of the theater.  On this the rustic produced the little pig from his cloak and showed by the most positive proof the greatness of their mistake.  "Look here," he said, "this shows what sort of judges you are."');
+
+
+(expression)  A fable by Aesop: The Buffoon and the Countryman : A RICH NOBLEMA
+              N once opened the theaters without charge to the people, and gave
+               a public notice that he would handsomely reward any person who i
+              nvented a new amusement for the occasion. Various public performe
+              rs contended for the prize.  Among them came a Buffoon well known
+               among the populace for his jokes, and said that he had a kind of
+               entertainment which had never been brought out on any stage befo
+              re.  This report being spread about made a great stir, and the th
+              eater was crowded in every part. The Buffoon appeared alone upon 
+              the platform, without any apparatus or confederates, and the very
+               sense of expectation caused an intense silence.  He suddenly ben
+              t his head towards his bosom and imitated the squeaking of a litt
+              le pig so admirably with his voice that the audience declared he 
+              had a porker under his cloak, and demanded that it should be shak
+              en out.  When that was done and nothing was found, they cheered t
+              he actor, and loaded him with the loudest applause.  A Countryman
+               in the crowd, observing all that has passed, said, "So help me, 
+              Hercules, he shall not beat me at that trick!"  and at once procl
+              aimed that he would do the same thing on the next day, though in 
+              a much more natural way.  On the morrow a still larger crowd asse
+              mbled in the theater, but now partiality for their favorite actor
+               very generally prevailed, and the audience came rather to ridicu
+              le the Countryman than to see the spectacle.  Both of the perform
+              ers appeared on the stage.  The Buffoon grunted and squeaked away
+               first, and obtained, as on the preceding day, the applause and c
+              heers of the spectators.  Next the Countryman commenced, and pret
+              ending that he concealed a little pig beneath his clothes (which 
+              in truth he did, but not suspected by the audience ) contrived to
+               take hold of and to pull his ear causing the pig to squeak.  The
+               Crowd, however, cried out with one consent that the Buffoon had 
+              given a far more exact imitation, and clamored for the Countryman
+               to be kicked out of the theater. 
+
+1 row(s) retrieved.
+
+
+
+-- We can determine if the intermediate result is a smart blob by
+-- running refcount() on the result, which returns NULL for
+-- non-sblobs. We expect it to return NULL for the large value
+-- cached in PER_STATEMENT memory by Input.
+
+execute function refcount(idn_mrLvarcharIn(
+'A fable by Aesop: The Buffoon and the Countryman : A RICH NOBLEMAN once opened the theaters without charge to the people, and gave a public notice that he would handsomely reward any person who invented a new amusement for the occasion. Various public performers contended for the prize.  Among them came a Buffoon well known among the populace for his jokes, and said that he had a kind of entertainment which had never been brought out on any stage before.  This report being spread about made a great stir, and the theater was crowded in every part. The Buffoon appeared alone upon the platform, without any apparatus or confederates, and the very sense of expectation caused an intense silence.  He suddenly bent his head towards his bosom and imitated the squeaking of a little pig so admirably with his voice that the audience declared he had a porker under his cloak, and demanded that it should be shaken out.  When that was done and nothing was found, they cheered the actor, and loaded him with the loudest applause.  A Countryman in the crowd, observing all that has passed, said, "So help me, Hercules, he shall not beat me at that trick!"  and at once proclaimed that he would do the same thing on the next day, though in a much more natural way.  On the morrow a still larger crowd assembled in the theater, but now partiality for their favorite actor very generally prevailed, and the audience came rather to ridicule the Countryman than to see the spectacle.  Both of the performers appeared on the stage.  The Buffoon grunted and squeaked away first, and obtained, as on the preceding day, the applause and cheers of the spectators.  Next the Countryman commenced, and pretending that he concealed a little pig beneath his clothes (which in truth he did, but not suspected by the audience ) contrived to take hold of and to pull his ear causing the pig to squeak.  The Crowd, however, cried out with one consent that the Buffoon had given a far more exact imitation, and clamored for the Countryman to be kicked out of the theater.  On this the rustic produced the little pig from his cloak and showed by the most positive proof the greatness of their mistake.  "Look here," he said, "this shows what sort of judges you are."'
+));
+
+(expression) 
+
+            
+
+1 row(s) retrieved.
+
+
+
+
+--
+-- 2. Assign
+--
+-- Inserting a value into a table executes the Input routine
+-- to convert the text value to the UDT, then the Assign
+-- routine just before it is written to the table.
+--
+
+insert into test_mr 
+values (
+1, 
+'per_statement.sql', 
+'A fable by Aesop: The Buffoon and the Countryman : A RICH NOBLEMAN once opened the theaters without charge to the people, and gave a public notice that he would handsomely reward any person who invented a new amusement for the occasion. Various public performers contended for the prize.  Among them came a Buffoon well known among the populace for his jokes, and said that he had a kind of entertainment which had never been brought out on any stage before.  This report being spread about made a great stir, and the theater was crowded in every part. The Buffoon appeared alone upon the platform, without any apparatus or confederates, and the very sense of expectation caused an intense silence.  He suddenly bent his head towards his bosom and imitated the squeaking of a little pig so admirably with his voice that the audience declared he had a porker under his cloak, and demanded that it should be shaken out.  When that was done and nothing was found, they cheered the actor, and loaded him with the loudest applause.  A Countryman in the crowd, observing all that has passed, said, "So help me, Hercules, he shall not beat me at that trick!"  and at once proclaimed that he would do the same thing on the next day, though in a much more natural way.  On the morrow a still larger crowd assembled in the theater, but now partiality for their favorite actor very generally prevailed, and the audience came rather to ridicule the Countryman than to see the spectacle.  Both of the performers appeared on the stage.  The Buffoon grunted and squeaked away first, and obtained, as on the preceding day, the applause and cheers of the spectators.  Next the Countryman commenced, and pretending that he concealed a little pig beneath his clothes (which in truth he did, but not suspected by the audience ) contrived to take hold of and to pull his ear causing the pig to squeak.  The Crowd, however, cried out with one consent that the Buffoon had given a far more exact imitation, and clamored for the Countryman to be kicked out of the theater.  On this the rustic produced the little pig from his cloak and showed by the most positive proof the greatness of their mistake.  "Look here," he said, "this shows what sort of judges you are."'
+);
+1 row(s) inserted.
+
+
+
+select id, mrcol from test_mr where id=1;
+
+
+id     1
+mrcol  A fable by Aesop: The Buffoon and the Countryman : A RICH NOBLEMAN once 
+       opened the theaters without charge to the people, and gave a public noti
+       ce that he would handsomely reward any person who invented a new amuseme
+       nt for the occasion. Various public performers contended for the prize. 
+        Among them came a Buffoon well known among the populace for his jokes, 
+       and said that he had a kind of entertainment which had never been brough
+       t out on any stage before.  This report being spread about made a great 
+       stir, and the theater was crowded in every part. The Buffoon appeared al
+       one upon the platform, without any apparatus or confederates, and the ve
+       ry sense of expectation caused an intense silence.  He suddenly bent his
+        head towards his bosom and imitated the squeaking of a little pig so ad
+       mirably with his voice that the audience declared he had a porker under 
+       his cloak, and demanded that it should be shaken out.  When that was don
+       e and nothing was found, they cheered the actor, and loaded him with the
+        loudest applause.  A Countryman in the crowd, observing all that has pa
+       ssed, said, "So help me, Hercules, he shall not beat me at that trick!" 
+        and at once proclaimed that he would do the same thing on the next day,
+        though in a much more natural way.  On the morrow a still larger crowd 
+       assembled in the theater, but now partiality for their favorite actor ve
+       ry generally prevailed, and the audience came rather to ridicule the Cou
+       ntryman than to see the spectacle.  Both of the performers appeared on t
+       he stage.  The Buffoon grunted and squeaked away first, and obtained, as
+        on the preceding day, the applause and cheers of the spectators.  Next 
+       the Countryman commenced, and pretending that he concealed a little pig 
+       beneath his clothes (which in truth he did, but not suspected by the aud
+       ience ) contrived to take hold of and to pull his ear causing the pig to
+        squeak.  The Crowd, however, cried out with one consent that the Buffoo
+       n had given a far more exact imitation, and clamored for the Countryman 
+       to be kicked out of the theater.  On this the rustic produced the little
+        pig from his cloak and showed by the most positive proof the greatness 
+       of their mistake.  "Look here," he said, "this shows what sort of judges
+        you are." 
+
+1 row(s) retrieved.
+
+
+
+--
+-- 3. Length: should be data size (2242) + 8 bytes UDT header = 2250
+--
+select id, Length(mrcol) length from test_mr where id=1;
+
+         id      length 
+
+          1        2250
+
+1 row(s) retrieved.
+
+
+
+--
+-- 4. Sbspace: should return the name of the smart blob space
+--    In the system generating this test, it is "sbspace".
+--
+select id, Sbspace(mrcol) space_name from test_mr where id=1;
+
+
+id          1
+space_name  sbspace 
+
+1 row(s) retrieved.
+
+
+
+--
+-- 5. Refcount: should return 1 for this smart blob
+--
+select id, Refcount(mrcol) refcount from test_mr where id=1;
+
+         id    refcount 
+
+          1           1
+
+1 row(s) retrieved.
+
+
+
+--
+-- 6. LOHandles: returns handle for smart blob value
+--
+--    Since the handle is different from one test run
+--    to the next, run this manually.
+--
+-- select id, LOHandles(mrcol) from test_mr where id=1;
+
+--
+-- 7. Update: mr threshold check -- small to large 
+--
+--    The inserted value is 1620 bytes, + 8 for UDT header (small).
+--
+
+insert into test_mr values (
+2,
+'per_statement.sql',
+'The Thief and the Innkeeper : A THIEF hired a room in a tavern and stayed a while in the hope of stealing something which should enable him to pay his reckoning.  When he had waited some days in vain, he saw the Innkeeper dressed in a new and handsome coat and sitting before his door.  The Thief sat down beside him and talked with him.  As the conversation began to flag, the Thief yawned terribly and at the same time howled like a wolf.  The Innkeeper said, "Why do you howl so fearfully?''  "I will tell you," said the Thief, "but first let me ask you to hold my clothes, or I shall tear them to pieces.  I know not, sir, when I got this habit of yawning, nor whether these attacks of howling were inflicted on me as a judgment for my crimes, or for any other cause; but this I do know, that when I yawn for the third time, I actually turn into a wolf and attack men."  With this speech he commenced a second fit of yawning and again howled like a wolf, as he had at first.  The Innkeeper.  hearing his tale and believing what he said, became greatly alarmed and, rising from his seat, attempted to run away. The Thief laid hold of his coat and entreated him to stop, saying, "Pray wait, sir, and hold my clothes, or I shall tear them to pieces in my fury, when I turn into a wolf."  At the same moment he yawned the third time and set up a terrible howl.  The Innkeeper, frightened lest he should be attacked, left his new coat in the Thief''s hand and ran as fast as he could into the inn for safety.  The Thief made off with the coat and did not return again to the inn.  (Moral: Every tale is not to be believed.)'
+);
+1 row(s) inserted.
+
+
+
+select id, 
+       Length(mrcol) length,
+       Refcount(mrcol) refcount
+from test_mr where id=2;
+
+         id      length    refcount 
+
+          2        1628            
+
+1 row(s) retrieved.
+
+
+
+--
+-- Use Concat to update the value to a large value.
+--
+-- 1620 + 1620 + 8 = 3248
+--
+update test_mr
+set mrcol = mrcol || mrcol
+where id=2;
+1 row(s) updated.
+
+
+
+select id, 
+       Length(mrcol) length,
+       Refcount(mrcol) refcount
+from test_mr where id=2;
+
+         id      length    refcount 
+
+          2        3248           1
+
+1 row(s) retrieved.
+
+
+
+--
+-- 8. Concat
+--
+-- Actually started getting tested in #7.
+--
+
+--
+-- Little value + big value
+--
+
+select id, 'Aesop: ' || mrcol from test_mr
+order by id;
+
+
+id            1
+(expression)  Aesop: A fable by Aesop: The Buffoon and the Countryman : A RICH 
+              NOBLEMAN once opened the theaters without charge to the people, a
+              nd gave a public notice that he would handsomely reward any perso
+              n who invented a new amusement for the occasion. Various public p
+              erformers contended for the prize.  Among them came a Buffoon wel
+              l known among the populace for his jokes, and said that he had a 
+              kind of entertainment which had never been brought out on any sta
+              ge before.  This report being spread about made a great stir, and
+               the theater was crowded in every part. The Buffoon appeared alon
+              e upon the platform, without any apparatus or confederates, and t
+              he very sense of expectation caused an intense silence.  He sudde
+              nly bent his head towards his bosom and imitated the squeaking of
+               a little pig so admirably with his voice that the audience decla
+              red he had a porker under his cloak, and demanded that it should 
+              be shaken out.  When that was done and nothing was found, they ch
+              eered the actor, and loaded him with the loudest applause.  A Cou
+              ntryman in the crowd, observing all that has passed, said, "So he
+              lp me, Hercules, he shall not beat me at that trick!"  and at onc
+              e proclaimed that he would do the same thing on the next day, tho
+              ugh in a much more natural way.  On the morrow a still larger cro
+              wd assembled in the theater, but now partiality for their favorit
+              e actor very generally prevailed, and the audience came rather to
+               ridicule the Countryman than to see the spectacle.  Both of the 
+              performers appeared on the stage.  The Buffoon grunted and squeak
+              ed away first, and obtained, as on the preceding day, the applaus
+              e and cheers of the spectators.  Next the Countryman commenced, a
+              nd pretending that he concealed a little pig beneath his clothes 
+              (which in truth he did, but not suspected by the audience ) contr
+              ived to take hold of and to pull his ear causing the pig to squea
+              k.  The Crowd, however, cried out with one consent that the Buffo
+              on had given a far more exact imitation, and clamored for the Cou
+              ntryman to be kicked out of the theater.  On this the rustic prod
+              uced the little pig from his cloak and showed by the most positiv
+              e proof the greatness of their mistake.  "Look here," he said, "t
+              his shows what sort of judges you are." 
+
+id            2
+(expression)  Aesop: The Thief and the Innkeeper : A THIEF hired a room in a ta
+              vern and stayed a while in the hope of stealing something which s
+              hould enable him to pay his reckoning.  When he had waited some d
+              ays in vain, he saw the Innkeeper dressed in a new and handsome c
+              oat and sitting before his door.  The Thief sat down beside him a
+              nd talked with him.  As the conversation began to flag, the Thief
+               yawned terribly and at the same time howled like a wolf.  The In
+              nkeeper said, "Why do you howl so fearfully?'  "I will tell you,"
+               said the Thief, "but first let me ask you to hold my clothes, or
+               I shall tear them to pieces.  I know not, sir, when I got this h
+              abit of yawning, nor whether these attacks of howling were inflic
+              ted on me as a judgment for my crimes, or for any other cause; bu
+              t this I do know, that when I yawn for the third time, I actually
+               turn into a wolf and attack men."  With this speech he commenced
+               a second fit of yawning and again howled like a wolf, as he had 
+              at first.  The Innkeeper.  hearing his tale and believing what he
+               said, became greatly alarmed and, rising from his seat, attempte
+              d to run away. The Thief laid hold of his coat and entreated him 
+              to stop, saying, "Pray wait, sir, and hold my clothes, or I shall
+               tear them to pieces in my fury, when I turn into a wolf."  At th
+              e same moment he yawned the third time and set up a terrible howl
+              .  The Innkeeper, frightened lest he should be attacked, left his
+               new coat in the Thief's hand and ran as fast as he could into th
+              e inn for safety.  The Thief made off with the coat and did not r
+              eturn again to the inn.  (Moral: Every tale is not to be believed
+              .)The Thief and the Innkeeper : A THIEF hired a room in a tavern 
+              and stayed a while in the hope of stealing something which should
+               enable him to pay his reckoning.  When he had waited some days i
+              n vain, he saw the Innkeeper dressed in a new and handsome coat a
+              nd sitting before his door.  The Thief sat down beside him and ta
+              lked with him.  As the conversation began to flag, the Thief yawn
+              ed terribly and at the same time howled like a wolf.  The Innkeep
+              er said, "Why do you howl so fearfully?'  "I will tell you," said
+               the Thief, "but first let me ask you to hold my clothes, or I sh
+              all tear them to pieces.  I know not, sir, when I got this habit 
+              of yawning, nor whether these attacks of howling were inflicted o
+              n me as a judgment for my crimes, or for any other cause; but thi
+              s I do know, that when I yawn for the third time, I actually turn
+               into a wolf and attack men."  With this speech he commenced a se
+              cond fit of yawning and again howled like a wolf, as he had at fi
+              rst.  The Innkeeper.  hearing his tale and believing what he said
+              , became greatly alarmed and, rising from his seat, attempted to 
+              run away. The Thief laid hold of his coat and entreated him to st
+              op, saying, "Pray wait, sir, and hold my clothes, or I shall tear
+               them to pieces in my fury, when I turn into a wolf."  At the sam
+              e moment he yawned the third time and set up a terrible howl.  Th
+              e Innkeeper, frightened lest he should be attacked, left his new 
+              coat in the Thief's hand and ran as fast as he could into the inn
+               for safety.  The Thief made off with the coat and did not return
+               again to the inn.  (Moral: Every tale is not to be believed.) 
+
+2 row(s) retrieved.
+
+
+
+--
+-- Big value + Big value
+--
+select  id, 
+        length(mrcol) length, 
+        length(mrcol || mrcol) new_length 
+from    test_mr
+order by id;
+
+         id      length  new_length 
+
+          1        2250        4492
+          2        3248        6488
+
+2 row(s) retrieved.
+
+
+
+-- The new refcount should be NULL because the new object 
+-- does not get saved in a table.
+
+select  id, 
+        refcount(mrcol) refcount, 
+        refcount(mrcol || mrcol) new_refcount 
+from    test_mr
+order by id;
+
+         id    refcount new_refcount 
+
+          1           1             
+          2           1             
+
+2 row(s) retrieved.
+
+
+
+
+--
+-- 9. Delete
+--
+delete from test_mr;
+2 row(s) deleted.
+
+
+
+--
+-- 10. Import Export
+--
+load from big_values.txt insert into test_mr;
+2 row(s) loaded.
+
+
+
+select * from test_mr order by id;
+
+
+id           5
+description  big value 
+mrcol        A fable by Aesop: The Buffoon and the Countryman : A RICH NOBLEMAN
+              once opened the theaters without charge to the people, and gave a
+              public notice that he would handsomely reward any person who inve
+             nted a new amusement for the occasion. Various public performers c
+             ontended for the prize.  Among them came a Buffoon well known amon
+             g the populace for his jokes, and said that he had a kind of enter
+             tainment which had never been brought out on any stage before.  Th
+             is report being spread about made a great stir, and the theater wa
+             s crowded in every part. The Buffoon appeared alone upon the platf
+             orm, without any apparatus or confederates, and the very sense of 
+             expectation caused an intense silence.  He suddenly bent his head 
+             towards his bosom and imitated the squeaking of a little pig so ad
+             mirably with his voice that the audience declared he had a porker 
+             under his cloak, and demanded that it should be shaken out.  When 
+             that was done and nothing was found, they cheered the actor, and l
+             oaded him with the loudest applause.  A Countryman in the crowd, o
+             bserving all that has passed, said, "So help me, Hercules, he shal
+             l not beat me at that trick!"  and at once proclaimed that he woul
+             d do the same thing on the next day, though in a much more natural
+              way.  On the morrow a still larger crowd assembled in the theater
+             , but now partiality for their favorite actor very generally preva
+             iled, and the audience came rather to ridicule the Countryman than
+              to see the spectacle.  Both of the performers appeared on the sta
+             ge.  The Buffoon grunted and squeaked away first, and obtained, as
+              on the preceding day, the applause and cheers of the spectators. 
+              Next the Countryman commenced, and pretending that he concealed a
+              little pig beneath his clothes (which in truth he did, but not su
+             spected by the audience ) contrived to take hold of and to pull hi
+             s ear causing the pig to squeak.  The Crowd, however, cried out wi
+             th one consent that the Buffoon had given a far more exact imitati
+             on, and clamored for the Countryman to be kicked out of the theate
+             r.  On this the rustic produced the little pig from his cloak and 
+             showed by the most positive proof the greatness of their mistake. 
+              "Look here," he said, "this shows what sort of judges you are." 
+
+id           6
+description  big value 
+mrcol        A fable by Aesop: The Miller, His Son, and Their Ass: A MILLER and
+              his son were driving their Ass to a neighboring fair to sell him.
+               They had not gone far when they met with a troop of women collec
+             ted round a well, talking and laughing.  "Look there," cried one o
+             f them, "did you ever see such fellows, to be trudging along the r
+             oad on foot when they might ride?'  The old man hearing this, quic
+             kly made his son mount the Ass, and continued to walk along merril
+             y by his side.  Presently they came up to a group of old men in ea
+             rnest debate.  "There," said one of them, "it proves what I was a-
+             saying.  What respect is shown to old age in these days? Do you se
+             e that idle lad riding while his old father has to walk? Get down,
+              you young scapegrace, and let the old man rest his weary limbs." 
+              Upon this the old man made his son dismount, and got up himself. 
+              In this manner they had not proceeded far when they met a company
+              of women and children: "Why, you lazy old fellow," cried several 
+             tongues at once, "how can you ride upon the beast, while that poor
+              little lad there can hardly keep pace by the side of you?'  The g
+             ood-natured Miller immediately took up his son behind him.  They h
+             ad now almost reached the town.    "Pray, honest friend," said a c
+             itizen, "is that Ass your own?'  "Yes," replied the old man.  "O, 
+             one would not have thought so," said the other, "by the way you lo
+             ad him. Why, you two fellows are better able to carry the poor bea
+             st than he you."  "Anything to please you," said the old man; "we 
+             can but try."  So, alighting with his son, they tied the legs of t
+             he Ass together and with the help of a pole endeavored to carry hi
+             m on their shoulders over a bridge near the entrance to the town. 
+             This entertaining sight brought the people in crowds to laugh at i
+             t, till the Ass, not liking the noise nor the strange handling tha
+             t he was subject to, broke the cords that bound him and, tumbling 
+             off the pole, fell into the river.  Upon this, the old man, vexed 
+             and ashamed, made the best of his way home again, convinced that b
+             y endeavoring to please everybody he had pleased nobody, and lost 
+             his Ass in the bargain. 
+
+2 row(s) retrieved.
+
+
+
+select id,
+       Length(mrcol) length,
+       Refcount(mrcol) refcount
+from test_mr order by 1;
+
+         id      length    refcount 
+
+          5        2250           1
+          6        2143           1
+
+2 row(s) retrieved.
+
+
+
+-- naming the output a .log means cleanup will remove it
+unload to big_valTEST.log select * from test_mr;
+2 row(s) unloaded.
+
+
+
+--
+-- 11. Equal/NotEqual
+--
+
+--
+-- This should return id=5
+--
+select m1.id from test_mr m1
+where  m1.mrcol = 
+'A fable by Aesop: The Buffoon and the Countryman : A RICH NOBLEMAN once opened the theaters without charge to the people, and gave a public notice that he would handsomely reward any person who invented a new amusement for the occasion. Various public performers contended for the prize.  Among them came a Buffoon well known among the populace for his jokes, and said that he had a kind of entertainment which had never been brought out on any stage before.  This report being spread about made a great stir, and the theater was crowded in every part. The Buffoon appeared alone upon the platform, without any apparatus or confederates, and the very sense of expectation caused an intense silence.  He suddenly bent his head towards his bosom and imitated the squeaking of a little pig so admirably with his voice that the audience declared he had a porker under his cloak, and demanded that it should be shaken out.  When that was done and nothing was found, they cheered the actor, and loaded him with the loudest applause.  A Countryman in the crowd, observing all that has passed, said, "So help me, Hercules, he shall not beat me at that trick!"  and at once proclaimed that he would do the same thing on the next day, though in a much more natural way.  On the morrow a still larger crowd assembled in the theater, but now partiality for their favorite actor very generally prevailed, and the audience came rather to ridicule the Countryman than to see the spectacle.  Both of the performers appeared on the stage.  The Buffoon grunted and squeaked away first, and obtained, as on the preceding day, the applause and cheers of the spectators.  Next the Countryman commenced, and pretending that he concealed a little pig beneath his clothes (which in truth he did, but not suspected by the audience ) contrived to take hold of and to pull his ear causing the pig to squeak.  The Crowd, however, cried out with one consent that the Buffoon had given a far more exact imitation, and clamored for the Countryman to be kicked out of the theater.  On this the rustic produced the little pig from his cloak and showed by the most positive proof the greatness of their mistake.  "Look here," he said, "this shows what sort of judges you are."' ;
+
+         id 
+
+          5
+
+1 row(s) retrieved.
+
+
+
+--
+-- More than likely, a large value would be compared to a large
+-- value stored in a table.
+--
+select m1.id from test_mr m1
+where  m1.mrcol = 
+       (select m2.mrcol from test_mr m2 where m2.id=5);
+
+         id 
+
+          5
+
+1 row(s) retrieved.
+
+
+
+--
+-- This should return id=5
+--
+select m1.id from test_mr m1
+where  m1.mrcol <> 
+       (select m2.mrcol from test_mr m2 where m2.id=6);
+
+         id 
+
+          5
+
+1 row(s) retrieved.
+
+
+
+--
+-- Concat and Equal in the where clause
+--
+-- Should return id 5.
+--
+select id
+from   test_mr
+where  Concat(mrcol, ': the end') =
+'A fable by Aesop: The Buffoon and the Countryman : A RICH NOBLEMAN once opened the theaters without charge to the people, and gave a public notice that he would handsomely reward any person who invented a new amusement for the occasion. Various public performers contended for the prize.  Among them came a Buffoon well known among the populace for his jokes, and said that he had a kind of entertainment which had never been brought out on any stage before.  This report being spread about made a great stir, and the theater was crowded in every part. The Buffoon appeared alone upon the platform, without any apparatus or confederates, and the very sense of expectation caused an intense silence.  He suddenly bent his head towards his bosom and imitated the squeaking of a little pig so admirably with his voice that the audience declared he had a porker under his cloak, and demanded that it should be shaken out.  When that was done and nothing was found, they cheered the actor, and loaded him with the loudest applause.  A Countryman in the crowd, observing all that has passed, said, "So help me, Hercules, he shall not beat me at that trick!"  and at once proclaimed that he would do the same thing on the next day, though in a much more natural way.  On the morrow a still larger crowd assembled in the theater, but now partiality for their favorite actor very generally prevailed, and the audience came rather to ridicule the Countryman than to see the spectacle.  Both of the performers appeared on the stage.  The Buffoon grunted and squeaked away first, and obtained, as on the preceding day, the applause and cheers of the spectators.  Next the Countryman commenced, and pretending that he concealed a little pig beneath his clothes (which in truth he did, but not suspected by the audience ) contrived to take hold of and to pull his ear causing the pig to squeak.  The Crowd, however, cried out with one consent that the Buffoon had given a far more exact imitation, and clamored for the Countryman to be kicked out of the theater.  On this the rustic produced the little pig from his cloak and showed by the most positive proof the greatness of their mistake.  "Look here," he said, "this shows what sort of judges you are.": the end';
+
+         id 
+
+          5
+
+1 row(s) retrieved.
+
+ 
+
+--
+-- 12. Order by, distinct (Compare)
+--
+select id, mrcol from test_mr order by mrcol;
+
+
+id     5
+mrcol  A fable by Aesop: The Buffoon and the Countryman : A RICH NOBLEMAN once 
+       opened the theaters without charge to the people, and gave a public noti
+       ce that he would handsomely reward any person who invented a new amuseme
+       nt for the occasion. Various public performers contended for the prize. 
+        Among them came a Buffoon well known among the populace for his jokes, 
+       and said that he had a kind of entertainment which had never been brough
+       t out on any stage before.  This report being spread about made a great 
+       stir, and the theater was crowded in every part. The Buffoon appeared al
+       one upon the platform, without any apparatus or confederates, and the ve
+       ry sense of expectation caused an intense silence.  He suddenly bent his
+        head towards his bosom and imitated the squeaking of a little pig so ad
+       mirably with his voice that the audience declared he had a porker under 
+       his cloak, and demanded that it should be shaken out.  When that was don
+       e and nothing was found, they cheered the actor, and loaded him with the
+        loudest applause.  A Countryman in the crowd, observing all that has pa
+       ssed, said, "So help me, Hercules, he shall not beat me at that trick!" 
+        and at once proclaimed that he would do the same thing on the next day,
+        though in a much more natural way.  On the morrow a still larger crowd 
+       assembled in the theater, but now partiality for their favorite actor ve
+       ry generally prevailed, and the audience came rather to ridicule the Cou
+       ntryman than to see the spectacle.  Both of the performers appeared on t
+       he stage.  The Buffoon grunted and squeaked away first, and obtained, as
+        on the preceding day, the applause and cheers of the spectators.  Next 
+       the Countryman commenced, and pretending that he concealed a little pig 
+       beneath his clothes (which in truth he did, but not suspected by the aud
+       ience ) contrived to take hold of and to pull his ear causing the pig to
+        squeak.  The Crowd, however, cried out with one consent that the Buffoo
+       n had given a far more exact imitation, and clamored for the Countryman 
+       to be kicked out of the theater.  On this the rustic produced the little
+        pig from his cloak and showed by the most positive proof the greatness 
+       of their mistake.  "Look here," he said, "this shows what sort of judges
+        you are." 
+
+id     6
+mrcol  A fable by Aesop: The Miller, His Son, and Their Ass: A MILLER and his s
+       on were driving their Ass to a neighboring fair to sell him.  They had n
+       ot gone far when they met with a troop of women collected round a well, 
+       talking and laughing.  "Look there," cried one of them, "did you ever se
+       e such fellows, to be trudging along the road on foot when they might ri
+       de?'  The old man hearing this, quickly made his son mount the Ass, and 
+       continued to walk along merrily by his side.  Presently they came up to 
+       a group of old men in earnest debate.  "There," said one of them, "it pr
+       oves what I was a-saying.  What respect is shown to old age in these day
+       s? Do you see that idle lad riding while his old father has to walk? Get
+        down, you young scapegrace, and let the old man rest his weary limbs." 
+        Upon this the old man made his son dismount, and got up himself.  In th
+       is manner they had not proceeded far when they met a company of women an
+       d children: "Why, you lazy old fellow," cried several tongues at once, "
+       how can you ride upon the beast, while that poor little lad there can ha
+       rdly keep pace by the side of you?'  The good-natured Miller immediately
+        took up his son behind him.  They had now almost reached the town.    "
+       Pray, honest friend," said a citizen, "is that Ass your own?'  "Yes," re
+       plied the old man.  "O, one would not have thought so," said the other, 
+       "by the way you load him. Why, you two fellows are better able to carry 
+       the poor beast than he you."  "Anything to please you," said the old man
+       ; "we can but try."  So, alighting with his son, they tied the legs of t
+       he Ass together and with the help of a pole endeavored to carry him on t
+       heir shoulders over a bridge near the entrance to the town. This enterta
+       ining sight brought the people in crowds to laugh at it, till the Ass, n
+       ot liking the noise nor the strange handling that he was subject to, bro
+       ke the cords that bound him and, tumbling off the pole, fell into the ri
+       ver.  Upon this, the old man, vexed and ashamed, made the best of his wa
+       y home again, convinced that by endeavoring to please everybody he had p
+       leased nobody, and lost his Ass in the bargain. 
+
+2 row(s) retrieved.
+
+
+
+select distinct mrcol 
+from   test_mr 
+order  by mrcol;
+
+
+mrcol  A fable by Aesop: The Buffoon and the Countryman : A RICH NOBLEMAN once 
+       opened the theaters without charge to the people, and gave a public noti
+       ce that he would handsomely reward any person who invented a new amuseme
+       nt for the occasion. Various public performers contended for the prize. 
+        Among them came a Buffoon well known among the populace for his jokes, 
+       and said that he had a kind of entertainment which had never been brough
+       t out on any stage before.  This report being spread about made a great 
+       stir, and the theater was crowded in every part. The Buffoon appeared al
+       one upon the platform, without any apparatus or confederates, and the ve
+       ry sense of expectation caused an intense silence.  He suddenly bent his
+        head towards his bosom and imitated the squeaking of a little pig so ad
+       mirably with his voice that the audience declared he had a porker under 
+       his cloak, and demanded that it should be shaken out.  When that was don
+       e and nothing was found, they cheered the actor, and loaded him with the
+        loudest applause.  A Countryman in the crowd, observing all that has pa
+       ssed, said, "So help me, Hercules, he shall not beat me at that trick!" 
+        and at once proclaimed that he would do the same thing on the next day,
+        though in a much more natural way.  On the morrow a still larger crowd 
+       assembled in the theater, but now partiality for their favorite actor ve
+       ry generally prevailed, and the audience came rather to ridicule the Cou
+       ntryman than to see the spectacle.  Both of the performers appeared on t
+       he stage.  The Buffoon grunted and squeaked away first, and obtained, as
+        on the preceding day, the applause and cheers of the spectators.  Next 
+       the Countryman commenced, and pretending that he concealed a little pig 
+       beneath his clothes (which in truth he did, but not suspected by the aud
+       ience ) contrived to take hold of and to pull his ear causing the pig to
+        squeak.  The Crowd, however, cried out with one consent that the Buffoo
+       n had given a far more exact imitation, and clamored for the Countryman 
+       to be kicked out of the theater.  On this the rustic produced the little
+        pig from his cloak and showed by the most positive proof the greatness 
+       of their mistake.  "Look here," he said, "this shows what sort of judges
+        you are." 
+
+mrcol  A fable by Aesop: The Miller, His Son, and Their Ass: A MILLER and his s
+       on were driving their Ass to a neighboring fair to sell him.  They had n
+       ot gone far when they met with a troop of women collected round a well, 
+       talking and laughing.  "Look there," cried one of them, "did you ever se
+       e such fellows, to be trudging along the road on foot when they might ri
+       de?'  The old man hearing this, quickly made his son mount the Ass, and 
+       continued to walk along merrily by his side.  Presently they came up to 
+       a group of old men in earnest debate.  "There," said one of them, "it pr
+       oves what I was a-saying.  What respect is shown to old age in these day
+       s? Do you see that idle lad riding while his old father has to walk? Get
+        down, you young scapegrace, and let the old man rest his weary limbs." 
+        Upon this the old man made his son dismount, and got up himself.  In th
+       is manner they had not proceeded far when they met a company of women an
+       d children: "Why, you lazy old fellow," cried several tongues at once, "
+       how can you ride upon the beast, while that poor little lad there can ha
+       rdly keep pace by the side of you?'  The good-natured Miller immediately
+        took up his son behind him.  They had now almost reached the town.    "
+       Pray, honest friend," said a citizen, "is that Ass your own?'  "Yes," re
+       plied the old man.  "O, one would not have thought so," said the other, 
+       "by the way you load him. Why, you two fellows are better able to carry 
+       the poor beast than he you."  "Anything to please you," said the old man
+       ; "we can but try."  So, alighting with his son, they tied the legs of t
+       he Ass together and with the help of a pole endeavored to carry him on t
+       heir shoulders over a bridge near the entrance to the town. This enterta
+       ining sight brought the people in crowds to laugh at it, till the Ass, n
+       ot liking the noise nor the strange handling that he was subject to, bro
+       ke the cords that bound him and, tumbling off the pole, fell into the ri
+       ver.  Upon this, the old man, vexed and ashamed, made the best of his wa
+       y home again, convinced that by endeavoring to please everybody he had p
+       leased nobody, and lost his Ass in the bargain. 
+
+2 row(s) retrieved.
+
+
+
+--
+-- 13. Send/Receive
+--
+
+--
+-- Lengths should be the same
+--
+select id, 
+       length(mrcol) mrcol_len,
+       length(idn_mrLvarcharRecv(idn_mrLvarcharSend(mrcol))) sendrecv_len
+from   test_mr
+order  by 1;
+
+         id   mrcol_len sendrecv_len 
+
+          5        2250         2250
+          6        2143         2143
+
+2 row(s) retrieved.
+
+
+
+--
+-- The "comparison" result should be 0
+--
+select id, 
+       Compare(mrcol,idn_mrLvarcharRecv(idn_mrLvarcharSend(mrcol))) comparison
+from   test_mr
+order  by 1;
+
+         id  comparison 
+
+          5           0
+          6           0
+
+2 row(s) retrieved.
+
+
+
+--
+-- The "equality" result should be 't'
+--
+select id, 
+       Equal(mrcol,idn_mrLvarcharRecv(idn_mrLvarcharSend(mrcol))) equality
+from   test_mr
+order  by 1;
+
+         id equality 
+
+          5        t
+          6        t
+
+2 row(s) retrieved.
+
+
+
+--
+-- 14. Clip: includes mr threshold check -- update large value to small 
+--
+select id, 
+       length(mrcol) mrcol_len 
+from   test_mr;
+
+         id   mrcol_len 
+
+          5        2250
+          6        2143
+
+2 row(s) retrieved.
+
+
+
+select id, 
+       clip(mrcol) mrcol_clipped 
+from   test_mr;
+
+
+id             5
+mrcol_clipped  A fable by Aesop: The Buffoon and the Countryman : A RICH NOBLEM
+               AN once opened the theaters without charge to the people, and ga
+               ve a public notice that he would handsomely reward any person wh
+               o invented a new amusement for the occasion. Various public per
+
+id             6
+mrcol_clipped  A fable by Aesop: The Miller, His Son, and Their Ass: A MILLER a
+               nd his son were driving their Ass to a neighboring fair to sell 
+               him.  They had not gone far when they met with a troop of women 
+               collected round a well, talking and laughing.  "Look there," cr
+
+2 row(s) retrieved.
+
+
+
+select id, 
+       length(clip(mrcol)) clipped_len
+from   test_mr;
+
+         id clipped_len 
+
+          5         255
+          6         255
+
+2 row(s) retrieved.
+
+
+
+select id, refcount(mrcol) refcount, mrcol from test_mr order by id;
+
+
+id        5
+refcount  1
+mrcol     A fable by Aesop: The Buffoon and the Countryman : A RICH NOBLEMAN on
+          ce opened the theaters without charge to the people, and gave a publi
+          c notice that he would handsomely reward any person who invented a ne
+          w amusement for the occasion. Various public performers contended for
+           the prize.  Among them came a Buffoon well known among the populace 
+          for his jokes, and said that he had a kind of entertainment which had
+           never been brought out on any stage before.  This report being sprea
+          d about made a great stir, and the theater was crowded in every part.
+           The Buffoon appeared alone upon the platform, without any apparatus 
+          or confederates, and the very sense of expectation caused an intense 
+          silence.  He suddenly bent his head towards his bosom and imitated th
+          e squeaking of a little pig so admirably with his voice that the audi
+          ence declared he had a porker under his cloak, and demanded that it s
+          hould be shaken out.  When that was done and nothing was found, they 
+          cheered the actor, and loaded him with the loudest applause.  A Count
+          ryman in the crowd, observing all that has passed, said, "So help me,
+           Hercules, he shall not beat me at that trick!"  and at once proclaim
+          ed that he would do the same thing on the next day, though in a much 
+          more natural way.  On the morrow a still larger crowd assembled in th
+          e theater, but now partiality for their favorite actor very generally
+           prevailed, and the audience came rather to ridicule the Countryman t
+          han to see the spectacle.  Both of the performers appeared on the sta
+          ge.  The Buffoon grunted and squeaked away first, and obtained, as on
+           the preceding day, the applause and cheers of the spectators.  Next 
+          the Countryman commenced, and pretending that he concealed a little p
+          ig beneath his clothes (which in truth he did, but not suspected by t
+          he audience ) contrived to take hold of and to pull his ear causing t
+          he pig to squeak.  The Crowd, however, cried out with one consent tha
+          t the Buffoon had given a far more exact imitation, and clamored for 
+          the Countryman to be kicked out of the theater.  On this the rustic p
+          roduced the little pig from his cloak and showed by the most positive
+           proof the greatness of their mistake.  "Look here," he said, "this s
+          hows what sort of judges you are." 
+
+id        6
+refcount  1
+mrcol     A fable by Aesop: The Miller, His Son, and Their Ass: A MILLER and hi
+          s son were driving their Ass to a neighboring fair to sell him.  They
+           had not gone far when they met with a troop of women collected round
+           a well, talking and laughing.  "Look there," cried one of them, "did
+           you ever see such fellows, to be trudging along the road on foot whe
+          n they might ride?'  The old man hearing this, quickly made his son m
+          ount the Ass, and continued to walk along merrily by his side.  Prese
+          ntly they came up to a group of old men in earnest debate.  "There," 
+          said one of them, "it proves what I was a-saying.  What respect is sh
+          own to old age in these days? Do you see that idle lad riding while h
+          is old father has to walk? Get down, you young scapegrace, and let th
+          e old man rest his weary limbs."  Upon this the old man made his son 
+          dismount, and got up himself.  In this manner they had not proceeded 
+          far when they met a company of women and children: "Why, you lazy old
+           fellow," cried several tongues at once, "how can you ride upon the b
+          east, while that poor little lad there can hardly keep pace by the si
+          de of you?'  The good-natured Miller immediately took up his son behi
+          nd him.  They had now almost reached the town.    "Pray, honest frien
+          d," said a citizen, "is that Ass your own?'  "Yes," replied the old m
+          an.  "O, one would not have thought so," said the other, "by the way 
+          you load him. Why, you two fellows are better able to carry the poor 
+          beast than he you."  "Anything to please you," said the old man; "we 
+          can but try."  So, alighting with his son, they tied the legs of the 
+          Ass together and with the help of a pole endeavored to carry him on t
+          heir shoulders over a bridge near the entrance to the town. This ente
+          rtaining sight brought the people in crowds to laugh at it, till the 
+          Ass, not liking the noise nor the strange handling that he was subjec
+          t to, broke the cords that bound him and, tumbling off the pole, fell
+           into the river.  Upon this, the old man, vexed and ashamed, made the
+           best of his way home again, convinced that by endeavoring to please 
+          everybody he had pleased nobody, and lost his Ass in the bargain. 
+
+2 row(s) retrieved.
+
+
+
+update test_mr
+set    mrcol = clip(mrcol)
+where  id=6;
+1 row(s) updated.
+
+
+
+select id, refcount(mrcol) refcount, mrcol from test_mr order by id;
+
+
+id        5
+refcount  1
+mrcol     A fable by Aesop: The Buffoon and the Countryman : A RICH NOBLEMAN on
+          ce opened the theaters without charge to the people, and gave a publi
+          c notice that he would handsomely reward any person who invented a ne
+          w amusement for the occasion. Various public performers contended for
+           the prize.  Among them came a Buffoon well known among the populace 
+          for his jokes, and said that he had a kind of entertainment which had
+           never been brought out on any stage before.  This report being sprea
+          d about made a great stir, and the theater was crowded in every part.
+           The Buffoon appeared alone upon the platform, without any apparatus 
+          or confederates, and the very sense of expectation caused an intense 
+          silence.  He suddenly bent his head towards his bosom and imitated th
+          e squeaking of a little pig so admirably with his voice that the audi
+          ence declared he had a porker under his cloak, and demanded that it s
+          hould be shaken out.  When that was done and nothing was found, they 
+          cheered the actor, and loaded him with the loudest applause.  A Count
+          ryman in the crowd, observing all that has passed, said, "So help me,
+           Hercules, he shall not beat me at that trick!"  and at once proclaim
+          ed that he would do the same thing on the next day, though in a much 
+          more natural way.  On the morrow a still larger crowd assembled in th
+          e theater, but now partiality for their favorite actor very generally
+           prevailed, and the audience came rather to ridicule the Countryman t
+          han to see the spectacle.  Both of the performers appeared on the sta
+          ge.  The Buffoon grunted and squeaked away first, and obtained, as on
+           the preceding day, the applause and cheers of the spectators.  Next 
+          the Countryman commenced, and pretending that he concealed a little p
+          ig beneath his clothes (which in truth he did, but not suspected by t
+          he audience ) contrived to take hold of and to pull his ear causing t
+          he pig to squeak.  The Crowd, however, cried out with one consent tha
+          t the Buffoon had given a far more exact imitation, and clamored for 
+          the Countryman to be kicked out of the theater.  On this the rustic p
+          roduced the little pig from his cloak and showed by the most positive
+           proof the greatness of their mistake.  "Look here," he said, "this s
+          hows what sort of judges you are." 
+
+id        6
+refcount  
+mrcol     A fable by Aesop: The Miller, His Son, and Their Ass: A MILLER and hi
+          s son were driving their Ass to a neighboring fair to sell him.  They
+           had not gone far when they met with a troop of women collected round
+           a well, talking and laughing.  "Look there," cr 
+
+2 row(s) retrieved.
+
+
+
+--
+-- clean up from this test
+--
+delete from test_mr;
+2 row(s) deleted.
+
+
+load from big_values.txt insert into test_mr;
+2 row(s) loaded.
+
+
+
+--
+-- 15. B-tree functional index
+--
+-- Clip returns a varchar(255), so it can participate in
+-- a B-tree index.
+--
+
+create index mrndx on test_mr(clip(mrcol));
+Index created.
+
+
+drop index mrndx;
+Index dropped.
+
+
+
+
+--
+-- 16. ConcatAll aggregate: including insert using result
+--
+
+select id, mrcol from test_mr order by id;
+
+
+id     5
+mrcol  A fable by Aesop: The Buffoon and the Countryman : A RICH NOBLEMAN once 
+       opened the theaters without charge to the people, and gave a public noti
+       ce that he would handsomely reward any person who invented a new amuseme
+       nt for the occasion. Various public performers contended for the prize. 
+        Among them came a Buffoon well known among the populace for his jokes, 
+       and said that he had a kind of entertainment which had never been brough
+       t out on any stage before.  This report being spread about made a great 
+       stir, and the theater was crowded in every part. The Buffoon appeared al
+       one upon the platform, without any apparatus or confederates, and the ve
+       ry sense of expectation caused an intense silence.  He suddenly bent his
+        head towards his bosom and imitated the squeaking of a little pig so ad
+       mirably with his voice that the audience declared he had a porker under 
+       his cloak, and demanded that it should be shaken out.  When that was don
+       e and nothing was found, they cheered the actor, and loaded him with the
+        loudest applause.  A Countryman in the crowd, observing all that has pa
+       ssed, said, "So help me, Hercules, he shall not beat me at that trick!" 
+        and at once proclaimed that he would do the same thing on the next day,
+        though in a much more natural way.  On the morrow a still larger crowd 
+       assembled in the theater, but now partiality for their favorite actor ve
+       ry generally prevailed, and the audience came rather to ridicule the Cou
+       ntryman than to see the spectacle.  Both of the performers appeared on t
+       he stage.  The Buffoon grunted and squeaked away first, and obtained, as
+        on the preceding day, the applause and cheers of the spectators.  Next 
+       the Countryman commenced, and pretending that he concealed a little pig 
+       beneath his clothes (which in truth he did, but not suspected by the aud
+       ience ) contrived to take hold of and to pull his ear causing the pig to
+        squeak.  The Crowd, however, cried out with one consent that the Buffoo
+       n had given a far more exact imitation, and clamored for the Countryman 
+       to be kicked out of the theater.  On this the rustic produced the little
+        pig from his cloak and showed by the most positive proof the greatness 
+       of their mistake.  "Look here," he said, "this shows what sort of judges
+        you are." 
+
+id     6
+mrcol  A fable by Aesop: The Miller, His Son, and Their Ass: A MILLER and his s
+       on were driving their Ass to a neighboring fair to sell him.  They had n
+       ot gone far when they met with a troop of women collected round a well, 
+       talking and laughing.  "Look there," cried one of them, "did you ever se
+       e such fellows, to be trudging along the road on foot when they might ri
+       de?'  The old man hearing this, quickly made his son mount the Ass, and 
+       continued to walk along merrily by his side.  Presently they came up to 
+       a group of old men in earnest debate.  "There," said one of them, "it pr
+       oves what I was a-saying.  What respect is shown to old age in these day
+       s? Do you see that idle lad riding while his old father has to walk? Get
+        down, you young scapegrace, and let the old man rest his weary limbs." 
+        Upon this the old man made his son dismount, and got up himself.  In th
+       is manner they had not proceeded far when they met a company of women an
+       d children: "Why, you lazy old fellow," cried several tongues at once, "
+       how can you ride upon the beast, while that poor little lad there can ha
+       rdly keep pace by the side of you?'  The good-natured Miller immediately
+        took up his son behind him.  They had now almost reached the town.    "
+       Pray, honest friend," said a citizen, "is that Ass your own?'  "Yes," re
+       plied the old man.  "O, one would not have thought so," said the other, 
+       "by the way you load him. Why, you two fellows are better able to carry 
+       the poor beast than he you."  "Anything to please you," said the old man
+       ; "we can but try."  So, alighting with his son, they tied the legs of t
+       he Ass together and with the help of a pole endeavored to carry him on t
+       heir shoulders over a bridge near the entrance to the town. This enterta
+       ining sight brought the people in crowds to laugh at it, till the Ass, n
+       ot liking the noise nor the strange handling that he was subject to, bro
+       ke the cords that bound him and, tumbling off the pole, fell into the ri
+       ver.  Upon this, the old man, vexed and ashamed, made the best of his wa
+       y home again, convinced that by endeavoring to please everybody he had p
+       leased nobody, and lost his Ass in the bargain. 
+
+2 row(s) retrieved.
+
+
+
+select ConcatAll(mrcol) concat_result
+from   test_mr;
+
+
+concat_result  A fable by Aesop: The Buffoon and the Countryman : A RICH NOBLEM
+               AN once opened the theaters without charge to the people, and ga
+               ve a public notice that he would handsomely reward any person wh
+               o invented a new amusement for the occasion. Various public perf
+               ormers contended for the prize.  Among them came a Buffoon well 
+               known among the populace for his jokes, and said that he had a k
+               ind of entertainment which had never been brought out on any sta
+               ge before.  This report being spread about made a great stir, an
+               d the theater was crowded in every part. The Buffoon appeared al
+               one upon the platform, without any apparatus or confederates, an
+               d the very sense of expectation caused an intense silence.  He s
+               uddenly bent his head towards his bosom and imitated the squeaki
+               ng of a little pig so admirably with his voice that the audience
+                declared he had a porker under his cloak, and demanded that it 
+               should be shaken out.  When that was done and nothing was found,
+                they cheered the actor, and loaded him with the loudest applaus
+               e.  A Countryman in the crowd, observing all that has passed, sa
+               id, "So help me, Hercules, he shall not beat me at that trick!" 
+                and at once proclaimed that he would do the same thing on the n
+               ext day, though in a much more natural way.  On the morrow a sti
+               ll larger crowd assembled in the theater, but now partiality for
+                their favorite actor very generally prevailed, and the audience
+                came rather to ridicule the Countryman than to see the spectacl
+               e.  Both of the performers appeared on the stage.  The Buffoon g
+               runted and squeaked away first, and obtained, as on the precedin
+               g day, the applause and cheers of the spectators.  Next the Coun
+               tryman commenced, and pretending that he concealed a little pig 
+               beneath his clothes (which in truth he did, but not suspected by
+                the audience ) contrived to take hold of and to pull his ear ca
+               using the pig to squeak.  The Crowd, however, cried out with one
+                consent that the Buffoon had given a far more exact imitation, 
+               and clamored for the Countryman to be kicked out of the theater.
+                 On this the rustic produced the little pig from his cloak and 
+               showed by the most positive proof the greatness of their mistake
+               .  "Look here," he said, "this shows what sort of judges you are
+               ."A fable by Aesop: The Miller, His Son, and Their Ass: A MILLER
+                and his son were driving their Ass to a neighboring fair to sel
+               l him.  They had not gone far when they met with a troop of wome
+               n collected round a well, talking and laughing.  "Look there," c
+               ried one of them, "did you ever see such fellows, to be trudging
+                along the road on foot when they might ride?'  The old man hear
+               ing this, quickly made his son mount the Ass, and continued to w
+               alk along merrily by his side.  Presently they came up to a grou
+               p of old men in earnest debate.  "There," said one of them, "it 
+               proves what I was a-saying.  What respect is shown to old age in
+                these days? Do you see that idle lad riding while his old fathe
+               r has to walk? Get down, you young scapegrace, and let the old m
+               an rest his weary limbs."  Upon this the old man made his son di
+               smount, and got up himself.  In this manner they had not proceed
+               ed far when they met a company of women and children: "Why, you 
+               lazy old fellow," cried several tongues at once, "how can you ri
+               de upon the beast, while that poor little lad there can hardly k
+               eep pace by the side of you?'  The good-natured Miller immediate
+               ly took up his son behind him.  They had now almost reached the 
+               town.    "Pray, honest friend," said a citizen, "is that Ass you
+               r own?'  "Yes," replied the old man.  "O, one would not have tho
+               ught so," said the other, "by the way you load him. Why, you two
+                fellows are better able to carry the poor beast than he you."  
+               "Anything to please you," said the old man; "we can but try."  S
+               o, alighting with his son, they tied the legs of the Ass togethe
+               r and with the help of a pole endeavored to carry him on their s
+               houlders over a bridge near the entrance to the town. This enter
+               taining sight brought the people in crowds to laugh at it, till 
+               the Ass, not liking the noise nor the strange handling that he w
+               as subject to, broke the cords that bound him and, tumbling off 
+               the pole, fell into the river.  Upon this, the old man, vexed an
+               d ashamed, made the best of his way home again, convinced that b
+               y endeavoring to please everybody he had pleased nobody, and los
+               t his Ass in the bargain. 
+
+1 row(s) retrieved.
+
+
+
+insert into test_mr values
+( (select max(id)+1 from test_mr),
+  "per_statement.sql",
+  (select ConcatAll(mrcol) from test_mr)
+);
+1 row(s) inserted.
+
+
+
+select * from test_mr
+order by id;
+
+
+id           5
+description  big value 
+mrcol        A fable by Aesop: The Buffoon and the Countryman : A RICH NOBLEMAN
+              once opened the theaters without charge to the people, and gave a
+              public notice that he would handsomely reward any person who inve
+             nted a new amusement for the occasion. Various public performers c
+             ontended for the prize.  Among them came a Buffoon well known amon
+             g the populace for his jokes, and said that he had a kind of enter
+             tainment which had never been brought out on any stage before.  Th
+             is report being spread about made a great stir, and the theater wa
+             s crowded in every part. The Buffoon appeared alone upon the platf
+             orm, without any apparatus or confederates, and the very sense of 
+             expectation caused an intense silence.  He suddenly bent his head 
+             towards his bosom and imitated the squeaking of a little pig so ad
+             mirably with his voice that the audience declared he had a porker 
+             under his cloak, and demanded that it should be shaken out.  When 
+             that was done and nothing was found, they cheered the actor, and l
+             oaded him with the loudest applause.  A Countryman in the crowd, o
+             bserving all that has passed, said, "So help me, Hercules, he shal
+             l not beat me at that trick!"  and at once proclaimed that he woul
+             d do the same thing on the next day, though in a much more natural
+              way.  On the morrow a still larger crowd assembled in the theater
+             , but now partiality for their favorite actor very generally preva
+             iled, and the audience came rather to ridicule the Countryman than
+              to see the spectacle.  Both of the performers appeared on the sta
+             ge.  The Buffoon grunted and squeaked away first, and obtained, as
+              on the preceding day, the applause and cheers of the spectators. 
+              Next the Countryman commenced, and pretending that he concealed a
+              little pig beneath his clothes (which in truth he did, but not su
+             spected by the audience ) contrived to take hold of and to pull hi
+             s ear causing the pig to squeak.  The Crowd, however, cried out wi
+             th one consent that the Buffoon had given a far more exact imitati
+             on, and clamored for the Countryman to be kicked out of the theate
+             r.  On this the rustic produced the little pig from his cloak and 
+             showed by the most positive proof the greatness of their mistake. 
+              "Look here," he said, "this shows what sort of judges you are." 
+
+id           6
+description  big value 
+mrcol        A fable by Aesop: The Miller, His Son, and Their Ass: A MILLER and
+              his son were driving their Ass to a neighboring fair to sell him.
+               They had not gone far when they met with a troop of women collec
+             ted round a well, talking and laughing.  "Look there," cried one o
+             f them, "did you ever see such fellows, to be trudging along the r
+             oad on foot when they might ride?'  The old man hearing this, quic
+             kly made his son mount the Ass, and continued to walk along merril
+             y by his side.  Presently they came up to a group of old men in ea
+             rnest debate.  "There," said one of them, "it proves what I was a-
+             saying.  What respect is shown to old age in these days? Do you se
+             e that idle lad riding while his old father has to walk? Get down,
+              you young scapegrace, and let the old man rest his weary limbs." 
+              Upon this the old man made his son dismount, and got up himself. 
+              In this manner they had not proceeded far when they met a company
+              of women and children: "Why, you lazy old fellow," cried several 
+             tongues at once, "how can you ride upon the beast, while that poor
+              little lad there can hardly keep pace by the side of you?'  The g
+             ood-natured Miller immediately took up his son behind him.  They h
+             ad now almost reached the town.    "Pray, honest friend," said a c
+             itizen, "is that Ass your own?'  "Yes," replied the old man.  "O, 
+             one would not have thought so," said the other, "by the way you lo
+             ad him. Why, you two fellows are better able to carry the poor bea
+             st than he you."  "Anything to please you," said the old man; "we 
+             can but try."  So, alighting with his son, they tied the legs of t
+             he Ass together and with the help of a pole endeavored to carry hi
+             m on their shoulders over a bridge near the entrance to the town. 
+             This entertaining sight brought the people in crowds to laugh at i
+             t, till the Ass, not liking the noise nor the strange handling tha
+             t he was subject to, broke the cords that bound him and, tumbling 
+             off the pole, fell into the river.  Upon this, the old man, vexed 
+             and ashamed, made the best of his way home again, convinced that b
+             y endeavoring to please everybody he had pleased nobody, and lost 
+             his Ass in the bargain. 
+
+id           7
+description  per_statement.sql 
+mrcol        A fable by Aesop: The Buffoon and the Countryman : A RICH NOBLEMAN
+              once opened the theaters without charge to the people, and gave a
+              public notice that he would handsomely reward any person who inve
+             nted a new amusement for the occasion. Various public performers c
+             ontended for the prize.  Among them came a Buffoon well known amon
+             g the populace for his jokes, and said that he had a kind of enter
+             tainment which had never been brought out on any stage before.  Th
+             is report being spread about made a great stir, and the theater wa
+             s crowded in every part. The Buffoon appeared alone upon the platf
+             orm, without any apparatus or confederates, and the very sense of 
+             expectation caused an intense silence.  He suddenly bent his head 
+             towards his bosom and imitated the squeaking of a little pig so ad
+             mirably with his voice that the audience declared he had a porker 
+             under his cloak, and demanded that it should be shaken out.  When 
+             that was done and nothing was found, they cheered the actor, and l
+             oaded him with the loudest applause.  A Countryman in the crowd, o
+             bserving all that has passed, said, "So help me, Hercules, he shal
+             l not beat me at that trick!"  and at once proclaimed that he woul
+             d do the same thing on the next day, though in a much more natural
+              way.  On the morrow a still larger crowd assembled in the theater
+             , but now partiality for their favorite actor very generally preva
+             iled, and the audience came rather to ridicule the Countryman than
+              to see the spectacle.  Both of the performers appeared on the sta
+             ge.  The Buffoon grunted and squeaked away first, and obtained, as
+              on the preceding day, the applause and cheers of the spectators. 
+              Next the Countryman commenced, and pretending that he concealed a
+              little pig beneath his clothes (which in truth he did, but not su
+             spected by the audience ) contrived to take hold of and to pull hi
+             s ear causing the pig to squeak.  The Crowd, however, cried out wi
+             th one consent that the Buffoon had given a far more exact imitati
+             on, and clamored for the Countryman to be kicked out of the theate
+             r.  On this the rustic produced the little pig from his cloak and 
+             showed by the most positive proof the greatness of their mistake. 
+              "Look here," he said, "this shows what sort of judges you are."A 
+             fable by Aesop: The Miller, His Son, and Their Ass: A MILLER and h
+             is son were driving their Ass to a neighboring fair to sell him.  
+             They had not gone far when they met with a troop of women collecte
+             d round a well, talking and laughing.  "Look there," cried one of 
+             them, "did you ever see such fellows, to be trudging along the roa
+             d on foot when they might ride?'  The old man hearing this, quickl
+             y made his son mount the Ass, and continued to walk along merrily 
+             by his side.  Presently they came up to a group of old men in earn
+             est debate.  "There," said one of them, "it proves what I was a-sa
+             ying.  What respect is shown to old age in these days? Do you see 
+             that idle lad riding while his old father has to walk? Get down, y
+             ou young scapegrace, and let the old man rest his weary limbs."  U
+             pon this the old man made his son dismount, and got up himself.  I
+             n this manner they had not proceeded far when they met a company o
+             f women and children: "Why, you lazy old fellow," cried several to
+             ngues at once, "how can you ride upon the beast, while that poor l
+             ittle lad there can hardly keep pace by the side of you?'  The goo
+             d-natured Miller immediately took up his son behind him.  They had
+              now almost reached the town.    "Pray, honest friend," said a cit
+             izen, "is that Ass your own?'  "Yes," replied the old man.  "O, on
+             e would not have thought so," said the other, "by the way you load
+              him. Why, you two fellows are better able to carry the poor beast
+              than he you."  "Anything to please you," said the old man; "we ca
+             n but try."  So, alighting with his son, they tied the legs of the
+              Ass together and with the help of a pole endeavored to carry him 
+             on their shoulders over a bridge near the entrance to the town. Th
+             is entertaining sight brought the people in crowds to laugh at it,
+              till the Ass, not liking the noise nor the strange handling that 
+             he was subject to, broke the cords that bound him and, tumbling of
+             f the pole, fell into the river.  Upon this, the old man, vexed an
+             d ashamed, made the best of his way home again, convinced that by 
+             endeavoring to please everybody he had pleased nobody, and lost hi
+             s Ass in the bargain. 
+
+3 row(s) retrieved.
+
+
+
+--
+-- 17. Union query
+--
+select 1, ConcatAll(mrcol) concat_result
+from   test_mr
+union
+select 2, ConcatAll(mrcol) concat_result
+from   test_mr
+order by 1;
+
+
+(constant)     1
+concat_result  A fable by Aesop: The Buffoon and the Countryman : A RICH NOBLEM
+               AN once opened the theaters without charge to the people, and ga
+               ve a public notice that he would handsomely reward any person wh
+               o invented a new amusement for the occasion. Various public perf
+               ormers contended for the prize.  Among them came a Buffoon well 
+               known among the populace for his jokes, and said that he had a k
+               ind of entertainment which had never been brought out on any sta
+               ge before.  This report being spread about made a great stir, an
+               d the theater was crowded in every part. The Buffoon appeared al
+               one upon the platform, without any apparatus or confederates, an
+               d the very sense of expectation caused an intense silence.  He s
+               uddenly bent his head towards his bosom and imitated the squeaki
+               ng of a little pig so admirably with his voice that the audience
+                declared he had a porker under his cloak, and demanded that it 
+               should be shaken out.  When that was done and nothing was found,
+                they cheered the actor, and loaded him with the loudest applaus
+               e.  A Countryman in the crowd, observing all that has passed, sa
+               id, "So help me, Hercules, he shall not beat me at that trick!" 
+                and at once proclaimed that he would do the same thing on the n
+               ext day, though in a much more natural way.  On the morrow a sti
+               ll larger crowd assembled in the theater, but now partiality for
+                their favorite actor very generally prevailed, and the audience
+                came rather to ridicule the Countryman than to see the spectacl
+               e.  Both of the performers appeared on the stage.  The Buffoon g
+               runted and squeaked away first, and obtained, as on the precedin
+               g day, the applause and cheers of the spectators.  Next the Coun
+               tryman commenced, and pretending that he concealed a little pig 
+               beneath his clothes (which in truth he did, but not suspected by
+                the audience ) contrived to take hold of and to pull his ear ca
+               using the pig to squeak.  The Crowd, however, cried out with one
+                consent that the Buffoon had given a far more exact imitation, 
+               and clamored for the Countryman to be kicked out of the theater.
+                 On this the rustic produced the little pig from his cloak and 
+               showed by the most positive proof the greatness of their mistake
+               .  "Look here," he said, "this shows what sort of judges you are
+               ."A fable by Aesop: The Miller, His Son, and Their Ass: A MILLER
+                and his son were driving their Ass to a neighboring fair to sel
+               l him.  They had not gone far when they met with a troop of wome
+               n collected round a well, talking and laughing.  "Look there," c
+               ried one of them, "did you ever see such fellows, to be trudging
+                along the road on foot when they might ride?'  The old man hear
+               ing this, quickly made his son mount the Ass, and continued to w
+               alk along merrily by his side.  Presently they came up to a grou
+               p of old men in earnest debate.  "There," said one of them, "it 
+               proves what I was a-saying.  What respect is shown to old age in
+                these days? Do you see that idle lad riding while his old fathe
+               r has to walk? Get down, you young scapegrace, and let the old m
+               an rest his weary limbs."  Upon this the old man made his son di
+               smount, and got up himself.  In this manner they had not proceed
+               ed far when they met a company of women and children: "Why, you 
+               lazy old fellow," cried several tongues at once, "how can you ri
+               de upon the beast, while that poor little lad there can hardly k
+               eep pace by the side of you?'  The good-natured Miller immediate
+               ly took up his son behind him.  They had now almost reached the 
+               town.    "Pray, honest friend," said a citizen, "is that Ass you
+               r own?'  "Yes," replied the old man.  "O, one would not have tho
+               ught so," said the other, "by the way you load him. Why, you two
+                fellows are better able to carry the poor beast than he you."  
+               "Anything to please you," said the old man; "we can but try."  S
+               o, alighting with his son, they tied the legs of the Ass togethe
+               r and with the help of a pole endeavored to carry him on their s
+               houlders over a bridge near the entrance to the town. This enter
+               taining sight brought the people in crowds to laugh at it, till 
+               the Ass, not liking the noise nor the strange handling that he w
+               as subject to, broke the cords that bound him and, tumbling off 
+               the pole, fell into the river.  Upon this, the old man, vexed an
+               d ashamed, made the best of his way home again, convinced that b
+               y endeavoring to please everybody he had pleased nobody, and los
+               t his Ass in the bargain.A fable by Aesop: The Buffoon and the C
+               ountryman : A RICH NOBLEMAN once opened the theaters without cha
+               rge to the people, and gave a public notice that he would handso
+               mely reward any person who invented a new amusement for the occa
+               sion. Various public performers contended for the prize.  Among 
+               them came a Buffoon well known among the populace for his jokes,
+                and said that he had a kind of entertainment which had never be
+               en brought out on any stage before.  This report being spread ab
+               out made a great stir, and the theater was crowded in every part
+               . The Buffoon appeared alone upon the platform, without any appa
+               ratus or confederates, and the very sense of expectation caused 
+               an intense silence.  He suddenly bent his head towards his bosom
+                and imitated the squeaking of a little pig so admirably with hi
+               s voice that the audience declared he had a porker under his clo
+               ak, and demanded that it should be shaken out.  When that was do
+               ne and nothing was found, they cheered the actor, and loaded him
+                with the loudest applause.  A Countryman in the crowd, observin
+               g all that has passed, said, "So help me, Hercules, he shall not
+                beat me at that trick!"  and at once proclaimed that he would d
+               o the same thing on the next day, though in a much more natural 
+               way.  On the morrow a still larger crowd assembled in the theate
+               r, but now partiality for their favorite actor very generally pr
+               evailed, and the audience came rather to ridicule the Countryman
+                than to see the spectacle.  Both of the performers appeared on 
+               the stage.  The Buffoon grunted and squeaked away first, and obt
+               ained, as on the preceding day, the applause and cheers of the s
+               pectators.  Next the Countryman commenced, and pretending that h
+               e concealed a little pig beneath his clothes (which in truth he 
+               did, but not suspected by the audience ) contrived to take hold 
+               of and to pull his ear causing the pig to squeak.  The Crowd, ho
+               wever, cried out with one consent that the Buffoon had given a f
+               ar more exact imitation, and clamored for the Countryman to be k
+               icked out of the theater.  On this the rustic produced the littl
+               e pig from his cloak and showed by the most positive proof the g
+               reatness of their mistake.  "Look here," he said, "this shows wh
+               at sort of judges you are."A fable by Aesop: The Miller, His Son
+               , and Their Ass: A MILLER and his son were driving their Ass to 
+               a neighboring fair to sell him.  They had not gone far when they
+                met with a troop of women collected round a well, talking and l
+               aughing.  "Look there," cried one of them, "did you ever see suc
+               h fellows, to be trudging along the road on foot when they might
+                ride?'  The old man hearing this, quickly made his son mount th
+               e Ass, and continued to walk along merrily by his side.  Present
+               ly they came up to a group of old men in earnest debate.  "There
+               ," said one of them, "it proves what I was a-saying.  What respe
+               ct is shown to old age in these days? Do you see that idle lad r
+               iding while his old father has to walk? Get down, you young scap
+               egrace, and let the old man rest his weary limbs."  Upon this th
+               e old man made his son dismount, and got up himself.  In this ma
+               nner they had not proceeded far when they met a company of women
+                and children: "Why, you lazy old fellow," cried several tongues
+                at once, "how can you ride upon the beast, while that poor litt
+               le lad there can hardly keep pace by the side of you?'  The good
+               -natured Miller immediately took up his son behind him.  They ha
+               d now almost reached the town.    "Pray, honest friend," said a 
+               citizen, "is that Ass your own?'  "Yes," replied the old man.  "
+               O, one would not have thought so," said the other, "by the way y
+               ou load him. Why, you two fellows are better able to carry the p
+               oor beast than he you."  "Anything to please you," said the old 
+               man; "we can but try."  So, alighting with his son, they tied th
+               e legs of the Ass together and with the help of a pole endeavore
+               d to carry him on their shoulders over a bridge near the entranc
+               e to the town. This entertaining sight brought the people in cro
+               wds to laugh at it, till the Ass, not liking the noise nor the s
+               trange handling that he was subject to, broke the cords that bou
+               nd him and, tumbling off the pole, fell into the river.  Upon th
+               is, the old man, vexed and ashamed, made the best of his way hom
+               e again, convinced that by endeavoring to please everybody he ha
+               d pleased nobody, and lost his Ass in the bargain. 
+
+(constant)     2
+concat_result  A fable by Aesop: The Buffoon and the Countryman : A RICH NOBLEM
+               AN once opened the theaters without charge to the people, and ga
+               ve a public notice that he would handsomely reward any person wh
+               o invented a new amusement for the occasion. Various public perf
+               ormers contended for the prize.  Among them came a Buffoon well 
+               known among the populace for his jokes, and said that he had a k
+               ind of entertainment which had never been brought out on any sta
+               ge before.  This report being spread about made a great stir, an
+               d the theater was crowded in every part. The Buffoon appeared al
+               one upon the platform, without any apparatus or confederates, an
+               d the very sense of expectation caused an intense silence.  He s
+               uddenly bent his head towards his bosom and imitated the squeaki
+               ng of a little pig so admirably with his voice that the audience
+                declared he had a porker under his cloak, and demanded that it 
+               should be shaken out.  When that was done and nothing was found,
+                they cheered the actor, and loaded him with the loudest applaus
+               e.  A Countryman in the crowd, observing all that has passed, sa
+               id, "So help me, Hercules, he shall not beat me at that trick!" 
+                and at once proclaimed that he would do the same thing on the n
+               ext day, though in a much more natural way.  On the morrow a sti
+               ll larger crowd assembled in the theater, but now partiality for
+                their favorite actor very generally prevailed, and the audience
+                came rather to ridicule the Countryman than to see the spectacl
+               e.  Both of the performers appeared on the stage.  The Buffoon g
+               runted and squeaked away first, and obtained, as on the precedin
+               g day, the applause and cheers of the spectators.  Next the Coun
+               tryman commenced, and pretending that he concealed a little pig 
+               beneath his clothes (which in truth he did, but not suspected by
+                the audience ) contrived to take hold of and to pull his ear ca
+               using the pig to squeak.  The Crowd, however, cried out with one
+                consent that the Buffoon had given a far more exact imitation, 
+               and clamored for the Countryman to be kicked out of the theater.
+                 On this the rustic produced the little pig from his cloak and 
+               showed by the most positive proof the greatness of their mistake
+               .  "Look here," he said, "this shows what sort of judges you are
+               ."A fable by Aesop: The Miller, His Son, and Their Ass: A MILLER
+                and his son were driving their Ass to a neighboring fair to sel
+               l him.  They had not gone far when they met with a troop of wome
+               n collected round a well, talking and laughing.  "Look there," c
+               ried one of them, "did you ever see such fellows, to be trudging
+                along the road on foot when they might ride?'  The old man hear
+               ing this, quickly made his son mount the Ass, and continued to w
+               alk along merrily by his side.  Presently they came up to a grou
+               p of old men in earnest debate.  "There," said one of them, "it 
+               proves what I was a-saying.  What respect is shown to old age in
+                these days? Do you see that idle lad riding while his old fathe
+               r has to walk? Get down, you young scapegrace, and let the old m
+               an rest his weary limbs."  Upon this the old man made his son di
+               smount, and got up himself.  In this manner they had not proceed
+               ed far when they met a company of women and children: "Why, you 
+               lazy old fellow," cried several tongues at once, "how can you ri
+               de upon the beast, while that poor little lad there can hardly k
+               eep pace by the side of you?'  The good-natured Miller immediate
+               ly took up his son behind him.  They had now almost reached the 
+               town.    "Pray, honest friend," said a citizen, "is that Ass you
+               r own?'  "Yes," replied the old man.  "O, one would not have tho
+               ught so," said the other, "by the way you load him. Why, you two
+                fellows are better able to carry the poor beast than he you."  
+               "Anything to please you," said the old man; "we can but try."  S
+               o, alighting with his son, they tied the legs of the Ass togethe
+               r and with the help of a pole endeavored to carry him on their s
+               houlders over a bridge near the entrance to the town. This enter
+               taining sight brought the people in crowds to laugh at it, till 
+               the Ass, not liking the noise nor the strange handling that he w
+               as subject to, broke the cords that bound him and, tumbling off 
+               the pole, fell into the river.  Upon this, the old man, vexed an
+               d ashamed, made the best of his way home again, convinced that b
+               y endeavoring to please everybody he had pleased nobody, and los
+               t his Ass in the bargain.A fable by Aesop: The Buffoon and the C
+               ountryman : A RICH NOBLEMAN once opened the theaters without cha
+               rge to the people, and gave a public notice that he would handso
+               mely reward any person who invented a new amusement for the occa
+               sion. Various public performers contended for the prize.  Among 
+               them came a Buffoon well known among the populace for his jokes,
+                and said that he had a kind of entertainment which had never be
+               en brought out on any stage before.  This report being spread ab
+               out made a great stir, and the theater was crowded in every part
+               . The Buffoon appeared alone upon the platform, without any appa
+               ratus or confederates, and the very sense of expectation caused 
+               an intense silence.  He suddenly bent his head towards his bosom
+                and imitated the squeaking of a little pig so admirably with hi
+               s voice that the audience declared he had a porker under his clo
+               ak, and demanded that it should be shaken out.  When that was do
+               ne and nothing was found, they cheered the actor, and loaded him
+                with the loudest applause.  A Countryman in the crowd, observin
+               g all that has passed, said, "So help me, Hercules, he shall not
+                beat me at that trick!"  and at once proclaimed that he would d
+               o the same thing on the next day, though in a much more natural 
+               way.  On the morrow a still larger crowd assembled in the theate
+               r, but now partiality for their favorite actor very generally pr
+               evailed, and the audience came rather to ridicule the Countryman
+                than to see the spectacle.  Both of the performers appeared on 
+               the stage.  The Buffoon grunted and squeaked away first, and obt
+               ained, as on the preceding day, the applause and cheers of the s
+               pectators.  Next the Countryman commenced, and pretending that h
+               e concealed a little pig beneath his clothes (which in truth he 
+               did, but not suspected by the audience ) contrived to take hold 
+               of and to pull his ear causing the pig to squeak.  The Crowd, ho
+               wever, cried out with one consent that the Buffoon had given a f
+               ar more exact imitation, and clamored for the Countryman to be k
+               icked out of the theater.  On this the rustic produced the littl
+               e pig from his cloak and showed by the most positive proof the g
+               reatness of their mistake.  "Look here," he said, "this shows wh
+               at sort of judges you are."A fable by Aesop: The Miller, His Son
+               , and Their Ass: A MILLER and his son were driving their Ass to 
+               a neighboring fair to sell him.  They had not gone far when they
+                met with a troop of women collected round a well, talking and l
+               aughing.  "Look there," cried one of them, "did you ever see suc
+               h fellows, to be trudging along the road on foot when they might
+                ride?'  The old man hearing this, quickly made his son mount th
+               e Ass, and continued to walk along merrily by his side.  Present
+               ly they came up to a group of old men in earnest debate.  "There
+               ," said one of them, "it proves what I was a-saying.  What respe
+               ct is shown to old age in these days? Do you see that idle lad r
+               iding while his old father has to walk? Get down, you young scap
+               egrace, and let the old man rest his weary limbs."  Upon this th
+               e old man made his son dismount, and got up himself.  In this ma
+               nner they had not proceeded far when they met a company of women
+                and children: "Why, you lazy old fellow," cried several tongues
+                at once, "how can you ride upon the beast, while that poor litt
+               le lad there can hardly keep pace by the side of you?'  The good
+               -natured Miller immediately took up his son behind him.  They ha
+               d now almost reached the town.    "Pray, honest friend," said a 
+               citizen, "is that Ass your own?'  "Yes," replied the old man.  "
+               O, one would not have thought so," said the other, "by the way y
+               ou load him. Why, you two fellows are better able to carry the p
+               oor beast than he you."  "Anything to please you," said the old 
+               man; "we can but try."  So, alighting with his son, they tied th
+               e legs of the Ass together and with the help of a pole endeavore
+               d to carry him on their shoulders over a bridge near the entranc
+               e to the town. This entertaining sight brought the people in cro
+               wds to laugh at it, till the Ass, not liking the noise nor the s
+               trange handling that he was subject to, broke the cords that bou
+               nd him and, tumbling off the pole, fell into the river.  Upon th
+               is, the old man, vexed and ashamed, made the best of his way hom
+               e again, convinced that by endeavoring to please everybody he ha
+               d pleased nobody, and lost his Ass in the bargain. 
+
+2 row(s) retrieved.
+
+
+
+select * from test_mr
+order by id;
+
+
+id           5
+description  big value 
+mrcol        A fable by Aesop: The Buffoon and the Countryman : A RICH NOBLEMAN
+              once opened the theaters without charge to the people, and gave a
+              public notice that he would handsomely reward any person who inve
+             nted a new amusement for the occasion. Various public performers c
+             ontended for the prize.  Among them came a Buffoon well known amon
+             g the populace for his jokes, and said that he had a kind of enter
+             tainment which had never been brought out on any stage before.  Th
+             is report being spread about made a great stir, and the theater wa
+             s crowded in every part. The Buffoon appeared alone upon the platf
+             orm, without any apparatus or confederates, and the very sense of 
+             expectation caused an intense silence.  He suddenly bent his head 
+             towards his bosom and imitated the squeaking of a little pig so ad
+             mirably with his voice that the audience declared he had a porker 
+             under his cloak, and demanded that it should be shaken out.  When 
+             that was done and nothing was found, they cheered the actor, and l
+             oaded him with the loudest applause.  A Countryman in the crowd, o
+             bserving all that has passed, said, "So help me, Hercules, he shal
+             l not beat me at that trick!"  and at once proclaimed that he woul
+             d do the same thing on the next day, though in a much more natural
+              way.  On the morrow a still larger crowd assembled in the theater
+             , but now partiality for their favorite actor very generally preva
+             iled, and the audience came rather to ridicule the Countryman than
+              to see the spectacle.  Both of the performers appeared on the sta
+             ge.  The Buffoon grunted and squeaked away first, and obtained, as
+              on the preceding day, the applause and cheers of the spectators. 
+              Next the Countryman commenced, and pretending that he concealed a
+              little pig beneath his clothes (which in truth he did, but not su
+             spected by the audience ) contrived to take hold of and to pull hi
+             s ear causing the pig to squeak.  The Crowd, however, cried out wi
+             th one consent that the Buffoon had given a far more exact imitati
+             on, and clamored for the Countryman to be kicked out of the theate
+             r.  On this the rustic produced the little pig from his cloak and 
+             showed by the most positive proof the greatness of their mistake. 
+              "Look here," he said, "this shows what sort of judges you are." 
+
+id           6
+description  big value 
+mrcol        A fable by Aesop: The Miller, His Son, and Their Ass: A MILLER and
+              his son were driving their Ass to a neighboring fair to sell him.
+               They had not gone far when they met with a troop of women collec
+             ted round a well, talking and laughing.  "Look there," cried one o
+             f them, "did you ever see such fellows, to be trudging along the r
+             oad on foot when they might ride?'  The old man hearing this, quic
+             kly made his son mount the Ass, and continued to walk along merril
+             y by his side.  Presently they came up to a group of old men in ea
+             rnest debate.  "There," said one of them, "it proves what I was a-
+             saying.  What respect is shown to old age in these days? Do you se
+             e that idle lad riding while his old father has to walk? Get down,
+              you young scapegrace, and let the old man rest his weary limbs." 
+              Upon this the old man made his son dismount, and got up himself. 
+              In this manner they had not proceeded far when they met a company
+              of women and children: "Why, you lazy old fellow," cried several 
+             tongues at once, "how can you ride upon the beast, while that poor
+              little lad there can hardly keep pace by the side of you?'  The g
+             ood-natured Miller immediately took up his son behind him.  They h
+             ad now almost reached the town.    "Pray, honest friend," said a c
+             itizen, "is that Ass your own?'  "Yes," replied the old man.  "O, 
+             one would not have thought so," said the other, "by the way you lo
+             ad him. Why, you two fellows are better able to carry the poor bea
+             st than he you."  "Anything to please you," said the old man; "we 
+             can but try."  So, alighting with his son, they tied the legs of t
+             he Ass together and with the help of a pole endeavored to carry hi
+             m on their shoulders over a bridge near the entrance to the town. 
+             This entertaining sight brought the people in crowds to laugh at i
+             t, till the Ass, not liking the noise nor the strange handling tha
+             t he was subject to, broke the cords that bound him and, tumbling 
+             off the pole, fell into the river.  Upon this, the old man, vexed 
+             and ashamed, made the best of his way home again, convinced that b
+             y endeavoring to please everybody he had pleased nobody, and lost 
+             his Ass in the bargain. 
+
+id           7
+description  per_statement.sql 
+mrcol        A fable by Aesop: The Buffoon and the Countryman : A RICH NOBLEMAN
+              once opened the theaters without charge to the people, and gave a
+              public notice that he would handsomely reward any person who inve
+             nted a new amusement for the occasion. Various public performers c
+             ontended for the prize.  Among them came a Buffoon well known amon
+             g the populace for his jokes, and said that he had a kind of enter
+             tainment which had never been brought out on any stage before.  Th
+             is report being spread about made a great stir, and the theater wa
+             s crowded in every part. The Buffoon appeared alone upon the platf
+             orm, without any apparatus or confederates, and the very sense of 
+             expectation caused an intense silence.  He suddenly bent his head 
+             towards his bosom and imitated the squeaking of a little pig so ad
+             mirably with his voice that the audience declared he had a porker 
+             under his cloak, and demanded that it should be shaken out.  When 
+             that was done and nothing was found, they cheered the actor, and l
+             oaded him with the loudest applause.  A Countryman in the crowd, o
+             bserving all that has passed, said, "So help me, Hercules, he shal
+             l not beat me at that trick!"  and at once proclaimed that he woul
+             d do the same thing on the next day, though in a much more natural
+              way.  On the morrow a still larger crowd assembled in the theater
+             , but now partiality for their favorite actor very generally preva
+             iled, and the audience came rather to ridicule the Countryman than
+              to see the spectacle.  Both of the performers appeared on the sta
+             ge.  The Buffoon grunted and squeaked away first, and obtained, as
+              on the preceding day, the applause and cheers of the spectators. 
+              Next the Countryman commenced, and pretending that he concealed a
+              little pig beneath his clothes (which in truth he did, but not su
+             spected by the audience ) contrived to take hold of and to pull hi
+             s ear causing the pig to squeak.  The Crowd, however, cried out wi
+             th one consent that the Buffoon had given a far more exact imitati
+             on, and clamored for the Countryman to be kicked out of the theate
+             r.  On this the rustic produced the little pig from his cloak and 
+             showed by the most positive proof the greatness of their mistake. 
+              "Look here," he said, "this shows what sort of judges you are."A 
+             fable by Aesop: The Miller, His Son, and Their Ass: A MILLER and h
+             is son were driving their Ass to a neighboring fair to sell him.  
+             They had not gone far when they met with a troop of women collecte
+             d round a well, talking and laughing.  "Look there," cried one of 
+             them, "did you ever see such fellows, to be trudging along the roa
+             d on foot when they might ride?'  The old man hearing this, quickl
+             y made his son mount the Ass, and continued to walk along merrily 
+             by his side.  Presently they came up to a group of old men in earn
+             est debate.  "There," said one of them, "it proves what I was a-sa
+             ying.  What respect is shown to old age in these days? Do you see 
+             that idle lad riding while his old father has to walk? Get down, y
+             ou young scapegrace, and let the old man rest his weary limbs."  U
+             pon this the old man made his son dismount, and got up himself.  I
+             n this manner they had not proceeded far when they met a company o
+             f women and children: "Why, you lazy old fellow," cried several to
+             ngues at once, "how can you ride upon the beast, while that poor l
+             ittle lad there can hardly keep pace by the side of you?'  The goo
+             d-natured Miller immediately took up his son behind him.  They had
+              now almost reached the town.    "Pray, honest friend," said a cit
+             izen, "is that Ass your own?'  "Yes," replied the old man.  "O, on
+             e would not have thought so," said the other, "by the way you load
+              him. Why, you two fellows are better able to carry the poor beast
+              than he you."  "Anything to please you," said the old man; "we ca
+             n but try."  So, alighting with his son, they tied the legs of the
+              Ass together and with the help of a pole endeavored to carry him 
+             on their shoulders over a bridge near the entrance to the town. Th
+             is entertaining sight brought the people in crowds to laugh at it,
+              till the Ass, not liking the noise nor the strange handling that 
+             he was subject to, broke the cords that bound him and, tumbling of
+             f the pole, fell into the river.  Upon this, the old man, vexed an
+             d ashamed, made the best of his way home again, convinced that by 
+             endeavoring to please everybody he had pleased nobody, and lost hi
+             s Ass in the bargain. 
+
+3 row(s) retrieved.
+
+
+
+--
+-- Cleanup
+--
+
+delete from test_mr;
+3 row(s) deleted.
+
+
+
+-- rename the explain output file to 'sqexplain.stm.log'
+
+
+-- ---------------------------------------------------------------
+-- END
+-- ---------------------------------------------------------------
+
+Database closed.
+

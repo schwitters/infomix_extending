@@ -1,0 +1,7 @@
+Demonstrates simple queries that use the regexp functions.
+
+Files
+~~~~~
+     README     This file.
+     demo.sql   Sample commands.
+     demo.log   Sample output.

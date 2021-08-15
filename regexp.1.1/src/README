@@ -1,0 +1,21 @@
+README            This file.
+
+c/                C source code.
+
+regexp.mak        Windows 2000: Microsoft DevStudio 6.0 makefile
+
+                      nmake /f mrLvarchar.mak CFG="regexp - Win32 Debug"
+
+regexpU.mak       UNIX makefile:
+
+                      setenv TARGET $INFORMIXDIR/incl/dbdk/makeinc.solaris 
+                      make -f regexpU.mak
+
+sol-gcc.mak       GNU gcc makefile that has only been tested on Solaris.
+
+                      setenv TARGET $INFORMIXDIR/incl/dbdk/makeinc.solaris 
+                      make -f sol-gcc.mak
+
+solaris-sparc/    DataBlade shared library built on Solaris.
+
+Win2K/            DataBlade DLL built on Windows 2000.

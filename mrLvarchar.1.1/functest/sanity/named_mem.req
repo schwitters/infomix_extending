@@ -1,0 +1,160 @@
+
+Database selected.
+
+-- ---------------------------------------------------------------
+-- 
+-- Module          : Functional Test for idn_mrLvarchar UDT
+-- Filename        : named_mem.sql
+-- PURPOSE
+-- 
+--    Tests mrLvarcharTemp() UDR.
+--
+-- negative.sh tests passing a bad option.
+--
+
+--
+-- Turn tracing on.
+--
+execute procedure TraceSet_mrLvarchar ("/tmp/named_mem.trc", 20);
+Routine executed.
+
+
+
+--
+-- mrLvarcharTemp() without an argument initializes the storage
+-- for intermediate objects to LO_TEMP
+--
+
+execute function mrLvarcharTemp();
+
+
+(expression)  LO_TEMP 
+
+1 row(s) retrieved.
+
+
+
+--
+-- Set each of the options supported
+--
+execute function mrLvarcharTemp("PER_ROUTINE");
+
+
+(expression)  PER_ROUTINE 
+
+1 row(s) retrieved.
+
+
+execute function mrLvarcharTemp();
+
+
+(expression)  PER_ROUTINE 
+
+1 row(s) retrieved.
+
+
+
+execute function mrLvarcharTemp("PER_COMMAND");
+
+
+(expression)  PER_COMMAND 
+
+1 row(s) retrieved.
+
+
+execute function mrLvarcharTemp();
+
+
+(expression)  PER_COMMAND 
+
+1 row(s) retrieved.
+
+
+
+execute function mrLvarcharTemp("PER_STATEMENT");
+
+
+(expression)  PER_STATEMENT 
+
+1 row(s) retrieved.
+
+
+execute function mrLvarcharTemp();
+
+
+(expression)  PER_STATEMENT 
+
+1 row(s) retrieved.
+
+
+
+execute function mrLvarcharTemp("PER_TRANSACTION");
+
+
+(expression)  PER_TRANSACTION 
+
+1 row(s) retrieved.
+
+
+execute function mrLvarcharTemp();
+
+
+(expression)  PER_TRANSACTION 
+
+1 row(s) retrieved.
+
+
+
+execute function mrLvarcharTemp("PER_SESSION");
+
+
+(expression)  PER_SESSION 
+
+1 row(s) retrieved.
+
+
+execute function mrLvarcharTemp();
+
+
+(expression)  PER_SESSION 
+
+1 row(s) retrieved.
+
+
+
+execute function mrLvarcharTemp("LO");
+
+
+(expression)  LO 
+
+1 row(s) retrieved.
+
+
+execute function mrLvarcharTemp();
+
+
+(expression)  LO 
+
+1 row(s) retrieved.
+
+
+
+execute function mrLvarcharTemp("LO_TEMP");
+
+
+(expression)  LO_TEMP 
+
+1 row(s) retrieved.
+
+
+execute function mrLvarcharTemp();
+
+
+(expression)  LO_TEMP 
+
+1 row(s) retrieved.
+
+
+
+Database closed.
+

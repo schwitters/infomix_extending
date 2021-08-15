@@ -1,0 +1,9 @@
+;
+; The following symbols are exported for
+; the TraceDemo DataBlade module.
+;
+DESCRIPTION 'This is the TraceDemo DataBlade module.'
+
+EXPORTS
+	UpOne
+	TraceSet_TraceDemo

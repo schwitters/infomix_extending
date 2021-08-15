@@ -1,0 +1,857 @@
+
+Database selected.
+
+-- ---------------------------------------------------------------
+-- 
+-- Module          : Functional Test for idn_mrLvarchar UDT
+-- Filename        : in-row.sql
+-- Description     : Sanity tests for small values.
+-- 
+--   Tests:
+--
+--      1. Input / Output / Copy
+--      2. Assign
+--	3. Length
+--      4. Sbspace
+--      5. Refcount
+--      6. LOHandles
+--      7. Update
+--      8. Concat
+--      9. Delete
+--     10. Import/Export
+--     11. Equal/NotEqual (+ rest of the search ops)
+--     12. Order by, distinct (Compare)
+--     13. Send/Receive
+--     14. Clip
+--     15. B-tree functional index
+--     16. ConcatAll aggregate: including insert using result
+--     17. Union query
+--
+--   Additional trace output is to /tmp/in-row.trc.
+-- ---------------------------------------------------------------
+
+--
+-- Turn tracing on.
+--
+execute procedure TraceSet_mrLvarchar ("/tmp/in-row.trc", 20);
+Routine executed.
+
+
+
+--
+-- Set explain on.
+--
+
+set explain on;
+Explain set.
+
+
+
+--
+-- 1. Input / Output / Copy
+--
+-- Calling the Input routine directly executes the Input
+-- routine to convert the text value into the UDT, then
+-- executes the Output routine to display the result.
+
+execute function idn_mrLvarcharIn("here is a small value");
+
+
+(expression)  here is a small value 
+
+1 row(s) retrieved.
+
+
+
+-- we can determine the intermediate result is not a smart blob
+-- by running lohandles() on the result, which returns 0 for
+-- non-sblobs.
+
+execute function lohandles(idn_mrLvarcharIn("here is a small value"));
+
+
+(expression)  0    
+
+1 row(s) retrieved.
+
+
+
+--
+-- Now call our function that makes a copy of the UDT value.
+--
+
+select DeepCopy(idn_mrLvarcharIn("here is a small value"))
+from systables
+where tabid=1;
+
+
+(expression)  here is a small value 
+
+1 row(s) retrieved.
+
+
+
+--
+-- 2. Assign
+--
+-- Inserting a value into a table executes the Input routine
+-- to convert the text value to the UDT, then the Assign
+-- routine just before it is written to the table.
+insert into test_mr values (0, "in-row.sql", "here is a small value");
+1 row(s) inserted.
+
+
+
+select * from test_mr where id=0;
+
+
+id           0
+description  in-row.sql 
+mrcol        here is a small value 
+
+1 row(s) retrieved.
+
+
+
+--
+-- 3. Length: should be data size + 8 bytes UDT header
+--
+select id, Length(mrcol) from test_mr where id=0;
+
+         id (expression) 
+
+          0           29
+
+1 row(s) retrieved.
+
+
+
+--
+-- 4. Sbspace: should return NULL for an in-row value
+--
+select id, Sbspace(mrcol) from test_mr where id=0;
+
+
+id            0
+(expression)   
+
+1 row(s) retrieved.
+
+
+
+--
+-- 5. Refcount: should return NULL for an in-row value
+--
+select id, Refcount(mrcol) from test_mr where id=0;
+
+         id (expression) 
+
+          0             
+
+1 row(s) retrieved.
+
+
+
+--
+-- 6. LOHandles: should return 0 for an in-row value
+--
+select id, LOHandles(mrcol) from test_mr where id=0;
+
+
+id            0
+(expression)  0    
+
+1 row(s) retrieved.
+
+
+
+--
+-- 7. Update: trace file will show input/assign for the 
+--            new value and a destroy for the old value.
+--
+update test_mr 
+set mrcol = "here is a modified small value"
+where id = 0;
+1 row(s) updated.
+
+
+
+select * from test_mr where id=0;
+
+
+id           0
+description  in-row.sql 
+mrcol        here is a modified small value 
+
+1 row(s) retrieved.
+
+
+
+--
+-- 8. Concat
+--
+select id, concat(mrcol,mrcol) from test_mr where id=0;
+
+
+id            0
+(expression)  here is a modified small valuehere is a modified small value 
+
+1 row(s) retrieved.
+
+
+
+--
+-- use the concat operator
+--
+select id, mrcol || ' and here is some more' from test_mr where id=0;
+
+
+id            0
+(expression)  here is a modified small value and here is some more 
+
+1 row(s) retrieved.
+
+
+
+select id, Concat(mrcol, ': the end')
+from   test_mr
+where  Concat(mrcol, ': the end') = "here is a modified small value: the end";
+
+
+id            0
+(expression)  here is a modified small value: the end 
+
+1 row(s) retrieved.
+
+
+
+--
+-- update the table based on the concat result
+--
+update test_mr
+     set mrcol = mrcol || ' and here is some more' 
+where id=0;
+1 row(s) updated.
+
+
+
+select * from test_mr where id=0;
+
+
+id           0
+description  in-row.sql 
+mrcol        here is a modified small value and here is some more 
+
+1 row(s) retrieved.
+
+
+
+--
+-- 9. Delete
+--
+delete from test_mr where id=0;
+1 row(s) deleted.
+
+
+
+select * from test_mr where id=0;
+
+
+No rows found.
+
+
+
+--
+-- 10. Import/Export
+--
+load from small_values.txt insert into test_mr;
+5 row(s) loaded.
+
+
+
+select * from test_mr order by 1;
+
+
+id           1
+description  in-row.sql 
+mrcol        one 
+
+id           2
+description  in-row.sql 
+mrcol        two 
+
+id           3
+description  in-row.sql 
+mrcol        three 
+
+id           4
+description  in-row.sql 
+mrcol        four 
+
+id           5
+description  in-row.sql 
+mrcol        five 
+
+5 row(s) retrieved.
+
+
+
+-- naming the output a .log means cleanup will remove it
+unload to small_valTEST.log select * from test_mr;
+5 row(s) unloaded.
+
+
+
+--
+-- 11. Equal/NotEqual
+--
+
+select id, mrcol from test_mr where mrcol = 'three';
+
+
+id     3
+mrcol  three 
+
+1 row(s) retrieved.
+
+
+select id, mrcol from test_mr where mrcol <> 'three' order by id;
+
+
+id     1
+mrcol  one 
+
+id     2
+mrcol  two 
+
+id     4
+mrcol  four 
+
+id     5
+mrcol  five 
+
+4 row(s) retrieved.
+
+
+select id, mrcol, 'one' > mrcol from test_mr order by id;
+
+
+id            1
+mrcol         one 
+(expression)  f
+
+id            2
+mrcol         two 
+(expression)  f
+
+id            3
+mrcol         three 
+(expression)  f
+
+id            4
+mrcol         four 
+(expression)  t
+
+id            5
+mrcol         five 
+(expression)  t
+
+5 row(s) retrieved.
+
+
+select id, mrcol, 'one' >= mrcol from test_mr order by id;
+
+
+id            1
+mrcol         one 
+(expression)  t
+
+id            2
+mrcol         two 
+(expression)  f
+
+id            3
+mrcol         three 
+(expression)  f
+
+id            4
+mrcol         four 
+(expression)  t
+
+id            5
+mrcol         five 
+(expression)  t
+
+5 row(s) retrieved.
+
+
+select id, mrcol, 'one' < mrcol from test_mr order by id;
+
+
+id            1
+mrcol         one 
+(expression)  f
+
+id            2
+mrcol         two 
+(expression)  t
+
+id            3
+mrcol         three 
+(expression)  t
+
+id            4
+mrcol         four 
+(expression)  f
+
+id            5
+mrcol         five 
+(expression)  f
+
+5 row(s) retrieved.
+
+
+select id, mrcol, 'one' <= mrcol from test_mr order by id;
+
+
+id            1
+mrcol         one 
+(expression)  t
+
+id            2
+mrcol         two 
+(expression)  t
+
+id            3
+mrcol         three 
+(expression)  t
+
+id            4
+mrcol         four 
+(expression)  f
+
+id            5
+mrcol         five 
+(expression)  f
+
+5 row(s) retrieved.
+
+
+
+--
+-- 12. Order by, distinct (Compare)
+--
+select * from test_mr order by mrcol;
+
+
+id           5
+description  in-row.sql 
+mrcol        five 
+
+id           4
+description  in-row.sql 
+mrcol        four 
+
+id           1
+description  in-row.sql 
+mrcol        one 
+
+id           3
+description  in-row.sql 
+mrcol        three 
+
+id           2
+description  in-row.sql 
+mrcol        two 
+
+5 row(s) retrieved.
+
+
+
+select distinct mrcol 
+from   test_mr
+order  by mrcol;
+
+
+mrcol  five 
+
+mrcol  four 
+
+mrcol  one 
+
+mrcol  three 
+
+mrcol  two 
+
+5 row(s) retrieved.
+
+
+
+--
+-- 13. Send/Receive
+--
+
+--
+-- lengths should be the same
+--
+select id, 
+       mrcol,
+       length(mrcol) mrcol_len,
+       idn_mrLvarcharRecv(idn_mrLvarcharSend(mrcol)) sendrecv_result,
+       length(idn_mrLvarcharRecv(idn_mrLvarcharSend(mrcol))) sendrecv_len
+from   test_mr
+order  by 1;
+
+
+id               1
+mrcol            one 
+mrcol_len        11
+sendrecv_result  one 
+sendrecv_len     11
+
+id               2
+mrcol            two 
+mrcol_len        11
+sendrecv_result  two 
+sendrecv_len     11
+
+id               3
+mrcol            three 
+mrcol_len        13
+sendrecv_result  three 
+sendrecv_len     13
+
+id               4
+mrcol            four 
+mrcol_len        12
+sendrecv_result  four 
+sendrecv_len     12
+
+id               5
+mrcol            five 
+mrcol_len        12
+sendrecv_result  five 
+sendrecv_len     12
+
+5 row(s) retrieved.
+
+
+
+--
+-- The "comparison" result should be 0
+--
+select id, 
+       mrcol,
+       idn_mrLvarcharRecv(idn_mrLvarcharSend(mrcol)) sendrecv_result,
+       Compare(mrcol,idn_mrLvarcharRecv(idn_mrLvarcharSend(mrcol))) comparison
+from   test_mr
+order  by 1;
+
+
+id               1
+mrcol            one 
+sendrecv_result  one 
+comparison       0
+
+id               2
+mrcol            two 
+sendrecv_result  two 
+comparison       0
+
+id               3
+mrcol            three 
+sendrecv_result  three 
+comparison       0
+
+id               4
+mrcol            four 
+sendrecv_result  four 
+comparison       0
+
+id               5
+mrcol            five 
+sendrecv_result  five 
+comparison       0
+
+5 row(s) retrieved.
+
+
+
+--
+-- The "equality" result should be 't'
+--
+select id, 
+       mrcol,
+       idn_mrLvarcharRecv(idn_mrLvarcharSend(mrcol)) sendrecv_result,
+       Equal(mrcol,idn_mrLvarcharRecv(idn_mrLvarcharSend(mrcol))) equality
+from   test_mr
+order  by 1;
+
+
+id               1
+mrcol            one 
+sendrecv_result  one 
+equality         t
+
+id               2
+mrcol            two 
+sendrecv_result  two 
+equality         t
+
+id               3
+mrcol            three 
+sendrecv_result  three 
+equality         t
+
+id               4
+mrcol            four 
+sendrecv_result  four 
+equality         t
+
+id               5
+mrcol            five 
+sendrecv_result  five 
+equality         t
+
+5 row(s) retrieved.
+
+
+
+--
+-- 14. Clip
+--
+
+--
+-- We need a larger entry that is still in-row.
+--
+insert into test_mr 
+values (
+6, 
+'in-row.sql', 
+'The Mouse, the Frog, and the Hawk: A MOUSE who always lived on the land, by an unlucky chance formed an intimate acquaintance with a Frog, who lived for the most part in the water.  The Frog, one day intent on mischief, bound the foot of the Mouse tightly to his own.  Thus joined together, the Frog first of all led his friend the Mouse to the meadow where they were accustomed to find their food.  After this, he gradually led him towards the pool in which he lived, until reaching the very brink, he suddenly jumped in, dragging the Mouse with him.  The Frog enjoyed the water amazingly, and swam croaking about, as if he had done a good deed.  The unhappy Mouse was soon suffocated by the water, and his dead body floated about on the surface, tied to the foot of the Frog.  A Hawk observed it, and, pouncing upon it with his talons, carried it aloft.  The Frog, being still fastened to the leg of the Mouse, was also carried off a prisoner, and was eaten by the Hawk.  (Moral: Harm hatch, harm catch.)');
+1 row(s) inserted.
+
+
+
+select id, 
+       length(mrcol) mrcol_len 
+from   test_mr;
+
+         id   mrcol_len 
+
+          1          11
+          2          11
+          3          13
+          4          12
+          5          12
+          6        1014
+
+6 row(s) retrieved.
+
+
+
+select id, 
+       clip(mrcol) mrcol_clipped 
+from   test_mr;
+
+
+id             1
+mrcol_clipped  one
+
+id             2
+mrcol_clipped  two
+
+id             3
+mrcol_clipped  three
+
+id             4
+mrcol_clipped  four
+
+id             5
+mrcol_clipped  five
+
+id             6
+mrcol_clipped  The Mouse, the Frog, and the Hawk: A MOUSE who always lived on t
+               he land, by an unlucky chance formed an intimate acquaintance wi
+               th a Frog, who lived for the most part in the water.  The Frog, 
+               one day intent on mischief, bound the foot of the Mouse tightly
+
+6 row(s) retrieved.
+
+
+
+select id, 
+       length(clip(mrcol)) clipped_len
+from   test_mr;
+
+         id clipped_len 
+
+          1           3
+          2           3
+          3           5
+          4           4
+          5           4
+          6         255
+
+6 row(s) retrieved.
+
+
+
+--
+-- 15. B-tree functional index
+--
+-- Clip returns a varchar(255), so it can participate in
+-- a B-tree index.
+--
+
+create index mrndx on test_mr(clip(mrcol));
+Index created.
+
+
+
+drop index mrndx;
+Index dropped.
+
+
+
+--
+-- 16. ConcatAll aggregate: including insert using result
+--
+delete from test_mr;
+6 row(s) deleted.
+
+
+
+insert into test_mr values (1, "in-row.sql", "one");
+1 row(s) inserted.
+
+
+insert into test_mr values (2, "in-row.sql", "two");
+1 row(s) inserted.
+
+
+insert into test_mr values (3, "in-row.sql", "three");
+1 row(s) inserted.
+
+
+insert into test_mr values (4, "in-row.sql", "four");
+1 row(s) inserted.
+
+
+insert into test_mr values (5, "in-row.sql", "five");
+1 row(s) inserted.
+
+
+
+select id, mrcol from test_mr;
+
+
+id     1
+mrcol  one 
+
+id     2
+mrcol  two 
+
+id     3
+mrcol  three 
+
+id     4
+mrcol  four 
+
+id     5
+mrcol  five 
+
+5 row(s) retrieved.
+
+
+
+select ConcatAll(mrcol) concat_result
+from   test_mr;
+
+
+concat_result  onetwothreefourfive 
+
+1 row(s) retrieved.
+
+
+
+--
+-- 17. Union query
+--
+select ConcatAll(mrcol) concat_result
+from   test_mr
+where  id < 3
+union
+select ConcatAll(mrcol) concat_result
+from   test_mr
+where  id > 3
+order by 1;
+
+
+concat_result  fourfive 
+
+concat_result  onetwo 
+
+2 row(s) retrieved.
+
+
+
+insert into test_mr values
+( (select max(id)+1 from test_mr),
+  "in-row.sql",
+  (select ConcatAll(mrcol) from test_mr)
+);
+1 row(s) inserted.
+
+
+
+select * from test_mr
+order by id;
+
+
+id           1
+description  in-row.sql 
+mrcol        one 
+
+id           2
+description  in-row.sql 
+mrcol        two 
+
+id           3
+description  in-row.sql 
+mrcol        three 
+
+id           4
+description  in-row.sql 
+mrcol        four 
+
+id           5
+description  in-row.sql 
+mrcol        five 
+
+id           6
+description  in-row.sql 
+mrcol        onetwothreefourfive 
+
+6 row(s) retrieved.
+
+
+
+--
+-- Cleanup
+--
+
+delete from test_mr;
+6 row(s) deleted.
+
+
+
+-- rename the explain output file to 'sqexplain.in-row.log'
+
+
+-- ---------------------------------------------------------------
+-- END
+-- ---------------------------------------------------------------
+
+Database closed.
+

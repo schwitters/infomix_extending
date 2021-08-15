@@ -1,0 +1,185 @@
+--------------------------------------------------------------------------------
+This directory contains scripts and data to run the demo/tests for
+the Sblob_Info 1.5 Bladelet.
+
+The demo is organized as follows:
+
+    1. Prerequisites for running the demo.
+    2. How to run the demo.
+    3. What the demo routines do.
+    4. List of files
+    5. Compiling the Bladelet
+
+--------------------------------------------------------------------------------
+1. Prerequisites
+--------------------------------------------------------------------------------
+    Before you run this demo, you must have:
+
+      a. Informix Dynamic Server.2000 version 9.20 up and running on your
+         machine.
+
+      b. The sblob_info.1.5 distribution files installed in your
+         $INFORMIXDIR/extend directory. (Create directory
+         $INFORMIXDIR/extend/sblob_info.1.5, then copy all of the 
+         files in the "scripts" directory, plus the sblob_info.bld file
+         in "src/solaris-sparc" (Solaris) or "src/WinNT-i386" (NT) to it.
+         Important: On NT your shared object file (sblob_info.bld) needs
+         to be assigned the "read-only" property, otherwise the server will
+         not load it at runtime.)
+
+      c. Your environment set up to access your Informix installation (e.g.,
+         your INFORMIXDIR variable set to the root of your installation,
+         and $INFORMIXDIR/bin in your $path).
+
+--------------------------------------------------------------------------------
+2. How to run the demo.
+--------------------------------------------------------------------------------
+    The demo is built with the Bourne shell, and will automatically under Unix.
+    It has been tested with MKS Toolkit on NT, as well as with Solaris 2.6.
+
+    To run the demo, just cd to the "demo" directory and type "main.sh" at the
+    command prompt:
+
+      % cd demo
+      % main.sh
+
+    The demo will provide some feedback as it progresses. Detailed output from
+    the demo is written to "/tmp/sblob_info.trc" using the DataBlade API
+    "DPRINTF" facility. (See the DataBlade API Programmer's Manual for details
+    concerning how to use DPRINTF.)
+
+    When the demo completes, you will be notified as to whether it succeeded
+    or not. Detailed output is written to "/tmp/sblob_info.trc".
+
+    If the demo succeeded, i.e., if the output from your run matches the
+    expected output, then the temporary files (setup.out, demo.out, and
+    demo.diff) are removed. The test database is *not* dropped, however,
+    and the /tmp/sblob_info.trc file is retained. You can experiment on
+    your own with SQL commands, or you can complete the cleanup by running
+    the "cleanup.sh" script.
+
+--------------------------------------------------------------------------------
+3. What the demo scripts do:
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+4. Files
+--------------------------------------------------------------------------------
+    This directory contains the following files:
+
+    README . . . . . . This file
+
+    ----------------------------------------------------------------------------
+    Shell Scripts:
+    --------------
+    main.sh  . . . . . The driver script for the test. This shell script
+                       runs "setup.sh" to initialize the test, and "demo.sh"
+                       to create the test table and run the SQL commands
+                       against it.
+
+    setup.sh . . . . . Script to create the test database ("SblobDB"), 
+                       and register the sblob_info.1.5 DataBlade.
+
+    demo.sh  . . . . . Script to call dbaccess and invoke each of the 
+                       sblob_info routines.
+
+    cleanup.sh . . . . Script to drop the test database and remove temp files.
+
+    ----------------------------------------------------------------------------
+    Miscellaneous:
+    --------------
+    /tmp/sblob_info.trc. . . Detailed trace output from the demo.
+
+    demo.std . . . . . . . . The expected output from a test run.
+
+    ./data . . . . . . . . . Contains data files loaded as sblobs. Note that
+                             these files are first copied to /tmp, since the
+                             paths are hard-coded in the test scripts.
+
+    ----------------------------------------------------------------------------
+    Temporary Files:
+    ----------------
+    The test creates several output files, all of which are removed if the
+    output from a test run matches the expected output ("demo.std"). If the
+    test run output does not match the standard, then these files are
+    retained for debugging purposes.
+
+    setup.out. . . . . Output from "setup.sh"
+
+    demo.out . . . . . Output from "demo.sh"
+
+    demo.diff. . . . . Summary of the differences between the expected output
+                       and the output from a test run.
+
+--------------------------------------------------------------------------------
+5. Compiling the Demo
+--------------------------------------------------------------------------------
+    You may wish to modify the sblob_info Bladelet to try out your own ideas. 
+    If you do, you'll need to build a new sblob_info.bld and replace the copy 
+    that comes precompiled with the bladelet. Here are some guidelines:
+
+    a. On Solaris, the sblob_info.bld file must be owned by user "informix",
+       and no other user can have write permission to it. Therefore, you should
+       plan to build a new copy as the informix user.
+
+       On NT, the .bld file must be marked "read-only" (use "file | properties"
+       from the explorer).
+
+    b. You'll need the following environment variables set:
+
+         $INFORMIXDIR    - path to your Informix installation
+
+         $ONCONFIG       - set to the name of your Informix configuration file
+                           (typically, "onconfig")
+
+         $INFORMIXSERVER - set to the value of either DBSERVERNAME or
+                           DBSERVERALIASES in your $INFORMIXDIR/etc/$ONCONFIG
+                           file.
+
+         UNIX:
+
+           $PATH           - include $INFORMIXDIR/bin,  /opt/SUNWspro/bin, and
+                             /usr/ccs/bin (for the "make" utility)
+
+           $TARGET         - point to $INFORMIXDIR/incl/dbdk/makeinc1.sol
+
+           $OS_NAME        - set to "solaris"
+
+           $PLATFORM       - set to "sparc"
+
+         NT:
+
+           $PATH           - include $INFORMIXDIR/bin and your VC++ bin 
+                             directory. (You may need to edit the
+                             "sblob_info.mak" file to set the VC++ directories
+                             for your machine.)
+
+    c. To build a new collections.bld, go to the "src" directory and:
+
+         UNIX:
+        
+             % make -f sblob_infoU.mak
+
+         or NT:
+
+             % nmake -f sblob_info.mak
+
+       On Solaris, you'll see a screenfull of unresolved symbols -- don't 
+       worry! You're building a shared object, and it references many symbols
+       that will be resolved at load time.
+
+       If you have a new sblob_info.bld file in the "solaris-sparc" or
+       "WinNT-i386" subdirectory, then your compile has succeeded.
+
+    d. Copy or move the new sblob_info.bld file to the
+       $INFORMIXDIR/extend/sblob_info.1.5 directory. Be sure that its owner
+       is "informix" and that no other user has write access.
+
+    e. Finally, "recycle" your server -- bring it down ("onmode -k", or use
+       the Control Panel | Services on NT) and back up again ("oninit", or
+       "Start"). This is the only way to guarantee that the old copy is no 
+       longer in memory, and to force the new one to be loaded when you run 
+       the demo.
+
+    Now run the demo and see if your changes worked as you hoped they would!
+--------------------------------------------------------------------------------

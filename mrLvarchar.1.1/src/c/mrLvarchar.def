@@ -1,0 +1,53 @@
+;
+; The following symbols are exported for
+; the mrLvarchar DataBlade module.
+;
+DESCRIPTION 'This is the mrLvarchar DataBlade module.'
+
+EXPORTS
+	idn_mrLvarcharInput
+	idn_mrLvarcharOutput
+	idn_mrLvarcharAssign
+	idn_mrLvarcharDestroy
+	idn_mrLvarcharDeepCopy
+	idn_mrLvarcharLOhandles
+	idn_mrLvarcharSend
+	idn_mrLvarcharReceive
+	idn_mrLvarcharImportBinary
+	idn_mrLvarcharExportBinary
+	idn_mrLvarcharImportText
+	idn_mrLvarcharExportText
+	idn_mrLvarcharCompare	
+	idn_mrLvarcharEqual
+	idn_mrLvarcharNotEqual
+	idn_mrLvarcharGreaterThan
+	idn_mrLvarcharGreaterThanOrEqual
+	idn_mrLvarcharLessThan
+	idn_mrLvarcharLessThanOrEqual
+	idn_mrLvarcharConcat
+	idn_mrLvarcharConcat_iter
+	idn_mrLvarcharClip
+	idn_mrLvarcharLength
+	idn_mrLvarcharIsLarge
+	idn_mrLvarcharIsSmall
+	idn_mrLvarcharSbspace
+	idn_mrLvarcharRefcount
+	TraceSet_mrLvarchar
+	mrLvarcharTemp_get
+	mrLvarcharTemp_set
+	mrLvarcharRelease
+	idn_mrLvarcharUpper
+	idn_mrLvarcharLower
+	idn_mrLvarchar_SubStr_2
+	idn_mrLvarchar_SubStr_3
+	idn_mrLvarchar_SubStrb_2
+	idn_mrLvarchar_SubStrb_3
+	idn_mrLvarchar_instr_2
+	idn_mrLvarchar_instr_3
+	idn_mrLvarchar_instr_4
+	idn_mrLvarchar_instrb_2
+	idn_mrLvarchar_instrb_3
+	idn_mrLvarchar_instrb_4
+        Regexp_Replace
+        Regexp_Replace_n
+        Regexp_Match

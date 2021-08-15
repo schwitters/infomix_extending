@@ -1,0 +1,39 @@
+Functional tests for the Regexp bladelet.
+
+
+Files
+~~~~~
+    README   This file.
+    main.sh  DBDK test harness.
+    *.sql    SQL scripts.
+    *.req    Baseline output.
+
+
+Instructions
+~~~~~~~~~~~~
+
+1) Create a database, for example:
+
+      dbaccess - -
+      > create database test with log;
+
+2) Register the Regexp bladelet in that database:
+
+      % blademgr
+      92_shm>register regexp.1.0 test
+
+3) Set the TESTDB environment variable. The following shows
+   C-Shell syntax:
+
+      % setenv TESTDB test
+
+4) Run the tests:
+
+      % main.sh all
+        regexp_extract: passed
+        regexp_match: passed
+        regexp_replace: passed
+        regexp_split: passed
+
+   'main.sh run' leaves *.log files in place and is useful if any
+   tests fail.

@@ -1,0 +1,34 @@
+;
+; The following symbols are exported for
+; the Node DataBlade module.
+;
+DESCRIPTION 'This is the Node DataBlade module.'
+
+EXPORTS
+	NodeLessThanOrEqual
+	NodeNotEqual
+	NodeExportText
+	NodeIsAncestor
+	NodeEqual
+	NodeInput
+	NodeCompare
+	NodeReceive
+	NodeNewLevel
+	NodeIsChild
+	NodeLessThan
+	NodeOutput
+	NodeSend
+	NodeIsDescendant
+	NodeIsParent
+	NodeLength
+	NodeGreaterThanOrEqual
+	NodeAncestors
+	NodeGetMember
+	NodeImportBinary
+	NodeImportText
+	NodeIncrCnt
+	NodeGraft
+	NodeGetParent
+	NodeIncr
+	NodeGreaterThan
+	NodeExportBinary

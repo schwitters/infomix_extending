@@ -1,0 +1,61 @@
+Functional tests for the mrLvarchar bladelet.
+
+
+Files
+~~~~~
+    README   This file.
+    main.sh  DBDK test harness.
+    *.sql    SQL scripts.
+    *.req    Baseline output.
+
+
+Instructions
+~~~~~~~~~~~~
+
+1) Create a database, for example:
+
+      dbaccess - -
+      > create database test with log;
+
+2) Register the mrLvarchar bladelet in that database:
+
+      % blademgr
+      92_shm>register idn_mrLvarchar.1.1 test
+
+3) Set the TESTDB environment variable. The following shows
+   C-Shell syntax:
+
+      % setenv TESTDB test
+
+4) Run the tests:
+
+      % main.sh all
+        regexp_extract: passed
+        regexp_match: passed
+        regexp_replace: passed
+        regexp_split: passed
+
+   'main.sh run' leaves *.log files in place and is useful if any
+   tests fail.
+
+
+-----------------------
+Windows 2000 / NT Note:
+-----------------------
+You can run the tests in an MKS korn/bourne shell. There are two
+problems that cause a diff against the baseline files to fail:
+
+  1. Negative tests cause output to be different because IDS errors
+     on Windows record a message at the end of the output; for example:
+
+          [1] + Done(134) ?
+            1748  Abort   dbaccess
+     
+  2. Some values are longer than the maximum 2K that MKS 'diff' can 
+     handle, resulting in errors like this:
+
+       diff: file "sblob.log": line too long: limit 2048
+       diff: file "sblob.req": line too long: limit 2048
+
+The mrLvarchar developer has been ftp'ing the Windows 2000 output
+to a UNIX machine, then diff'ing the files there.

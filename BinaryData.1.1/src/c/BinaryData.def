@@ -1,0 +1,19 @@
+;
+; The following symbols are exported for
+; the BinaryData DataBlade module.
+;
+DESCRIPTION 'This is the BinaryData DataBlade module.'
+
+EXPORTS
+	BinaryTypeNotEqual
+	BinaryTypeEqual
+	BinaryTypeCompare
+	BinaryTypeImportText
+	BinaryTypeImportBinary
+	BinaryTypeInput
+	BinaryTypeSend
+	BinaryTypeExportBinary
+	BinaryTypeExportText
+	BinaryTypeOutput
+	BinaryTypeReceive
+	WriteIt

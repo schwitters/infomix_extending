@@ -1,0 +1,164 @@
+
+  File:   Period/README
+
+  Intro
+  ~~~~~
+
+  This file describes the basic functionality of the Period
+ Bladelet. The idea is that this Blade is useful for managing
+ temporal information. The basic idea is illustrated by the 
+ example below. 
+
+  The Problem
+  ~~~~~~~~~~~
+
+  Consider a hotel. Each of the various rooms in the hotel is
+ reserved for various intervals. The basic problem is to
+ find rooms that are *not* reserved for a period of time. 
+ Another way to say this is to find rooms that are 'free' for
+ the approproate interval. (i.e. rooms for which there exists
+ no overlapping reservation).
+
+        Day:
+Room #: D1 D2 D3 D4 D5 D6 D7 D8 D9 D10 D11 D12 D13 D14 D15 D16 D17
+
+  1     |--|  |--|  |-----|     |--|---|       |-------|
+
+  2        |-----|     |-----|  |--|---|   |-------|       |---|
+
+  3           |--------------|     |-----------|       |---|
+
+  4        |--|  |--|--|--|  |-----|       |-------|   |-------|
+
+  5     |------------------------------------------------------|
+
+  6     |--|  |--|  |--|  |--|  |--|   |---|   |---|   |---|
+
+  7        |-----|     |-----|     |-------|       |-----------|
+
+  8           |-----|  |--------|              |---|
+
+  9        |-----|              |----------|   |-------|   |---|
+
+ 10     
+
+     Figure 1.
+
+
+  You might, in SQL-92, handle this as follows:
+
+  CREATE TABLE Reservations (
+	RoomNum		INTEGER		NOT NULL,
+	CheckIn		DATE		NOT NULL,
+	CheckOut	DATE		NOT NULL
+  );
+
+  Now, suppose you're trying to find all of the reservations that
+ Overlap a certain interval. The query ends up looking something
+ like this:
+
+  SELECT R.RoomNum
+    FROM Reservations R
+   WHERE NOT (( R.CheckOut < :StartDate ) OR ( R.CheckIn > :EndDate ));
+
+
+  The trouble with this query is the OR (disjunction) which makes
+ optimization difficult. On average, a reasonable DBMS will look
+ at this query, and it will elect to scan the entre table most
+ of the time. If you look at Figure 1. above you will see why. Room # 5
+ has a single reservation that stretches from D1 through D17. This
+ means that to solve either of the ( D < d ) predicates, you will need
+ to scan the index right from the start or right to the end. In
+ most cases, if the range is close to the middle, this will cause 
+ 1/2 an index scan. 
+
+  This kind of range query is a pretty general problem in the real
+ world whenever you handle have to deal with temporal data.
+
+ The Solution
+ ~~~~~~~~~~~~
+
+  This Period BladeLet is designed to help to solve this
+ problem. Basicly, all this BladeLet does is to implements a
+ new UDT (DateInterval) and a set of UDRs that make it useful.
+ The UDT encapsulates the begin_date/end_date for the interval.
+ The UDRs implements an indexing technique (R-trees) and a
+ set of interfaces (Constructors, Mutators, Operators and 
+ Interregators).
+
+  The public format for the UDT is simply: 'date to date'
+
+  For example:
+
+		'01/01/96 to 03/31/96'
+
+  The various constructor methods ensure that the start date is either
+ equal to the end date or preceeds it. The BladeLet obeys all of the usual
+ rules petaining to date formats.
+
+  Constructors
+  ~~~~~~~~~~~~
+
+  PeriodIn ( lvarchar )          -- Standard in function
+  Period   ( integer, integer ); -- Args as integer days since 12/31/1899
+  Period   ( date, date );       -- Args - First_Date, Last_Date
+
+  Operators 
+  ~~~~~~~~~
+
+  Equal           (Period, Period)
+  NotEqual        (Period, Period)
+
+  Overlap         (Period, Period)
+  Overlap         (Period, Period, INTEGER ) 
+  Contains        (Period, Period)
+  Contained       (Period, Period)
+
+  Misc 
+  ~~~~
+
+  Length          (Period)      -- Length in days. If start = finish, 0
+  Start		  (Period)      -- Start of Interval
+  Finish          (Period)      -- End of interval
+
+
+  Support
+  ~~~~~~~
+
+  Compare         (Period, Period) -- Useful for UNION, DISTINCT
+ 
+  Union                                          -- R-tree support functions.
+  Size
+  Inter
+
+
+  What's In this DIR
+  ~~~~~~~~~~~~~~~~~~
+
+   ./src
+
+      Source code and Makefiles for Solaris and NT
+
+   ./bin  
+
+      Binaries: bld. The install script (./register.sql) expects this
+    to be here.
+
+   ./install
+
+      Install scripts. This bladelet does not use the DataBlades 
+     infrastructure. It's fairly easy to put this into it though.
+
+   ./test
+
+      Func_Test.sql is the functional test suite for the BladeLet. The
+     coverage is pretty minimal, but if you find a bug, add it to the
+     list. 
+
+      
+   NOTE: Func-Test also contains a *really useful* scale test that
+  you might want to use for a demo.
+
+
+
+      

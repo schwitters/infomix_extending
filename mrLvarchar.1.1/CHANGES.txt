@@ -1,0 +1,224 @@
+---------------------------------------------
+DataBlade Developer notes for mrLvarchar 1.1
+---------------------------------------------
+
+This file is organized as follows:
+
+    1. SQL changes
+
+    2. Source code changes
+       2A. Multirep Threshold Change
+       2B. New Code
+       2C. Changes to Existing Code
+
+    3. Functional Tests
+
+    4. Demo
+
+    5. DeepCopy
+
+---------------
+1. SQL changes
+---------------
+
+mrLvarchar.1.1 adds these user-defined routines, which are described
+in the README file:
+
+  - Upper
+  - Lower
+  - Snip
+  - Regexp_Match / Regexp_Replace     (from regexp.1.0)
+  - Instr / Instrb                    (from SqlLibC.1.1)
+
+Note that the Regexp functions require a "regexp" VPCLASS.
+
+It also surfaces the rest of the standard search operators, which
+aren't documented in the README file:
+
+  - LessThan
+  - LessThanOrEqual
+  - GreaterThan
+  - GreaterThanOrEqual
+
+
+----------------------
+2. Source code changes
+----------------------
+
+2A. Multirep Threshold Change
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The multirep threshold changed from 1K to 2K, which affects the following:
+
+   - src/c/mrLvarchar.h
+
+     Now specifies this:
+
+        #define MAXLEN  2048
+
+   - scripts/objects.sql,test.sql
+
+     The opaque type create statement specifies a maxlen of 2048.
+
+   - functest/sanity
+
+     The functional tests had to be regenerated with larger values that 
+     would test the larger threshold.
+
+     ==>If you have been using the MKS toolkit to run the functional tests 
+        on NT, be aware that MKS 'diff' cannot work with data > 2048 bytes.
+        So effectively, you can no longer run these tests easily on NT or
+        Windows 2000.
+
+It is completely reasonable to change the threshold to whatever you want.
+To do so, you need to :
+
+   - mrLvarchar.h: modify MAXLEN, then recompile the blade
+
+   - objects.sql, test.sql: modify maxlen in the opaque type create statement
+
+   - Realize that functional tests might have different results when it
+     reports storage-related things, such as sbspace name and refcount.
+
+
+2B. New Code
+~~~~~~~~~~~~
+New source code was added for the new UDRs.
+
+The regexp functions use public domain source code from the University 
+of Toronto.  See all the info here:
+
+    http://www.informix.com/idn-secure/DataBlade/Library/regexp.htm
+
+
+2C. Changes to Existing Code
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The source code was cleaned up and reorganized as follows:
+
+ + new internal function: mrLvarchar_from_char() 
+
+   Constructor function that creates an mrLvarchar from a 
+   stream of bytes and length.
+
+   Previously, idn_mrLvarcharInput() did this, and other
+   functions that needed to create an mrLvarchar called
+   the Input function.
+
+   Separation was required because the Input function will
+   need to do GLS conversion, but the routines that take
+   an idn_mrLvarchar in its internal format and construct
+   a new mrLvarchar do not need to do codeset conversion.
+
+   Modified idn_mrLvarcharInput and idn_mrLvarcharConcat to
+   call the new mrLvarchar_from_char function.
+
+ + new internal function: mrLvarchar_to_char() 
+
+   Converts an mrLvarchar to a fully expanded mi_char *;
+   always returns allocated storage that stores a copy
+   of the data.
+
+   Modified idn_mrLvarcharOutput() to call this new function.
+
+   Most of the new functions use mrLvarchar_to_char() because
+   they return a new mrLvarchar object, such as:
+
+	upper
+	lower
+
+   The function can get a copy of the data with this function,
+   modify it as needed, then call mrLvarchar_from_char() to
+   convert the modified data to a mrLvarchar.
+
+   We end up making an extra copy of the data, but it simplifies
+   the code since the multirep-ness can be hidden.
+
+ + new internal function: mrLvarchar_to_char_opt() 
+
+   Returns a pointer to the data in an mrLvarchar. It is
+   "optimized" because the return value only gets allocated 
+   if the value was stored in a smart blob.
+
+   Modified idn_mrLvarcharCompare() to call this new function.
+
+ + new internal function: mrLvarchar_from_char() 
+
+ + new internal function: cache_get_ptr
+
+   Returns a pointer to the cache.
+
+ + new internal function: cache_free
+
+   Frees the in-memory cache.           
+
+ + Post 1.1 release change to idn_mrLvarcharCompare
+
+   Compare routine now calls ifx_gl_mbscoll instead of memcmp,
+   making the function GLS-compliant. Change made June 1, 2001.
+
+-------------------
+3. Functional Tests
+-------------------
+
+3A. Sanity
+~~~~~~~~~~
+
+The tests in functest/sanity were re-generated with data > 2K to test the
+new threshold. Adding data > 2K breaks the tests on NT and Windows 2000
+if you use MKS Toolkit to the run the tests. The mrLvarchar developer is
+dealing with this by ftp'ing the log files to UNIX and running 'diff' there.
+
+Also, in-row.sql changed to add tests for the rest of the standard
+search operators (LessThan, LessThanOrEqual, GreaterThan, GreaterThanOrEqual).
+
+
+3B. String Functions
+~~~~~~~~~~~~~~~~~~~~
+
+A new test directory was added, functest/strfuncs, with functional tests
+for the new string functions.
+
+-------
+4. Demo
+-------
+
+The demo directory has been split up into 4 subdirectories:
+
+  - data
+  - sql
+  - esqlc
+  - java
+
+
+The 'data' directory has a create script that creates the aesop table
+and loads the full set of Aesop's Fables Translated by George Fyler 
+Townsend.  The source file was ftp'd from Project Gutenberg 
+(http://www.promo.net/pg/), then put into Informix LOAD format.
+
+The 'sql' directory contains a demo SQL script.
+The 'esqlc' and 'java' directories contain sample programs.
+
+
+------------
+5. DeepCopy
+------------
+The DeepCopy UDR is the same as it was for mrLvarchar 1.0.
+
+The 9.3 server will start invoking DeepCopy. The following IDN tech note
+discusses the problem it fixes:
+
+   http://www.informix.com/idn-secure/DataBlade/Library/multirep.htm
+
+Right now, the mrLvarchar blade default is to store large intermediate 
+results in a smart large object. This is deliberately, and extremely,
+conservative. 
+
+Blade registration automatically creates the DeepCopy routine.
+
+So the default in 9.3 for this blade is smart blobs + DeepCopy, which 
+is way overkill.  When you get a 9.3 server, do one of the following:
+
+  - Keep the conservative smart blob behavior, but drop the DeepCopy UDR.
+
+  - Change your default handling of intermediate large objects to
+    PER_ROUTINE caching. DeepCopy makes this safe.
+

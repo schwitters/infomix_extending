@@ -1,0 +1,1592 @@
+
+Database selected.
+
+-----------------------------------------------------------------
+-- NAME
+--     regexp_split.sql
+--
+-- DESCRIPTION
+--     Functional tests for regexp_split() UDR.
+--
+--     Generated from the U of Toronto regexp tests like this:
+--
+--     + removed lines with a blank field from the 'tests' file and with 'c'
+--
+--     + ran this awk command again the 'tests' files:
+--
+--       BEGIN {FS="\t"; total=1}
+--        {print "-- " total++ ". regexp_extract result: '" $3 \
+--         "'\nexecute function regexp_split('" $2 "','" $1 "');\n"}
+--
+--     + Hand mangled what the result should really be, considering
+--       The Toronto 'try' result.
+--
+--       Since regexp_slit and regexp_extract return opposite results,
+--       regexp_extract results are also listed below.
+--
+--------------------------------------------------------------------------
+
+-- execute procedure traceset_regexp("/tmp/re_split.trc", 30);
+
+--
+-- 0-a. Boundary checks
+--
+
+-- Begin-line           : should return 'abcdefgabcdefg');
+execute function regexp_split ('abcdefgabcdefg', '^');
+
+
+(expression)  abcdefgabcdefg 
+
+1 row(s) retrieved.
+
+
+
+-- First character      : should return 'bcdefg' twice
+execute function regexp_split ('abcdefgabcdefg', 'a');
+
+
+(expression)  bcdefg 
+
+(expression)  bcdefg 
+
+2 row(s) retrieved.
+
+
+
+-- Just first character : should return 'bcdefgabcdefg' once
+execute function regexp_split ('abcdefgabcdefg', '^a');
+
+
+(expression)  bcdefgabcdefg 
+
+1 row(s) retrieved.
+
+
+
+-- First two characters : should return 'cdefg' twice
+execute function regexp_split ('abcdefgabcdefg', 'ab');
+
+
+(expression)  cdefg 
+
+(expression)  cdefg 
+
+2 row(s) retrieved.
+
+
+
+-- Just first two chars : should return 'cdefgabcdefg' once
+execute function regexp_split ('abcdefgabcdefg', '^ab');
+
+
+(expression)  cdefgabcdefg 
+
+1 row(s) retrieved.
+
+
+
+-- Second character     : should return 'a', 'cdefga', and 'cdefg'
+execute function regexp_split ('abcdefgabcdefg', 'b');
+
+
+(expression)  a 
+
+(expression)  cdefga 
+
+(expression)  cdefg 
+
+3 row(s) retrieved.
+
+
+
+-- Last character       : should return 'abcdef' twice
+execute function regexp_split ('abcdefgabcdefg', 'g');
+
+
+(expression)  abcdef 
+
+(expression)  abcdef 
+
+2 row(s) retrieved.
+
+
+
+-- Just last character  : should return 'abcdefgabcdef' just once
+execute function regexp_split ('abcdefgabcdefg', 'g$');
+
+
+(expression)  abcdefgabcdef 
+
+1 row(s) retrieved.
+
+
+
+-- End-of-line          : should return 'abcdefgabcdefg'
+execute function regexp_split ('abcdefgabcdefg', '$');
+
+
+(expression)  abcdefgabcdefg 
+
+1 row(s) retrieved.
+
+
+
+-- Nothing to return    : should return 'No rows found'
+execute function regexp_split ('abcdefgabcdefg', 'abcdefgabcdefg');
+
+
+No rows found.
+
+
+
+--
+-- 0-b. Run queries that popped boundary problems.
+--
+execute function regexp_split (
+    'Durable Construction Coupled with the Brightest Colors Available',
+    ' ' );
+
+
+(expression)  Durable 
+
+(expression)  Construction 
+
+(expression)  Coupled 
+
+(expression)  with 
+
+(expression)  the 
+
+(expression)  Brightest 
+
+(expression)  Colors 
+
+(expression)  Available 
+
+8 row(s) retrieved.
+
+
+
+execute function regexp_split (
+    'Durable Construction Coupled with the Brightest Colors Available',
+    'C[a-z]*' );
+
+
+(expression)  Durable  
+
+(expression)    
+
+(expression)   with the Brightest  
+
+(expression)   Available 
+
+4 row(s) retrieved.
+
+
+
+execute function regexp_split (
+    'Durable Construction Coupled with the Brightest Colors Available',
+    'C[a-z]*', 1 );
+
+
+(expression)  Durable Construction Coupled with the Brightest Colors Available 
+
+1 row(s) retrieved.
+
+
+
+execute function regexp_split (
+    'Durable Construction Coupled with the Brightest Colors Available',
+    'C[a-z]*', 2 );
+
+
+(expression)  Durable  
+
+(expression)   Coupled with the Brightest Colors Available 
+
+2 row(s) retrieved.
+
+
+
+execute function regexp_split (
+    'Durable Construction Coupled with the Brightest Colors Available',
+    'C[a-z]*', 3 );
+
+
+(expression)  Durable  
+
+(expression)    
+
+(expression)   with the Brightest Colors Available 
+
+3 row(s) retrieved.
+
+
+
+execute function regexp_split (
+    'Durable Construction Coupled with the Brightest Colors Available',
+    'C[a-z]*', 4 );
+
+
+(expression)  Durable  
+
+(expression)    
+
+(expression)   with the Brightest  
+
+(expression)   Available 
+
+4 row(s) retrieved.
+
+
+
+execute function regexp_split (
+    'Durable Construction Coupled with the Brightest Colors Available',
+    'C[a-z]*', 5 );
+
+
+(expression)  Durable  
+
+(expression)    
+
+(expression)   with the Brightest  
+
+(expression)   Available 
+
+4 row(s) retrieved.
+
+
+
+execute function regexp_split (
+   'Minimum Chin Contact, Feather-Light, Maximum Protection Helmet',
+   ' ');
+
+
+(expression)  Minimum 
+
+(expression)  Chin 
+
+(expression)  Contact, 
+
+(expression)  Feather-Light, 
+
+(expression)  Maximum 
+
+(expression)  Protection 
+
+(expression)  Helmet 
+
+7 row(s) retrieved.
+
+
+
+execute function regexp_split (
+   'Minimum Chin Contact, Feather-Light, Maximum Protection Helmet',
+   'M[a-z]*m');
+
+
+(expression)   Chin Contact, Feather-Light,  
+
+(expression)   Protection Helmet 
+
+2 row(s) retrieved.
+
+
+
+execute function regexp_split (
+   'Minimum Chin Contact, Feather-Light, Maximum Protection Helmet',
+   'M[a-z]*m', 1);
+
+
+(expression)  Minimum Chin Contact, Feather-Light, Maximum Protection Helmet 
+
+1 row(s) retrieved.
+
+
+
+--
+--  =================== Beginning of the Toronto Tests =================
+--
+-- 1. regexp_extract result: 'abc'
+--    regexp_split result  : no rows found
+execute function regexp_split('abc','abc');
+
+
+No rows found.
+
+
+
+-- 2. regexp_extract result: no rows found
+--    regexp_split result  : 'xbc'
+execute function regexp_split('xbc','abc');
+
+
+(expression)  xbc 
+
+1 row(s) retrieved.
+
+
+
+-- 3. regexp_extract result: no rows found
+--    regexp_split result  : 'axc'
+execute function regexp_split('axc','abc');
+
+
+(expression)  axc 
+
+1 row(s) retrieved.
+
+
+
+-- 4. regexp_extract result: no rows found
+--    regexp_split result  : 'abx'
+execute function regexp_split('abx','abc');
+
+
+(expression)  abx 
+
+1 row(s) retrieved.
+
+
+
+-- 5. regexp_extract result: 'abc'
+--    regexp_split result  : q1 'x' 
+--                              'y'
+--                           q2 'xabcy'
+execute function regexp_split('xabcy','abc');
+
+
+(expression)  x 
+
+(expression)  y 
+
+2 row(s) retrieved.
+
+
+execute function regexp_split('xabcy','abc', 1);
+
+
+(expression)  xabcy 
+
+1 row(s) retrieved.
+
+
+
+-- 6. regexp_extract result: 'abc'
+--    regexp_split result  : q1 'ab'
+--                           q2 'ababc'
+execute function regexp_split('ababc','abc');
+
+
+(expression)  ab 
+
+1 row(s) retrieved.
+
+
+execute function regexp_split('ababc','abc', 1);
+
+
+(expression)  ababc 
+
+1 row(s) retrieved.
+
+
+
+-- 7. regexp_extract result: 'abc'
+--    regexp_split result  : no rows found
+execute function regexp_split('abc','ab*c');
+
+
+No rows found.
+
+
+
+-- 8. regexp_extract result: 'abc'
+--    regexp_split result  : no rows found
+execute function regexp_split('abc','ab*bc');
+
+
+No rows found.
+
+
+
+-- 9. regexp_extract result: 'abbc'
+--    regexp_split result  : no rows found
+execute function regexp_split('abbc','ab*bc');
+
+
+No rows found.
+
+
+
+-- 10. regexp_extract result: 'abbbbc'
+--     regexp_split result  : no rows found
+execute function regexp_split('abbbbc','ab*bc');
+
+
+No rows found.
+
+
+
+-- 11. regexp_extract result: 'abbc'
+--     regexp_split result  : no rows found
+execute function regexp_split('abbc','ab+bc');
+
+
+No rows found.
+
+
+
+-- 12. regexp_extract result: no rows found
+--     regexp_split result  : 'abc'
+execute function regexp_split('abc','ab+bc');
+
+
+(expression)  abc 
+
+1 row(s) retrieved.
+
+
+
+-- 13. regexp_extract result: no rows found
+--     regexp_split result  : 'abq'
+execute function regexp_split('abq','ab+bc');
+
+
+(expression)  abq 
+
+1 row(s) retrieved.
+
+
+
+-- 14. regexp_extract result: 'abbbbc'
+--     regexp_split result  : no rows found
+execute function regexp_split('abbbbc','ab+bc');
+
+
+No rows found.
+
+
+
+-- 15. regexp_extract result: 'abbc'
+--     regexp_split result  : no rows found
+execute function regexp_split('abbc','ab?bc');
+
+
+No rows found.
+
+
+
+-- 16. regexp_extract result: 'abc'
+--     regexp_split result  : no rows found
+execute function regexp_split('abc','ab?bc');
+
+
+No rows found.
+
+
+
+-- 17. regexp_extract result: no rows found
+--     regexp_split result  : 'abbbbc'
+execute function regexp_split('abbbbc','ab?bc');
+
+
+(expression)  abbbbc 
+
+1 row(s) retrieved.
+
+
+
+-- 18. regexp_extract result: 'abc'
+--     regexp_split result  : no rows found
+execute function regexp_split('abc','ab?c');
+
+
+No rows found.
+
+
+
+-- 19. regexp_extract result: 'abc'
+--     regexp_split result  : no rows found
+execute function regexp_split('abc','^abc$');
+
+
+No rows found.
+
+
+
+-- 20. regexp_extract result: no rows found
+--     regexp_split result  : 'abcc'
+execute function regexp_split('abcc','^abc$');
+
+
+(expression)  abcc 
+
+1 row(s) retrieved.
+
+
+
+-- 21. regexp_extract result: 'abc'
+--     regexp_split   result: 'c'
+execute function regexp_split('abcc','^abc');
+
+
+(expression)  c 
+
+1 row(s) retrieved.
+
+
+
+-- 22. regexp_extract result: no rows found
+--     regexp_split   result: 'aabc'
+execute function regexp_split('aabc','^abc$');
+
+
+(expression)  aabc 
+
+1 row(s) retrieved.
+
+
+
+-- 23. regexp_extract result: 'abc'
+--     regexp_split   result: 'a'
+execute function regexp_split('aabc','abc$');
+
+
+(expression)  a 
+
+1 row(s) retrieved.
+
+
+
+-- 24. regexp_extract result: no rows found
+--     regexp_split   result: 'abc'
+execute function regexp_split('abc','^');
+
+
+(expression)  abc 
+
+1 row(s) retrieved.
+
+
+
+-- 25. regexp_extract result: no rows found
+--
+--     Explanation: regexp_match returns 't', but the match is
+--     0 length, so the IDS server determines no result.
+--
+--     regexp_split   result: 'abc'
+--
+execute function regexp_split('abc','$');
+
+
+(expression)  abc 
+
+1 row(s) retrieved.
+
+
+
+-- 26. regexp_extract result: 'abc'
+--     regexp_split   result: no rows found
+execute function regexp_split('abc','a.c');
+
+
+No rows found.
+
+
+
+-- 27. regexp_extract result: 'axc'
+--     regexp_split   result: no rows found
+execute function regexp_split('axc','a.c');
+
+
+No rows found.
+
+
+
+-- 28. regexp_extract result: 'axyzc'
+--     regexp_split   result: no rows found
+execute function regexp_split('axyzc','a.*c');
+
+
+No rows found.
+
+
+
+-- 29. regexp_extract result: no rows found
+--     regexp_split   result: 'axyzd'
+execute function regexp_split('axyzd','a.*c');
+
+
+(expression)  axyzd 
+
+1 row(s) retrieved.
+
+
+
+-- 30. regexp_extract result: no rows found
+--     regexp_split   result: 'abc'
+execute function regexp_split('abc','a[bc]d');
+
+
+(expression)  abc 
+
+1 row(s) retrieved.
+
+
+
+-- 31. regexp_extract result: 'abd'
+--     regexp_split   result: no rows found
+execute function regexp_split('abd','a[bc]d');
+
+
+No rows found.
+
+
+
+-- 32. regexp_extract result: no rows found
+--     regexp_split   result: 'abd'
+execute function regexp_split('abd','a[b-d]e');
+
+
+(expression)  abd 
+
+1 row(s) retrieved.
+
+
+
+-- 33. regexp_extract result: 'ace'
+--     regexp_split   result: no rows found
+execute function regexp_split('ace','a[b-d]e');
+
+
+No rows found.
+
+
+
+-- 34. regexp_extract result: 'ac'
+--     regexp_split   result: 'a'
+execute function regexp_split('aac','a[b-d]');
+
+
+(expression)  a 
+
+1 row(s) retrieved.
+
+
+
+-- 35. regexp_extract result: 'a-'
+--     regexp_split   result: no rows found
+execute function regexp_split('a-','a[-b]');
+
+
+No rows found.
+
+
+
+-- 36. regexp_extract result: 'a-'
+--     regexp_split   result: no rows found
+execute function regexp_split('a-','a[b-]');
+
+
+No rows found.
+
+
+
+-- 37. regexp_extract result: no rows found
+--     regexp_split   result: 'ab'
+execute function regexp_split('ab','[k]');
+
+
+(expression)  ab 
+
+1 row(s) retrieved.
+
+
+
+-- 38. regexp_extract result: 'a]'
+--     regexp_split   result: no rows found
+execute function regexp_split('a]','a]');
+
+
+No rows found.
+
+
+
+-- 39. regexp_extract result: 'a]b'
+--     regexp_split   result: no rows found
+execute function regexp_split('a]b','a[]]b');
+
+
+No rows found.
+
+
+
+-- 40. regexp_extract result: 'aed'
+--     regexp_split   result: no rows found
+execute function regexp_split('aed','a[^bc]d');
+
+
+No rows found.
+
+
+
+-- 41. regexp_extract result: no rows found
+--     regexp_split   result: 'abd'
+execute function regexp_split('abd','a[^bc]d');
+
+
+(expression)  abd 
+
+1 row(s) retrieved.
+
+
+
+-- 42. regexp_extract result: 'adc'
+--     regexp_split   result: no rows found
+execute function regexp_split('adc','a[^-b]c');
+
+
+No rows found.
+
+
+
+-- 43. regexp_extract result: no rows found
+--     regexp_split   result: 'a-c'
+execute function regexp_split('a-c','a[^-b]c');
+
+
+(expression)  a-c 
+
+1 row(s) retrieved.
+
+
+
+-- 44. regexp_extract result: no rows found
+--     regexp_split   result: 'a]c'
+execute function regexp_split('a]c','a[^]b]c');
+
+
+(expression)  a]c 
+
+1 row(s) retrieved.
+
+
+
+-- 45. regexp_extract result: 'adc'
+--     regexp_split   result: no rows found
+execute function regexp_split('adc','a[^]b]c');
+
+
+No rows found.
+
+
+
+-- 46. regexp_extract result: 'ab'
+--     regexp_split   result: q1 'c'
+--                            q2 'abc'
+execute function regexp_split('abc','ab|cd');
+
+
+(expression)  c 
+
+1 row(s) retrieved.
+
+
+execute function regexp_split('abc','ab|cd', 1);
+
+
+(expression)  abc 
+
+1 row(s) retrieved.
+
+
+
+-- 47. regexp_extract result: q1 'ab'
+--                               'cd'
+--                            q2 'ab'
+--
+--     regexp_split   result: q1 no rows returned
+--                            q2 'abcd'
+--
+execute function regexp_split('abcd','ab|cd');
+
+
+No rows found.
+
+
+execute function regexp_split('abcd','ab|cd',1);
+
+
+(expression)  abcd 
+
+1 row(s) retrieved.
+
+
+
+-- 48. regexp_extract result: 'ef'
+--     regexp_split   result: 'd'
+execute function regexp_split('def','()ef');
+
+
+(expression)  d 
+
+1 row(s) retrieved.
+
+
+
+-- 49. regexp_extract result: no rows found
+--     regexp_split   result: 'b'
+execute function regexp_split('b','$b');
+
+
+(expression)  b 
+
+1 row(s) retrieved.
+
+
+
+-- 50. regexp_extract result: 'a(b'
+--     regexp_split   result: no rows found
+execute function regexp_split('a(b','a\(b');
+
+
+No rows found.
+
+
+
+-- 51. regexp_extract result: 'ab'
+--     regexp_split   result: no rows found
+execute function regexp_split('ab','a\(*b');
+
+
+No rows found.
+
+
+
+-- 52. regexp_extract result: 'a((b'
+--     regexp_split   result: no rows found
+execute function regexp_split('a((b','a\(*b');
+
+
+No rows found.
+
+
+
+-- 53. regexp_extract result: 'a\b'
+--     regexp_split   result: no rows found
+execute function regexp_split('a\b','a\\b');
+
+
+No rows found.
+
+
+
+-- 54. regexp_extract result: 'a'
+--     regexp_split   result: 'bc' 
+execute function regexp_split('abc','((a))');
+
+
+(expression)  bc 
+
+1 row(s) retrieved.
+
+
+
+-- 55. regexp_extract result: 'abc'
+--     regexp_split   result: no rows found
+execute function regexp_split('abc','(a)b(c)');
+
+
+No rows found.
+
+
+
+-- 56. regexp_extract result: 'abc'
+--     regexp_split   result: 'aabb'
+execute function regexp_split('aabbabc','a+b+c');
+
+
+(expression)  aabb 
+
+1 row(s) retrieved.
+
+
+
+-- 57. regexp_extract result: 'ab'
+--     regexp_split   result: no rows found
+execute function regexp_split('ab','(a+|b)*');
+
+
+No rows found.
+
+
+
+-- 58. regexp_extract result: 'ab'
+--     regexp_split   result: no rows found
+execute function regexp_split('ab','(a+|b)+');
+
+
+No rows found.
+
+
+
+-- 59. regexp_extract result: q1 'a'
+--                               'b'
+--                            q2 'a'
+--
+--     regexp_split   result: q1 no rows found
+--                            q2 'ab'
+--
+execute function regexp_split('ab','(a+|b)?');
+
+
+No rows found.
+
+
+execute function regexp_split('ab','(a+|b)?', 1);
+
+
+(expression)  ab 
+
+1 row(s) retrieved.
+
+
+
+-- 60. regexp_extract result: 'cde'
+--     regexp_split   result: no rows found
+execute function regexp_split('cde','[^ab]*');
+
+
+No rows found.
+
+
+
+-- 61. regexp_extract result: 'abcd'
+--     regexp_split   result: no rows found
+execute function regexp_split('abcd','abcd');
+
+
+No rows found.
+
+
+
+-- 62. regexp_extract result: 'abcd'
+--     regexp_split   result: no rows found
+execute function regexp_split('abcd','a(bc)d');
+
+
+No rows found.
+
+
+
+-- 63. regexp_extract result: 'abbbcd'
+--     regexp_split   result: no rows found
+execute function regexp_split('abbbcd','([abc])*d');
+
+
+No rows found.
+
+
+
+-- 64. regexp_extract result: 'abcd'
+--     regexp_split   result: no rows found
+execute function regexp_split('abcd','([abc])*bcd');
+
+
+No rows found.
+
+
+
+-- 65. regexp_extract result: 'e'
+--     regexp_split   result: no rows found
+execute function regexp_split('e','a|b|c|d|e');
+
+
+No rows found.
+
+
+
+-- 66. regexp_extract result: 'ef'
+--     regexp_split   result: no rows found
+execute function regexp_split('ef','(a|b|c|d|e)f');
+
+
+No rows found.
+
+
+
+-- 67. regexp_extract result: 'abcdefg'
+--     regexp_split   result: no rows found
+execute function regexp_split('abcdefg','abcd*efg');
+
+
+No rows found.
+
+
+
+-- 68. regexp_extract result: q1 'ab'
+--                               'abbb'
+--                            q2 'ab'
+--
+--     regexp_split   result: q1 'x'
+--                               'y'
+--                               'z'
+--                            q2 'xabyabbbz'
+--                            q3 'x'
+--                               'yabbbz'
+--
+execute function regexp_split('xabyabbbz','ab*');
+
+
+(expression)  x 
+
+(expression)  y 
+
+(expression)  z 
+
+3 row(s) retrieved.
+
+
+execute function regexp_split('xabyabbbz','ab*',1);
+
+
+(expression)  xabyabbbz 
+
+1 row(s) retrieved.
+
+
+execute function regexp_split('xabyabbbz','ab*',2);
+
+
+(expression)  x 
+
+(expression)  yabbbz 
+
+2 row(s) retrieved.
+
+
+
+-- 69. regexp_extract result: q1 'a'
+--                               'abbb'
+--                            q2 'a'
+--
+--     regexp_split   result: q1 'x', 'y', 'z'
+--                            q2 'xayabbbz'
+--                            q3 'x', 'yabbbz'
+--
+execute function regexp_split('xayabbbz','ab*');
+
+
+(expression)  x 
+
+(expression)  y 
+
+(expression)  z 
+
+3 row(s) retrieved.
+
+
+execute function regexp_split('xayabbbz','ab*', 1);
+
+
+(expression)  xayabbbz 
+
+1 row(s) retrieved.
+
+
+execute function regexp_split('xayabbbz','ab*', 2);
+
+
+(expression)  x 
+
+(expression)  yabbbz 
+
+2 row(s) retrieved.
+
+
+
+-- 70. regexp_extract result: 'cde'
+--     regexp_split   result: 'ab'
+execute function regexp_split('abcde','(ab|cd)e');
+
+
+(expression)  ab 
+
+1 row(s) retrieved.
+
+
+
+-- 71. regexp_extract result: 'hij'
+--     regexp_split   result: no rows found
+execute function regexp_split('hij','[abhgefdc]ij');
+
+
+No rows found.
+
+
+
+-- 72. regexp_extract result: no rows found
+--     regexp_split   result: 'abcde'
+execute function regexp_split('abcde','^(ab|cd)e');
+
+
+(expression)  abcde 
+
+1 row(s) retrieved.
+
+
+
+-- 73. regexp_extract result: 'ef'
+--     regexp_split   result: 'abcd'
+execute function regexp_split('abcdef','(abc|)ef');
+
+
+(expression)  abcd 
+
+1 row(s) retrieved.
+
+
+
+-- 74. regexp_extract result: 'bcd'
+--     regexp_split   result: 'a'
+execute function regexp_split('abcd','(a|b)c*d');
+
+
+(expression)  a 
+
+1 row(s) retrieved.
+
+
+
+-- 75. regexp_extract result: 'abc'
+--     regexp_split   result: no rows found
+execute function regexp_split('abc','(ab|ab*)bc');
+
+
+No rows found.
+
+
+
+-- 76. regexp_extract result: 'abc'
+--     regexp_split   result: no rows found
+execute function regexp_split('abc','a([bc]*)c*');
+
+
+No rows found.
+
+
+
+-- 77. regexp_extract result: 'abcd'
+--     regexp_split   result: no rows found
+execute function regexp_split('abcd','a([bc]*)(c*d)');
+
+
+No rows found.
+
+
+
+-- 78. regexp_extract result: 'abcd'
+--     regexp_split   result: no rows found
+execute function regexp_split('abcd','a([bc]+)(c*d)');
+
+
+No rows found.
+
+
+
+-- 79. regexp_extract result: 'abcd'
+--     regexp_split   result: no rows found
+execute function regexp_split('abcd','a([bc]*)(c+d)');
+
+
+No rows found.
+
+
+
+-- 80. regexp_extract result: 'adcdcde'
+--     regexp_split   result: no rows found
+execute function regexp_split('adcdcde','a[bcd]*dcdcde');
+
+
+No rows found.
+
+
+
+-- 81. regexp_extract result: no rows found
+--     regexp_split   result: 'adcdcde'
+execute function regexp_split('adcdcde','a[bcd]+dcdcde');
+
+
+(expression)  adcdcde 
+
+1 row(s) retrieved.
+
+
+
+-- 82. regexp_extract result: 'abc'
+--     regexp_split   result: no rows found
+execute function regexp_split('abc','(ab|a)b*c');
+
+
+No rows found.
+
+
+
+-- 83. regexp_extract result: 'abcd'
+--     regexp_split   result: no rows found
+execute function regexp_split('abcd','((a)(b)c)(d)');
+
+
+No rows found.
+
+
+
+-- 84. regexp_extract result: 'abc'
+--     regexp_split   result: no rows found
+execute function regexp_split('abc','[ -~]*');
+
+
+No rows found.
+
+
+
+-- 85. regexp_extract result: 'abc'
+--     regexp_split   result: no rows found
+execute function regexp_split('abc','[ -~ -~]*');
+
+
+No rows found.
+
+
+
+-- 86. regexp_extract result: 'abc'
+--     regexp_split   result: no rows found
+execute function regexp_split('abc','[ -~ -~ -~]*');
+
+
+No rows found.
+
+
+
+-- 87. regexp_extract result: 'abc'
+--     regexp_split   result: no rows found
+execute function regexp_split('abc','[ -~ -~ -~ -~]*');
+
+
+No rows found.
+
+
+
+-- 88. regexp_extract result: 'abc'
+--     regexp_split   result: no rows found
+execute function regexp_split('abc','[ -~ -~ -~ -~ -~]*');
+
+
+No rows found.
+
+
+
+-- 89. regexp_extract result: 'abc'
+--     regexp_split   result: no rows found
+execute function regexp_split('abc','[ -~ -~ -~ -~ -~ -~]*');
+
+
+No rows found.
+
+
+
+-- 90. regexp_extract result: 'abc'
+--     regexp_split   result: no rows found
+execute function regexp_split('abc','[ -~ -~ -~ -~ -~ -~ -~]*');
+
+
+No rows found.
+
+
+
+-- 91. regexp_extract result: 'alpha'
+--     regexp_split   result: no rows found
+execute function regexp_split('alpha','[a-zA-Z_][a-zA-Z0-9_]*');
+
+
+No rows found.
+
+
+
+-- 92. regexp_extract result: 'bh'
+--     regexp_split   result: 'a'
+execute function regexp_split('abh','^a(bc+|b[eh])g|.h$');
+
+
+(expression)  a 
+
+1 row(s) retrieved.
+
+
+
+-- 93. regexp_extract result: 'effgz'
+--     regexp_split   result: no rows found
+execute function regexp_split('effgz','(bc+d$|ef*g.|h?i(j|k))');
+
+
+No rows found.
+
+
+
+-- 94. regexp_extract result: 'ij'
+--     regexp_split   result: no rows found
+execute function regexp_split('ij','(bc+d$|ef*g.|h?i(j|k))');
+
+
+No rows found.
+
+
+
+-- 95. regexp_extract result: no rows found
+--     regexp_split   result: 'effg'
+execute function regexp_split('effg','(bc+d$|ef*g.|h?i(j|k))');
+
+
+(expression)  effg 
+
+1 row(s) retrieved.
+
+
+
+-- 96. regexp_extract result: no rows found
+--     regexp_split   result: 'bcdd'
+execute function regexp_split('bcdd','(bc+d$|ef*g.|h?i(j|k))');
+
+
+(expression)  bcdd 
+
+1 row(s) retrieved.
+
+
+
+-- 97. regexp_extract result: 'effgz'
+--     regexp_split   result: 'r'
+execute function regexp_split('reffgz','(bc+d$|ef*g.|h?i(j|k))');
+
+
+(expression)  r 
+
+1 row(s) retrieved.
+
+
+
+-- 98. regexp_extract result: 'a'
+--     regexp_split   result: no rows found
+execute function regexp_split('a','(((((((((a)))))))))');
+
+
+No rows found.
+
+
+
+-- 99. regexp_extract result: no rows found
+--     regexp_split   result: 'uh-uh'
+execute function regexp_split('uh-uh','multiple words of text');
+
+
+(expression)  uh-uh 
+
+1 row(s) retrieved.
+
+
+
+-- 100. regexp_extract result: 'multiple words'
+--      regexp_split   result: ', yeah'
+execute function regexp_split('multiple words, yeah','multiple words');
+
+
+(expression)  , yeah 
+
+1 row(s) retrieved.
+
+
+
+-- 101. regexp_extract result: 'abcde'
+--     regexp_split    result: no rows found
+execute function regexp_split('abcde','(.*)c(.*)');
+
+
+No rows found.
+
+
+
+-- 102. regexp_extract result: '(a, b)'
+--     regexp_split    result: no rows found
+execute function regexp_split('(a, b)','\((.*), (.*)\)');
+
+
+No rows found.
+
+
+
+
+-- ======================= Negative tests =============================
+--
+-- Each of these should fail to compile the regular expression
+--
+
+EXECUTE FUNCTION regexp_split( 'abc' , 'a[b-a]' );
+
+
+(U0001) - invalid [] range
+Error in line 565
+Near character position 49
+
+EXECUTE FUNCTION regexp_split( 'abc' , 'a[]b' );
+
+
+(U0001) - unmatched []
+Error in line 566
+Near character position 47
+
+EXECUTE FUNCTION regexp_split( 'abc' , 'a[' );
+
+
+(U0001) - unmatched []
+Error in line 567
+Near character position 45
+
+EXECUTE FUNCTION regexp_split( 'abc' , '()*' );
+
+
+(U0001) - *+ operand could be empty
+Error in line 568
+Near character position 46
+
+EXECUTE FUNCTION regexp_split( 'abc' , '*a' );
+
+
+(U0001) - ?+* follows nothing
+Error in line 569
+Near character position 45
+
+EXECUTE FUNCTION regexp_split( 'abc' , '^*' );
+
+
+(U0001) - *+ operand could be empty
+Error in line 570
+Near character position 45
+
+EXECUTE FUNCTION regexp_split( 'abc' , '$*' );
+
+
+(U0001) - *+ operand could be empty
+Error in line 571
+Near character position 45
+
+EXECUTE FUNCTION regexp_split( 'abc' , '(*)b' );
+
+
+(U0001) - ?+* follows nothing
+Error in line 572
+Near character position 47
+
+EXECUTE FUNCTION regexp_split( 'abc' , 'a\' );
+
+
+(U0001) - trailing \
+Error in line 573
+Near character position 45
+
+EXECUTE FUNCTION regexp_split( 'abc' , 'abc)' );
+
+
+(U0001) - unmatched ()
+Error in line 574
+Near character position 47
+
+EXECUTE FUNCTION regexp_split( 'abc' , '(abc' );
+
+
+(U0001) - unmatched ()
+Error in line 575
+Near character position 47
+
+EXECUTE FUNCTION regexp_split( 'abc' , 'a**' );
+
+
+(U0001) - nested *?+
+Error in line 576
+Near character position 46
+
+EXECUTE FUNCTION regexp_split( 'abc' , 'a*?' );
+
+
+(U0001) - nested *?+
+Error in line 577
+Near character position 46
+
+EXECUTE FUNCTION regexp_split( 'abc' , '(a*)*' );
+
+
+(U0001) - *+ operand could be empty
+Error in line 578
+Near character position 48
+
+EXECUTE FUNCTION regexp_split( 'abc' , '(a*)+' );
+
+
+(U0001) - *+ operand could be empty
+Error in line 579
+Near character position 48
+
+EXECUTE FUNCTION regexp_split( 'abc' , '(a|)*' );
+
+
+(U0001) - *+ operand could be empty
+Error in line 580
+Near character position 48
+
+EXECUTE FUNCTION regexp_split( 'abc' , '(a*|b)*' );
+
+
+(U0001) - *+ operand could be empty
+Error in line 581
+Near character position 50
+
+EXECUTE FUNCTION regexp_split( 'abc' , '(^)*' );
+
+
+(U0001) - *+ operand could be empty
+Error in line 582
+Near character position 47
+
+EXECUTE FUNCTION regexp_split( 'abc' , '(ab|)*' );
+
+
+(U0001) - *+ operand could be empty
+Error in line 583
+Near character position 49
+
+EXECUTE FUNCTION regexp_split( 'abc' , ')(' );
+
+
+(U0001) - unmatched ()
+Error in line 584
+Near character position 45
+
+EXECUTE FUNCTION regexp_split( 'abc' , '((a*|b))*' );
+
+
+(U0001) - *+ operand could be empty
+Error in line 585
+Near character position 52
+
+EXECUTE FUNCTION regexp_split( 'abc' , '((((((((((a))))))))))' );
+
+
+(U0001) - too many ()
+Error in line 586
+Near character position 64
+
+
+
+Database closed.
+

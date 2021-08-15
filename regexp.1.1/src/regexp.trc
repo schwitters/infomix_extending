@@ -1,0 +1,47 @@
+
+============================================================
+
+Tracing session: 24 on 04/21/2012
+
+11:29:30  TraceSet_regexp: function exit.
+11:29:30  regexp_extract_n: function entry.
+11:29:30  regexp_extract_n: regexp_extract_n: SET_INIT
+11:29:49  ERROR: in Routine (regexp_extract)
+11:29:49  ERROR: Memory Allocation Failed
+11:29:49  ERROR: Routine aborted
+
+============================================================
+
+Tracing session: 4 on 04/21/2012
+
+15:29:18  TraceSet_regexp: function exit.
+15:29:18  regexp_extract_n: function entry.
+15:29:18  regexp_extract_n: regexp_extract_n: SET_INIT
+15:29:36  ERROR: in Routine (regexp_extract)
+15:29:36  ERROR: Memory Allocation Failed
+15:29:36  ERROR: Routine aborted
+
+============================================================
+
+Tracing session: 4 on 04/21/2012
+
+15:36:26  TraceSet_regexp: function exit.
+15:36:26  regexp_extract_n: function entry.
+15:36:26  regexp_extract_n: regexp_extract_n: SET_INIT
+15:36:26  regexp_extract_n: regexp_extract_n: Here 3
+15:36:44  ERROR: in Routine (regexp_extract)
+15:36:44  ERROR: Memory Allocation Failed
+15:36:44  ERROR: Routine aborted
+
+============================================================
+
+Tracing session: 4 on 04/21/2012
+
+17:31:50  TraceSet_regexp: function exit.
+17:31:50  regexp_extract_n: function entry.
+17:31:50  regexp_extract_n: regexp_extract_n: SET_INIT
+17:31:50  regexp_extract_n: regexp_extract_n: Here 2
+17:31:50  regexp_extract_n: regexp_extract_n: Here 3
+17:32:10  ERROR: in Routine (regexp_extract)
+17:32:10  ERROR: Memory Allocation Failed
+17:32:10  ERROR: Routine aborted

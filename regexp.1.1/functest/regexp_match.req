@@ -1,0 +1,1358 @@
+
+Database selected.
+
+-----------------------------------------------------------------
+-- NAME
+--     regexp_match.sql
+--
+-- DESCRIPTION
+--     Functional tests for regexp_match() UDR.
+--
+--     Generated from the U of Toronto regexp tests like this:
+--
+--     + removed lines with a blank field from the 'tests' file and with 'c'
+--
+--     + ran this awk command again the 'tests' files:
+--
+--       BEGIN {FS="\t"; total=1}
+--        {print "-- " total++ ". result: '" $3 \
+--         "'\nexecute function regexp_match('" $2 "','" $1 "');\n"}
+--
+--     + Hand mangled the script further. Change toronto 'n' to 'f'
+--       and 'y' to 't', to match SQL output. 
+--
+--     + negative tests are at the bottom of this file.
+-----------------------------------------------------------------
+
+-- execute procedure traceset_regexp("/tmp/re_match.trc", 30);
+
+-- 1. result: 't'
+execute function regexp_match('abc','abc');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 2. result: 'f'
+execute function regexp_match('xbc','abc');
+
+(expression) 
+
+           f
+
+1 row(s) retrieved.
+
+
+
+-- 3. result: 'f'
+execute function regexp_match('axc','abc');
+
+(expression) 
+
+           f
+
+1 row(s) retrieved.
+
+
+
+-- 4. result: 'f'
+execute function regexp_match('abx','abc');
+
+(expression) 
+
+           f
+
+1 row(s) retrieved.
+
+
+
+-- 5. result: 't'
+execute function regexp_match('xabcy','abc');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 6. result: 't'
+execute function regexp_match('ababc','abc');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 7. result: 't'
+execute function regexp_match('abc','ab*c');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 8. result: 't'
+execute function regexp_match('abc','ab*bc');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 9. result: 't'
+execute function regexp_match('abbc','ab*bc');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 10. result: 't'
+execute function regexp_match('abbbbc','ab*bc');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 11. result: 't'
+execute function regexp_match('abbc','ab+bc');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 12. result: 'f'
+execute function regexp_match('abc','ab+bc');
+
+(expression) 
+
+           f
+
+1 row(s) retrieved.
+
+
+
+-- 13. result: 'f'
+execute function regexp_match('abq','ab+bc');
+
+(expression) 
+
+           f
+
+1 row(s) retrieved.
+
+
+
+-- 14. result: 't'
+execute function regexp_match('abbbbc','ab+bc');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 15. result: 't'
+execute function regexp_match('abbc','ab?bc');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 16. result: 't'
+execute function regexp_match('abc','ab?bc');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 17. result: 'f'
+execute function regexp_match('abbbbc','ab?bc');
+
+(expression) 
+
+           f
+
+1 row(s) retrieved.
+
+
+
+-- 18. result: 't'
+execute function regexp_match('abc','ab?c');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 19. result: 't'
+execute function regexp_match('abc','^abc$');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 20. result: 'f'
+execute function regexp_match('abcc','^abc$');
+
+(expression) 
+
+           f
+
+1 row(s) retrieved.
+
+
+
+-- 21. result: 't'
+execute function regexp_match('abcc','^abc');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 22. result: 'f'
+execute function regexp_match('aabc','^abc$');
+
+(expression) 
+
+           f
+
+1 row(s) retrieved.
+
+
+
+-- 23. result: 't'
+execute function regexp_match('aabc','abc$');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 24. result: 't'
+execute function regexp_match('abc','^');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 25. result: 't'
+execute function regexp_match('abc','$');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 26. result: 't'
+execute function regexp_match('abc','a.c');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 27. result: 't'
+execute function regexp_match('axc','a.c');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 28. result: 't'
+execute function regexp_match('axyzc','a.*c');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 29. result: 'f'
+execute function regexp_match('axyzd','a.*c');
+
+(expression) 
+
+           f
+
+1 row(s) retrieved.
+
+
+
+-- 30. result: 'f'
+execute function regexp_match('abc','a[bc]d');
+
+(expression) 
+
+           f
+
+1 row(s) retrieved.
+
+
+
+-- 31. result: 't'
+execute function regexp_match('abd','a[bc]d');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 32. result: 'f'
+execute function regexp_match('abd','a[b-d]e');
+
+(expression) 
+
+           f
+
+1 row(s) retrieved.
+
+
+
+-- 33. result: 't'
+execute function regexp_match('ace','a[b-d]e');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 34. result: 't'
+execute function regexp_match('aac','a[b-d]');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 35. result: 't'
+execute function regexp_match('a-','a[-b]');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 36. result: 't'
+execute function regexp_match('a-','a[b-]');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 37. result: 'f'
+execute function regexp_match('ab','[k]');
+
+(expression) 
+
+           f
+
+1 row(s) retrieved.
+
+
+
+-- 38. result: 't'
+execute function regexp_match('a]','a]');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 39. result: 't'
+execute function regexp_match('a]b','a[]]b');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 40. result: 't'
+execute function regexp_match('aed','a[^bc]d');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 41. result: 'f'
+execute function regexp_match('abd','a[^bc]d');
+
+(expression) 
+
+           f
+
+1 row(s) retrieved.
+
+
+
+-- 42. result: 't'
+execute function regexp_match('adc','a[^-b]c');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 43. result: 'f'
+execute function regexp_match('a-c','a[^-b]c');
+
+(expression) 
+
+           f
+
+1 row(s) retrieved.
+
+
+
+-- 44. result: 'f'
+execute function regexp_match('a]c','a[^]b]c');
+
+(expression) 
+
+           f
+
+1 row(s) retrieved.
+
+
+
+-- 45. result: 't'
+execute function regexp_match('adc','a[^]b]c');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 46. result: 't'
+execute function regexp_match('abc','ab|cd');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 47. result: 't'
+execute function regexp_match('abcd','ab|cd');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 48. result: 't'
+execute function regexp_match('def','()ef');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 49. result: 'f'
+execute function regexp_match('b','$b');
+
+(expression) 
+
+           f
+
+1 row(s) retrieved.
+
+
+
+-- 50. result: 't'
+execute function regexp_match('a(b','a\(b');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 51. result: 't'
+execute function regexp_match('ab','a\(*b');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 52. result: 't'
+execute function regexp_match('a((b','a\(*b');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 53. result: 't'
+execute function regexp_match('a\b','a\\b');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 54. result: 't'
+execute function regexp_match('abc','((a))');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 55. result: 't'
+execute function regexp_match('abc','(a)b(c)');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 56. result: 't'
+execute function regexp_match('aabbabc','a+b+c');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 57. result: 't'
+execute function regexp_match('ab','(a+|b)*');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 58. result: 't'
+execute function regexp_match('ab','(a+|b)+');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 59. result: 't'
+execute function regexp_match('ab','(a+|b)?');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 60. result: 't'
+execute function regexp_match('cde','[^ab]*');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 61. result: 't'
+execute function regexp_match('abcd','abcd');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 62. result: 't'
+execute function regexp_match('abcd','a(bc)d');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 63. result: 't'
+execute function regexp_match('abbbcd','([abc])*d');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 64. result: 't'
+execute function regexp_match('abcd','([abc])*bcd');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 65. result: 't'
+execute function regexp_match('e','a|b|c|d|e');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 66. result: 't'
+execute function regexp_match('ef','(a|b|c|d|e)f');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 67. result: 't'
+execute function regexp_match('abcdefg','abcd*efg');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 68. result: 't'
+execute function regexp_match('xabyabbbz','ab*');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 69. result: 't'
+execute function regexp_match('xayabbbz','ab*');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 70. result: 't'
+execute function regexp_match('abcde','(ab|cd)e');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 71. result: 't'
+execute function regexp_match('hij','[abhgefdc]ij');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 72. result: 'f'
+execute function regexp_match('abcde','^(ab|cd)e');
+
+(expression) 
+
+           f
+
+1 row(s) retrieved.
+
+
+
+-- 73. result: 't'
+execute function regexp_match('abcdef','(abc|)ef');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 74. result: 't'
+execute function regexp_match('abcd','(a|b)c*d');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 75. result: 't'
+execute function regexp_match('abc','(ab|ab*)bc');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 76. result: 't'
+execute function regexp_match('abc','a([bc]*)c*');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 77. result: 't'
+execute function regexp_match('abcd','a([bc]*)(c*d)');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 78. result: 't'
+execute function regexp_match('abcd','a([bc]+)(c*d)');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 79. result: 't'
+execute function regexp_match('abcd','a([bc]*)(c+d)');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 80. result: 't'
+execute function regexp_match('adcdcde','a[bcd]*dcdcde');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 81. result: 'f'
+execute function regexp_match('adcdcde','a[bcd]+dcdcde');
+
+(expression) 
+
+           f
+
+1 row(s) retrieved.
+
+
+
+-- 82. result: 't'
+execute function regexp_match('abc','(ab|a)b*c');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 83. result: 't'
+execute function regexp_match('abcd','((a)(b)c)(d)');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 84. result: 't'
+execute function regexp_match('abc','[ -~]*');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 85. result: 't'
+execute function regexp_match('abc','[ -~ -~]*');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 86. result: 't'
+execute function regexp_match('abc','[ -~ -~ -~]*');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 87. result: 't'
+execute function regexp_match('abc','[ -~ -~ -~ -~]*');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 88. result: 't'
+execute function regexp_match('abc','[ -~ -~ -~ -~ -~]*');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 89. result: 't'
+execute function regexp_match('abc','[ -~ -~ -~ -~ -~ -~]*');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 90. result: 't'
+execute function regexp_match('abc','[ -~ -~ -~ -~ -~ -~ -~]*');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 91. result: 't'
+execute function regexp_match('alpha','[a-zA-Z_][a-zA-Z0-9_]*');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 92. result: 't'
+execute function regexp_match('abh','^a(bc+|b[eh])g|.h$');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 93. result: 't'
+execute function regexp_match('effgz','(bc+d$|ef*g.|h?i(j|k))');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 94. result: 't'
+execute function regexp_match('ij','(bc+d$|ef*g.|h?i(j|k))');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 95. result: 'f'
+execute function regexp_match('effg','(bc+d$|ef*g.|h?i(j|k))');
+
+(expression) 
+
+           f
+
+1 row(s) retrieved.
+
+
+
+-- 96. result: 'f'
+execute function regexp_match('bcdd','(bc+d$|ef*g.|h?i(j|k))');
+
+(expression) 
+
+           f
+
+1 row(s) retrieved.
+
+
+
+-- 97. result: 't'
+execute function regexp_match('reffgz','(bc+d$|ef*g.|h?i(j|k))');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 98. result: 't'
+execute function regexp_match('a','(((((((((a)))))))))');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 99. result: 'f'
+execute function regexp_match('uh-uh','multiple words of text');
+
+(expression) 
+
+           f
+
+1 row(s) retrieved.
+
+
+
+-- 100. result: 't'
+execute function regexp_match('multiple words, yeah','multiple words');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 101. result: 't'
+execute function regexp_match('abcde','(.*)c(.*)');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+-- 102. result: 't'
+execute function regexp_match('(a, b)','\((.*), (.*)\)');
+
+(expression) 
+
+           t
+
+1 row(s) retrieved.
+
+
+
+
+-- ======================= Negative tests =============================
+--
+-- Each of these should fail to compile the regular expression
+--
+
+EXECUTE FUNCTION regexp_match( 'abc' , 'a[b-a]' );
+
+(expression) 
+
+
+(U0001) - invalid [] range
+Error in line 338
+Near character position 49
+
+EXECUTE FUNCTION regexp_match( 'abc' , 'a[]b' );
+
+(expression) 
+
+
+(U0001) - unmatched []
+Error in line 339
+Near character position 47
+
+EXECUTE FUNCTION regexp_match( 'abc' , 'a[' );
+
+(expression) 
+
+
+(U0001) - unmatched []
+Error in line 340
+Near character position 45
+
+EXECUTE FUNCTION regexp_match( 'abc' , '()*' );
+
+(expression) 
+
+
+(U0001) - *+ operand could be empty
+Error in line 341
+Near character position 46
+
+EXECUTE FUNCTION regexp_match( 'abc' , '*a' );
+
+(expression) 
+
+
+(U0001) - ?+* follows nothing
+Error in line 342
+Near character position 45
+
+EXECUTE FUNCTION regexp_match( 'abc' , '^*' );
+
+(expression) 
+
+
+(U0001) - *+ operand could be empty
+Error in line 343
+Near character position 45
+
+EXECUTE FUNCTION regexp_match( 'abc' , '$*' );
+
+(expression) 
+
+
+(U0001) - *+ operand could be empty
+Error in line 344
+Near character position 45
+
+EXECUTE FUNCTION regexp_match( 'abc' , '(*)b' );
+
+(expression) 
+
+
+(U0001) - ?+* follows nothing
+Error in line 345
+Near character position 47
+
+EXECUTE FUNCTION regexp_match( 'abc' , 'a\' );
+
+(expression) 
+
+
+(U0001) - trailing \
+Error in line 346
+Near character position 45
+
+EXECUTE FUNCTION regexp_match( 'abc' , 'abc)' );
+
+(expression) 
+
+
+(U0001) - unmatched ()
+Error in line 347
+Near character position 47
+
+EXECUTE FUNCTION regexp_match( 'abc' , '(abc' );
+
+(expression) 
+
+
+(U0001) - unmatched ()
+Error in line 348
+Near character position 47
+
+EXECUTE FUNCTION regexp_match( 'abc' , 'a**' );
+
+(expression) 
+
+
+(U0001) - nested *?+
+Error in line 349
+Near character position 46
+
+EXECUTE FUNCTION regexp_match( 'abc' , 'a*?' );
+
+(expression) 
+
+
+(U0001) - nested *?+
+Error in line 350
+Near character position 46
+
+EXECUTE FUNCTION regexp_match( 'abc' , '(a*)*' );
+
+(expression) 
+
+
+(U0001) - *+ operand could be empty
+Error in line 351
+Near character position 48
+
+EXECUTE FUNCTION regexp_match( 'abc' , '(a*)+' );
+
+(expression) 
+
+
+(U0001) - *+ operand could be empty
+Error in line 352
+Near character position 48
+
+EXECUTE FUNCTION regexp_match( 'abc' , '(a|)*' );
+
+(expression) 
+
+
+(U0001) - *+ operand could be empty
+Error in line 353
+Near character position 48
+
+EXECUTE FUNCTION regexp_match( 'abc' , '(a*|b)*' );
+
+(expression) 
+
+
+(U0001) - *+ operand could be empty
+Error in line 354
+Near character position 50
+
+EXECUTE FUNCTION regexp_match( 'abc' , '(^)*' );
+
+(expression) 
+
+
+(U0001) - *+ operand could be empty
+Error in line 355
+Near character position 47
+
+EXECUTE FUNCTION regexp_match( 'abc' , '(ab|)*' );
+
+(expression) 
+
+
+(U0001) - *+ operand could be empty
+Error in line 356
+Near character position 49
+
+EXECUTE FUNCTION regexp_match( 'abc' , ')(' );
+
+(expression) 
+
+
+(U0001) - unmatched ()
+Error in line 357
+Near character position 45
+
+EXECUTE FUNCTION regexp_match( 'abc' , '((a*|b))*' );
+
+(expression) 
+
+
+(U0001) - *+ operand could be empty
+Error in line 358
+Near character position 52
+
+EXECUTE FUNCTION regexp_match( 'abc' , '((((((((((a))))))))))' );
+
+(expression) 
+
+
+(U0001) - too many ()
+Error in line 359
+Near character position 64
+
+
+
+Database closed.
+

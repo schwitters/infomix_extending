@@ -1,0 +1,19 @@
+This directory contains sample usage for the BWA DataBlade module.
+
+FILES
+======
+README
+
+demo.sql          Main demo file that exercises features.
+                  Usage:
+                      dbaccess -e <your_db> demo >& demo.log
+
+demo.req          Baseline output for demo.sql.
+
+demo_trace.sql    Shows how to turn on tracing.
+                  Usage:
+                      dbaccess -e <your_db> demo_trace >& demo.log
+
+demo_trace.req    Baseline output for demo_trace.sql.
+
+bwa.log.req       Sample trace output for demo_trace.sql.

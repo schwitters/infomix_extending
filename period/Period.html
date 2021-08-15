@@ -1,0 +1,1690 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+<head>
+   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+   <meta name="GENERATOR" content="Mozilla/4.76 [en] (WinNT; U) [Netscape]">
+   <title>Period BladeLet</title>
+</head>
+<body bgcolor="#FFFFFF" link="#008000" vlink="#808080" alink="#0000FF">
+
+<center>
+<h1>
+<font color="#0000FF">Period BladeLet</font></h1></center>
+
+<hr>
+<center>
+<p><i><font size=+1>The Period Bladelet provides SQL support for managing
+information about fixed intervals in a timeline: real world phenomenon
+like the duration of a hotel stay, or the scheduled activity of some manufacturing
+equipment. The BladeLet implements a pair of OPAQUE TYPE User-Defined Type
+(UDT) instances, and a set of User-Defined Functions (UDFs) to perform
+the operations appropriate to these types. In addition to being a useful
+bundle of extensions in its own right, the Period Bladelet also provides
+a good example of several extensibility features:&nbsp; building an OPAQUE
+TYPE, how to use ORDBMS the Operator Class feature with R-Trees, a User-Defined
+Aggregate example, and a set of statistics and selectivity facilities.</font></i></center>
+
+<h2>
+<a NAME="contents"></a><font color="#0000FF">Contents</font></h2>
+
+<blockquote>
+<ul>
+<li>
+<a href="#first">Introduction and Background.</a></li>
+
+<li>
+<a href="#second">Design Overview.</a></li>
+
+<li>
+<a href="#third">User-Defined Types and User-Defined Functions</a></li>
+
+<li>
+<a href="#fourth">List of User-Defined Functions.</a></li>
+
+<li>
+<a href="#fourth">User-Defined Aggregate.</a></li>
+
+<li>
+<a href="#five">Code Walk Through.</a></li>
+
+<li>
+<a href="#glossary">Glossary and References</a></li>
+</ul>
+</blockquote>
+
+<hr>
+<h3>
+<a NAME="first"></a><font color="#0000FF">Introduction and Background.</font></h3>
+
+<blockquote>The motivation for Period extensions to SQL&nbsp; is best explained
+with an example. Consider a scheduling system. For dramatic effect our
+example discusses a railway, but the same logic applies to hotel rooms,
+rental cars, production scheduling, personal appointments, and any application
+where a shared resource is being allocated for fixed&nbsp; periods of time.
+Temporal information is becoming an increasingly important part of many
+information systems. See <i>Snodgrass, Richard T. <u>Developing Time-Oriented
+Database Applications in SQL</u> ISBN: 1-55860-436-7</i> for more details
+than there is space for here.
+<p>Figure 1, which is intended to convey a set of track usage schedules
+for railway trains, illustrates the basic concept of temporal intervals.</blockquote>
+
+<blockquote>
+<pre>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Time:
+Track&nbsp; : T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17
+Seg #:</pre>
+
+<pre>&nbsp; 1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |--|&nbsp; |--|&nbsp; |-----|&nbsp;&nbsp;&nbsp;&nbsp; |--|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |-------|
+
+&nbsp; 2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |-----|&nbsp;&nbsp;&nbsp;&nbsp; |-----|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |---|
+
+&nbsp; 3&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |--------------|&nbsp;&nbsp;&nbsp;&nbsp; |-----------|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |---|
+
+&nbsp; 4&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |--|&nbsp; |--|--|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |-----|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |-------|&nbsp;&nbsp; |-------)
+
+&nbsp; 5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |----------------------------------------------------------)
+
+&nbsp; 6&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |--|&nbsp;&nbsp;
+
+&nbsp; 7&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |-----|&nbsp;&nbsp;&nbsp;&nbsp; |-----|&nbsp;&nbsp;&nbsp;&nbsp; |-------|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |---------------)
+
+
+&nbsp; 8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |-----|&nbsp; |--------|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |---|
+
+&nbsp; 9&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+&nbsp;10&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; (-----|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |----------|&nbsp;&nbsp; |-------|&nbsp;&nbsp; |----------)
+
+</pre>
+</blockquote>
+
+<center>
+<h4>
+<i>Figure 1: Diagrammatic Representation of Temporal Periods</i></h4></center>
+
+<blockquote>Each number on the left identifies a track segment. Each of
+the '|---|' strings signifies that some train is scheduled onto a particular
+track segment for some period of time. Segment schedules all have a start
+date or datetime indicator, extend for some number of units of time, and
+then finish. Each of the single interval instances we call a <i>period</i>.
+More formally, a period is a <i>fixed interval in the time line</i>, which
+contrast periods with the SQL-92 <font face="Courier New,Courier">INTERVAL</font>
+type&nbsp; corresponding to <i>floating</i> intervals in a time-line.
+<p>In certain special cases we also need to consider schedules that are
+"open". A period's start may be unknown, or the situation may have 'always
+been thus', or the time at which a period's finishes may be undetermined.
+Railway schedules are not open-ended in this way but in applications such
+as command and control systems managing "open" Periods is a necessity..
+<p>A situation like the one illustrated in Figure 1 might be accommodated
+in a SQL-92 RDBMS with a table that looks like&nbsp; Figure 2:
+<pre><font face="Courier New,Courier">CREATE TABLE Track_Schedule&nbsp; (
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Train&nbsp;&nbsp;&nbsp; INTEGER&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOT NULL,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Track&nbsp;&nbsp;&nbsp; INTEGER&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOT NULL,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Starts&nbsp;&nbsp; DATETIME YEAR TO SECOND NOT NULL,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Ends&nbsp;&nbsp;&nbsp;&nbsp; DATETIME YEAR TO SECOND NOT NULL,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; CHECK ( Starts &lt; Ends ) CONSTRAINT Starts_must_preceed_Ends,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; FOREIGN KEY ( Train ) REFERENCES Trains ( Id ) CONSTRAINT Train_FK,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; FOREIGN KEY ( Track ) REFERENCES Tracks ( Id ) CONSTRAINT Track_FK
+);</font></pre>
+</blockquote>
+
+<center>
+<h4>
+<i>Figure 2: SQL-92 Handling of Temporal Periods</i></h4></center>
+
+<blockquote>Figure 2's <font face="Courier New,Courier">Track_Schedule</font>
+table is a reasonable approach to the problem, but it has several deficiencies.
+First, querying this table's information in an application requires writing
+some fairly complex SQL-92 expressions.&nbsp; Second, within the limits
+of most RDBMS products it is impossible to index queries that perform temporal
+operations like <i>overlap</i>, <i>within</i>, and <i>contains</i>.&nbsp;
+And third, some behaviors of range data structures like Period cannot be
+reasonably accommodated within SQL-92. All of these problems are addressed
+by the Period Bladelet's functionality.
+<p>To illustrate each problem in more detail, let us examine a couple of
+fairly obvious business questions and see how they would be handled using
+the <font face="Courier New,Courier">Track_Schedule</font> table/SQL-92
+approach. In each of the examples that follow we first list the question
+in plain language, and then present the corresponding query.
+<p>Clearly, it is rather desirable for our railway company to prevent two
+trains from being scheduled on the same track segment for <i>overlapping</i>
+periods. (Obviously the situation is more complex than this, but bear with
+us here.) Answering this question using just the standard SQL-92 predicates
+is more awkward than it needs to be.</blockquote>
+
+<center><i>"How are there any situations where two different trains are
+scheduled on the same track over the next week?"</i></center>
+
+<blockquote><font face="Courier New,Courier">SELECT T1.Track, T1.Train,
+T2.Train, T1.Starts, T1.When,</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+T2.Start, T2.Ends</font>
+<br><font face="Courier New,Courier">&nbsp; FROM Track_Schedule T1, Track_Schedule
+T2</font>
+<br><font face="Courier New,Courier">&nbsp;WHERE T1.Finish >= CURRENT</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp; AND T1.Start&nbsp; &lt;=
+CURRENT + 7 UNIT DAY</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp; AND T2.Start&nbsp; &lt;=
+T1.Finish</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp; AND T2.Finish >= T1.Start</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp; AND T1.Track&nbsp; =
+T2.Track</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp; AND T1.Start&nbsp; &lt;>
+T2.Start</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp; AND T1.End&nbsp;&nbsp;&nbsp;
+&lt;> T2.End</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp; AND T1.Train&nbsp; &lt;>
+T2.Train;</font></blockquote>
+
+<center>
+<h4>
+<i>Figure 3: SQL-92 Query Performing Temporal Overlaps Predicate</i></h4></center>
+
+<blockquote>While this is not a particularly complex query expressions,
+it takes a rather close reading of the query's logical details to figure
+out that its <font face="Courier New,Courier">WHERE</font> clause is computing
+an <font face="Courier New,Courier">Overlap()</font>. Other temporal expressions,
+such as <font face="Courier New,Courier">Contains()</font> and <font face="Courier New,Courier">Within()</font>
+are similar in form, and this similarity makes it difficult to spot errors
+in temporal expressions, particularly because applications that care about
+overlapping ranges employ these query language patterns often. And what
+about more complex kinds of query; ones that join tables based on overlapping
+intervals such as how many stays in a hotel overlap a conference or a special
+price? Simplifying and clarifying declarative SQL would reduce many of
+these problems.
+<p>In Figure 4, we present the way this same question would be answered
+using the facilities of the Period BladeLet. (Look ahead to Figure 6 for
+the re-defined <font face="Courier New,Courier">Track_Schedule</font> table
+used in this query). Even though it accomplishes more than the expression
+in Figure 3,&nbsp; the SQL in Figure 4 is clearly simpler, and it is fairly
+obvious what it is that the query is attempting to do.
+<p><font face="Courier New,Courier">SELECT T1.Track, T1.Train, T2.Train,
+GetIntersect ( T1.When, T2.When)</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp; FROM Track_Schedule T1,
+Track_Schedule T2</font>
+<br><font face="Courier New,Courier">&nbsp;WHERE Overlap ( T1.When, DT_Period(
+CURRENT, CURRENT + 7 UNITS DAY) )</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp; AND Overlap ( T1.When,
+T2.When )</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp; AND T1.When&nbsp; &lt;>
+T2.When</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp; AND T1.Track&nbsp; =
+T2.Track</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp; AND T1.Train&nbsp; &lt;>
+T2.Train;</font>
+<br>&nbsp;
+<center>
+<h4>
+<i>Figure 4: Query Performing Temporal Overlaps Predicate with Period BladeLet</i></h4></center>
+</blockquote>
+
+<blockquote>The second problem with the query in Figure 3 relates to performance.
+Developers familiar with SQL can tell by looking at the <font face="Courier New,Courier">WHERE</font>
+clause in Figure 3 that an&nbsp; RDBMS will probably be unable to use an
+index to accelerate this query. The best that can be hoped for is that
+the DBA builds a compound B-Tree &lt; Starts, Ends > or &lt; Ends, Starts
+> index. But because of the different legs of the query uses a different
+operator (&lt;= or >=) with different columns,&nbsp; the best plan that
+a SQL-92 RDBMS can come up with is to scan of both indices and a hash join
+to identify matching rows. This is generally so expensive that the query
+planner is likely to punt on the question and simply scan the entire table.
+<p>By contrast, both <font face="Courier New,Courier">Overlap()</font>
+predicates in Figure 4, and a range of other temporal operations, are amenable
+to indexing. An R-Tree on the <font face="Courier New,Courier">Track_Schedule.When</font>
+column can be used both to limit the segments checked to only those over
+the next week, and also on the inner of a join between the tables. In contrast
+with some other approaches, there is no absolute requirement to use a resolution
+table. Sometimes, a HASH join is preferred to a NEST LOOP. Sometimes, it
+is not. Part of the Period BladeLet's functionality is a statistics and
+selectivity estimator to help make this choice.
+<p>Finally, some intuitively simple temporal business questions are enormously
+difficult to express in SQL-92. Sometimes, for example, it is desirable
+to determine whether or not there is some fixed interval of time that all
+of the Periods in some set overlap, and if they do, the extent of this
+overlap is. That is, is there a period of time during which all of a set
+of events are occuring simultaneously? Performing this operation in SQL-92
+requires finding the maximum starting time and minimum finish time for
+which there exists no non-overlapping period in the set. Figure 5 illustrates
+how this operation is handled using the Period BladeLet.
+<center>
+<p><i>"Between 10:30am and 10:35am on 10th April, 2001 there will be a
+scheduled reduction in power to electrical rail in Montana.&nbsp; This
+is not a problem unless all tracks are in use at the same time. Is this
+the case?"</i></center>
+
+<blockquote><font face="Courier New,Courier">SELECT Min_Overlap( TS.When
+)</font>
+<br><font face="Courier New,Courier">&nbsp; FROM Track_Schedule TS, Track_Segment
+TR</font>
+<br><font face="Courier New,Courier">&nbsp;WHERE TS.Track = TR.Id</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp; AND TR.IsElectric</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp; AND Overlaps ( DT_Period("2001-04-10
+10:30:00",</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+"2001-04-10 10:35:00" ),</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+TS.When )</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp; AND Within ( TR.Where,
+:Montana );</font>
+<blockquote>
+<blockquote>
+<center>
+<h4>
+<i>Figure 5: User-Defined Aggregate Query</i></h4></center>
+</blockquote>
+</blockquote>
+</blockquote>
+<font face="Courier New,Courier">Min_Overlap()</font> is an example of
+a User-Defined Aggregate (UDA)&nbsp; implemented as part of the Period
+BladeLet. In much the same way that <font face="Courier New,Courier">MIN()</font>
+takes a set of numbers or strings and returns the smallest value in the
+list, <font face="Courier New,Courier">Min_Overlap()</font> accepts a list
+of Period instances and returns a Period value -- which might or might
+not be one of the values ipassed in -- that is the minimum overlapping
+period for all of them. Actually, this aggregate is not that useful on
+its own. It is rather more useful when used as a building block for other,
+more complex business operations.
+<p>The Period BladeLet ships with complete source code so it can be modified
+to accommodate the specifics of other problems. In this release the BladeLet
+only supports Periods with DATE and DATETIME YEAR TO SECOND delimiters.
+Developers needing FRACTIONs or other, more exotic time units will need
+to change the code. The Period BladeLet deviates from some more common
+practices among datablade products in that it does not install using Blade
+Manager. Instead, you should register and unregister it using the SQL scripts
+that come with.
+<p>This page provides an overview of the BladeLet's functionality, and
+a guide to the finer points of its implementation. Currently, this work
+is ported as far as NT, Solaris and RedHat Linux without problems. Experience
+has shown that other platforms are rather easy to do, but APITB.</blockquote>
+<a href="#contents">Contents</a>
+<hr>
+<h3>
+<a NAME="second"></a><font color="#0000FF">Design Overview.</font></h3>
+
+<blockquote>To overcome both the query complexity and performance problems,
+the Period BladeLet provides a pair of new OPAQUE TYPE extensions: <font face="Courier New,Courier">Period</font>,
+and <font face="Courier New,Courier">DT_Period</font>. They correspond
+to T-SQL Period ( DATE ) and Period ( DATETIME ) objects, respectively.
+Both of these types come with a set of UDFs to handle common temporal operations,
+and to interact the built-in DATE, DATETIME and INTERVAL types. Both of
+them can be indexed using the R-Tree for optimal performance.</blockquote>
+
+<blockquote>In Figure 6, we re-write the table introduced in Figure 2 to
+illustrate one of the new types. The idea is that instead of storing the
+start and finish values in separate columns,&nbsp; <font face="Courier New,Courier">DT_Period</font>
+combines them into a single data object, stored in a single column. The
+CHECK() integrity constraint in Figure 2 is moved within the user-defined
+functions that implement the type's behaviors. Encapsulating this rule
+within the type's behavior simplifies its use in SPL variables and query
+expressions. Both the <font face="Courier New,Courier">DT_Period</font>
+and <font face="Courier New,Courier">Period</font> data types enforce this
+rule.
+<pre><font face="Courier New,Courier">CREATE TABLE Track_Schedule&nbsp; (
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Train&nbsp;&nbsp;&nbsp; INTEGER&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOT NULL,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Track&nbsp;&nbsp;&nbsp; INTEGER&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOT NULL,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; When&nbsp;&nbsp;&nbsp;&nbsp; DT_Period&nbsp;&nbsp;&nbsp; NOT NULL,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; FOREIGN KEY ( Train ) REFERENCES Trains ( Id ) CONSTRAINT Train_FK,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; FOREIGN KEY ( Track ) REFERENCES Tracks ( Id ) CONSTRAINT Track_FK
+);</font></pre>
+
+<blockquote>
+<blockquote>
+<center>
+<h4>
+<i>Figure 6: Track Schedule Table Re-defined using Period BladeLet Types</i></h4></center>
+</blockquote>
+</blockquote>
+</blockquote>
+
+<blockquote>The public format of these types is quite similar, and both
+<font face="Courier New,Courier">Period</font>
+and <font face="Courier New,Courier">DT_Period</font> handle the "start
+is epoch" and "finish is unbound" cases in similar fashions. Rather than
+relying on programmers to get the syntax right each time--which is not
+always easy in the case of DATETIME and INTERVAL strings--the BladeLet
+includes a set of "constructor" UDFs to simplify data management. Figure
+7 lists several examples of both of these types.
+<br>&nbsp;
+<center><table BORDER=2 COLS=2 WIDTH="75%" BGCOLOR="#CCCCCC" >
+<tr>
+<td>"1999-10-10 12:10:10" to "1999-12-20 22:20:20"</td>
+
+<td>"2000-02-09 08:30:30" to "2000-03-20 08:30:30"</td>
+</tr>
+
+<tr>
+<td>"2000-03-20 08:30:30" to "2000-08-07 18:40:40"</td>
+
+<td>"2000-08-07 18:40:40" to "2000-10-07 04:50:50"</td>
+</tr>
+
+<tr>
+<td>"EPOCH" to "1999-10-20 22:20:20"</td>
+
+<td>"1999-12-20 22:20:20" to "FOREVER"&nbsp;</td>
+</tr>
+
+<tr>
+<td>"EPOCH" to "2001-03-07 01:11:10"</td>
+
+<td>"EPOCH" to "FOREVER"</td>
+</tr>
+
+<tr>
+<td>"10/10/1999" to "12/20/1999"</td>
+
+<td>"2/9/2000" to "3/20/2000"</td>
+</tr>
+
+<tr>
+<td>"3/20/2000" to "8/7/2000"</td>
+
+<td>"8/7/2000" to "10/7/2000"</td>
+</tr>
+
+<tr>
+<td>"EPOCH" to "10/20/1999"</td>
+
+<td>"12/20/1999" to "FOREVER"</td>
+</tr>
+
+<tr>
+<td>"EPOCH" to "3/7/2001"</td>
+
+<td>"EPOCH" to "FOREVER"</td>
+</tr>
+</table></center>
+
+<blockquote>
+<blockquote>
+<center><b><i>Figure 7: Examples of DT_Period and Period Data Type Instances</i></b></center>
+</blockquote>
+</blockquote>
+</blockquote>
+
+<blockquote>So far as the rest of the DBMS is concerned, the <font face="Courier New,Courier">Period</font>
+and <font face="Courier New,Courier">DT_Period</font> types are treated
+like any of the built-in types. They both fit entirely within a data row,
+the <font face="Courier New,Courier">Period</font> being 8 bytes long,
+and the <font face="Courier New,Courier">DT_Period</font> being 48 bytes
+long. Included in the regression tests for this Bladelet are back-up and
+recovery tests. Although I have not tested it, it should also be possible
+to use replication with these types.
+<p>A large set of temporal operations are implemented as part of the BladeLet.
+These deal with the intuitively obvious set of comparisons between two
+Period instances; Overlap, Contains, Equal, Within, Before, After, etc.
+Consult the section on User-Defined Functions for a detailed list. Where
+ever it was possible to do so, the operations have been combined using
+an R-Tree operator class (opclass) to allow developers to exploit the R-Tree
+indexing technology. In practice this is incredibly useful: without indexing
+the regression test suite takes almost two hours to run on an NT laptop,
+but only one minute with indexing.
+<p>So far as the indexing operations are concerned, EPOCH and FOREVER are
+treated as the smallest possible and largest possible date or datetime
+values. Internally, the byte level values used to store them are not valid
+SQL-92 internal formats. Exercise caution when writing code to modify these
+values.</blockquote>
+<a href="#contents">Contents</a>
+<hr>
+<br>&nbsp;
+<p><a NAME="third"></a><b><font color="#0000FF"><font size=+1>User-Defined
+Types and User-Defined Functions in the BladeLet.</font></font></b>
+<blockquote><font color="#000000">The BladeLet ships with two OPAQUE TYPE
+instances, and a large set of User-Defined Functions implementing behaviors
+for them. In addition to the DATE and DATETIME YEAR TO SECOND boundaries,
+the BladeLet implements two "special" values: EPOCH and FOREVER. The idea
+is to support periods where the open or the close is not known at the time
+the object is created. These words can appear in the public string, and
+there are user-defined functions that can get and set these values.</font>
+<p><font color="#000000">Tables involving these types can be both backed
+up using standard techniques, and because these range values can reside
+entirely within a single data page, they can be replicated.</font></blockquote>
+
+<h3>
+<a NAME="third"></a><font color="#0000FF">List of User-Defined Types.</font></h3>
+
+<ul>
+<li>
+<b><font face="Courier New,Courier"><font color="#000000">Period</font></font></b></li>
+</ul>
+
+<ul><font color="#000000">A Period is a fixed interval bound by a Start
+and a Finish DATE. Internally, DATE values are represented using four byte
+INTEGER days, and the EPOCH and FOREVER values are represented using a
+DATE one larger than the minimal possible date value, and one less than
+the maximum possible date value, respectively. So far as a SQL developer
+is concerned, this detail is invisible. All of the UDFs described in the
+next section apply to the type, although the nature of the INTERVAL values,
+and the sizes of each Period object, are somewhat different.</font>
+<br>&nbsp;
+<li>
+<b><font face="Courier New,Courier"><font color="#000000">DT_Period</font></font></b></li>
+</ul>
+
+<blockquote><font color="#000000"><font face="Courier New,Courier">DT_Period</font>
+is a fixed interval bound by a DATETIME Start and Finish. Internally, Start
+and Finish are stored using real DATETIME data structures, and to implement
+EPOCH and FOREVER these SAPI data structures are extended with additional
+macro values. All of the User-Defined Functions described in the next section
+work for DT_Period, although the details of INTERVAL and size vary from
+the Period.</font></blockquote>
+
+<h3>
+<a NAME="third"></a><font color="#0000FF">List of User-Defined Functions.</font></h3>
+
+<blockquote><font color="#000000">This list of UDFs implemented as part
+of the BladeLet is broken into several sections, each containing a particular
+category of UDF. Different categories of UDF perform different functions:
+some of them are SQL-level expressions, some of them are never seen by
+SQL developers. Each UDF description includes the UDF's signature (its
+name, and the vector of its arguments), its return type, and a brief description
+of what it does. Note that this list can be extracted from the database's
+system catalogs using the query presented in Figure 8.</font>
+<p><font face="Courier New,Courier"><font color="#000000">SELECT UPPER
+( S.procname ||</font></font>
+<br><font face="Courier New,Courier"><font color="#000000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+' ( ' || S.paramtypes::LVARCHAR || ' ) -> ' ||</font></font>
+<br><font face="Courier New,Courier"><font color="#000000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ifx_ret_types ( S.procid )::LVARCHAR</font></font>
+<br><font face="Courier New,Courier"><font color="#000000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+)</font></font>
+<br><font face="Courier New,Courier"><font color="#000000">&nbsp; FROM
+sysprocedures S</font></font>
+<br><font face="Courier New,Courier"><font color="#000000">&nbsp;WHERE
+S.paramtypes::LVARCHAR LIKE '%dt_period%'</font></font>
+<br><font face="Courier New,Courier"><font color="#000000">&nbsp;&nbsp;&nbsp;
+OR ifx_ret_types(S.procid)::LVARCHAR LIKE '%dt_period%';</font></font>
+<blockquote>
+<blockquote>
+<center><b><i>Figure 8:&nbsp; Query to Extract Information About DT_Period
+User-Defined Functions from Catalogs</i></b></center>
+</blockquote>
+</blockquote>
+<a NAME="third"></a><font color="#000099">Constructor Functions.</font>
+<p><font color="#000000">Constructor UDFs are the input (and output) logic
+used to create an instance of the new data type. In addition to functions
+converting the public string format into the internal data structures,
+other constructor functions convert a vector of data values into an instance
+of the new data type.</font></blockquote>
+
+<ul><b><font face="Courier">DT_PERIODIN ( LVARCHAR )&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+-> DT_PERIOD -- CAST LVARCHAR to DT_Period</font></b>
+<br><b><font face="Courier">DT_PERIOD&nbsp;&nbsp; ( DATETIME,DATETIME )
+-> DT_PERIOD</font></b>
+<br><b><font face="Courier">DT_PERIOD&nbsp;&nbsp; ( DATETIME )&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+-> DT_PERIOD</font></b>
+<p>Each of these three UDFs creates a valid instance of a DT_Period type
+based on the values in its arguments. Figure 6 illustrates several examples
+of the kind of strings DT_PERIODIN() converts into the type's internal
+structure. The second pair of functions creates&nbsp; DT_Period instances
+with the start and finish elements either populated by the function arguments.
+Code ensuring that DT_Period.Finish is >= DT_Period.Start is implemented
+within these functions.
+<p><b><font face="Courier">DT_PERIODOUT ( DT_PERIOD )&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+-> LVARCHAR&nbsp; -- CAST DT_Period to LVARCHAR</font></b>
+<p>This last UDF is not strictly speaking a constructor, but because it
+is commonly invoked by the ORDBMS as part of query processing, it is included
+in this section. It converts a DT_Period object into an LVARCHAR string,
+suitable for printing, or for passing as an argument into a DT_PeriodIn()
+UDF. Figure 9 provides several illustrations of how this routine is called.
+Note that the DT_PeriodOutput() UDF is actually called on every occasion.
+<p><font face="Courier New,Courier">EXECUTE FUNCTION DT_PeriodIn('"1999-10-10
+12:10:10" to "1999-12-20 22:20:20"');</font>
+<br><font face="Courier New,Courier">(expression)&nbsp; "1999-10-10 12:10:10"
+to "1999-12-20 22:20:20"</font>
+<p><font face="Courier New,Courier">EXECUTE FUNCTION DT_PeriodIn('"2000-02-09
+08:30:30" to "2000-03-20 08:30:30"');</font>
+<br><font face="Courier New,Courier">(expression)&nbsp; "2000-02-09 08:30:30"
+to "2000-03-20 08:30:30"</font>
+<p><font face="Courier New,Courier">EXECUTE FUNCTION DT_PeriodIn('"2000-03-20
+08:30:30" to "2000-08-07 18:40:40"');</font>
+<br><font face="Courier New,Courier">(expression)&nbsp; "2000-03-20 08:30:30"
+to "2000-08-07 18:40:40"</font>
+<p><font face="Courier New,Courier">EXECUTE FUNCTION DT_PeriodIn('"2000-04-19
+18:40:40" to "2000-06-08 18:40:40"');</font>
+<br><font face="Courier New,Courier">(expression)&nbsp; "2000-04-19 18:40:40"
+to "2000-06-08 18:40:40"</font>
+<p><font face="Courier New,Courier">EXECUTE FUNCTION DT_PeriodIn('"EPOCH"
+to "2000-06-08 18:40:40"');</font>
+<br><font face="Courier New,Courier">(expression)&nbsp; "EPOCH" to "2000-06-08
+18:40:40"</font>
+<p><font face="Courier New,Courier">EXECUTE FUNCTION DT_PeriodIn('"2000-04-19
+18:40:40" to "FOREVER"');</font>
+<br><font face="Courier New,Courier">(expression)&nbsp; "2000-04-19 18:40:40"
+to "FOREVER"</font>
+<p><font face="Courier New,Courier">EXECUTE FUNCTION DT_PeriodIn('"EPOCH"
+to "FOREVER"');</font>
+<br><font face="Courier New,Courier">(expression)&nbsp; "EPOCH" to "FOREVER"</font>
+<br>&nbsp;
+<ul>
+<ul>
+<center><b><i>Figure 9: Constructor UDF for the DT_Period Data Type</i></b></center>
+</ul>
+</ul>
+
+<p><br>Typically, constructor UDFs appear in write queries; <font face="Courier New,Courier">INSERT</font>
+and <font face="Courier New,Courier">UPDATE</font>. The public format seen
+here is the same one used when a table with a DT_Period column is unloaded
+to a text file.
+<p><a NAME="third"></a><font color="#000099">Manipulator Functions.</font>
+<p>Manipulator UDFs modify the value of a DT_Period. Strictly, what each
+of these UDFs does is to create a new instance of the data type, and populate
+it with data taken from the arguments, one of which is usually another
+(original) instance of the type. Duplicating the data is useful to support
+the transactional, set oriented query operations.
+<p><b><font face="Courier">SET_START_EPOCH&nbsp;&nbsp;&nbsp; ( DT_PERIOD
+) -> DT_PERIOD</font></b>
+<br><b><font face="Courier">SET_FINISH_FOREVER ( DT_PERIOD ) -> DT_PERIOD</font></b>
+<p>These first two functions open, respectively, the start and the finish
+DATE or DATETIME of a DT_Period. Open ends--which are called either EPOCH
+if the start is open, or FOREVER if the finish is open--indicates either
+that the open or close is unknown, or unscheduled. It is important to distinguish
+between such circumstances, and the situation where the entire Period is
+unknown, which is handled by using a NULL instead of the entire Period
+instance.
+<p><font face="Courier New,Courier">EXECUTE FUNCTION Set_Start_Epoch (</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+DT_PeriodIn('"1999-10-10 12:10:10" to "1999-12-20 22:20:20"')</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+);</font>
+<br><font face="Courier New,Courier">(expression)&nbsp; "EPOCH" to "1999-12-20
+22:20:20"</font>
+<p><font face="Courier New,Courier">EXECUTE FUNCTION Set_Finish_Forever
+(</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+DT_PeriodIn('"2000-02-09 08:30:30" to "2000-03-20 08:30:30"')</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+);</font>
+<br><font face="Courier New,Courier">(expression)&nbsp; "2000-02-09 08:30:30"
+to "FOREVER"</font>
+<p><font face="Courier New,Courier">EXECUTE FUNCTION Set_Start_Epoch (</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Set_Finish_Forever (</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+DT_PeriodIn('"2000-03-20 08:30:30" to "2000-08-07 18:40:40"')</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+));</font>
+<br><font face="Courier New,Courier">(expression)&nbsp; "EPOCH" to "FOREVER"</font>
+<br>&nbsp;
+<ul>
+<ul>
+<center><b><i>Figure 10: Opening the DT_Period at Either End</i></b></center>
+</ul>
+</ul>
+All of the query processing support functions, the logical comparison UDFs,
+and the routines used to build indices cope with the concept of EPOCH and
+FOREVER. They are treated as real points in the very distant past or the
+very distant future. This makes no difference to the size of the indexing
+structures, or the table.
+<p><b><font face="Courier">GETINTERSECT ( DT_PERIOD,DT_PERIOD ) -> DT_PERIOD</font></b>
+<br><b><font face="Courier">GETUNION&nbsp;&nbsp;&nbsp;&nbsp; ( DT_PERIOD,DT_PERIOD
+) -> DT_PERIOD</font></b>
+<p>Given two range values, these two UDFs calculate either their Intersection
+(if an intersection exists) or their Union. Any two ranges can be used
+to compute a Union, which is derived from the two outlier values of the
+ranges: the smallest start and the largest finish. Intersection is more
+complex, because only some pairs of ranges actually overlap. When the arguments
+to the GetIntersection() do not overlap, the UDF does not throw an exception.
+Instead, it returns a NULL value.
+<p>To gain a clearer understanding of these UDFs (and several other examples
+below) we introduce a set of DT_Period data values in Figure 11. On the
+left of this diagram, a list of identifiers--'A' through 'H'--each related
+to a range. For simplicity, this set of examples includes no open ended
+Periods.
+<p><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp; A&nbsp;&nbsp;&nbsp;
+|----|</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp; B&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+|---|</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp; C&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+|------------|</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp; D&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+|----|</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp; E&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+|----|</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp; F&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+|----|</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp; G&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+|----|</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp; H&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+|---|</font>
+<br>&nbsp;
+<ul>
+<center><b><i>Figure 11: Sample Data for the DT_Period/Period Data Type</i></b></center>
+</ul>
+
+<p><br>Suppose these are stored in a table called Test_DT_Period. For the
+purposes of this documentation--and to provide a minimum of positive 'regression
+tests'--the following query invokes a range of User-Defined Functions over
+these examples.
+<p><font face="Courier New,Courier">SELECT '=========================================================='
+AS Spacer,</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+T1.When AS First,</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+T2.When AS Second,</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+T1.Picture AS First_Pic,</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+T2.Picture AS Secon_Pic,</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+'----------------------------------------------------------' AS Spacer_1,</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+'&nbsp;&nbsp;&nbsp;&nbsp; CompareString (' || T1.Id || ' , ' || T2.Id ||
+' ) is ' ||</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+CompareString( T1.When, T2.When )::LVARCHAR</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+AS CompareString,</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Equal (' || T1.Id || ' , ' || T2.Id || ' ) is ' ||</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Equal( T1.When, T2.When )::LVARCHAR::CHAR(2)</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+AS Equal,</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+.</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+.&nbsp;&nbsp;&nbsp; One for each of the boolean operator UDFs included
+with this BladeLet.</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+.</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; AfterTouches (' || T1.Id || ' , ' || T2.Id
+|| ' ) is ' ||</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+AfterTouches ( T1.When, T2.When )::LVARCHAR::CHAR(2) AS AfterTouches,</font>
+<p><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+'----------------------------------------------------------' AS Spacer_2,</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+'GetIntersect (' || T1.Id || ' , ' || T2.Id || ' ) is ' ||</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+GetIntersect ( T1.When, T2.When)::LVARCHAR::VARCHAR(48)</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+AS Intersect,</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+'GetUnion (' || T1.Id || ' , ' || T2.Id || ' ) is ' ||</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+GetUnion ( T1.When, T2.When)::LVARCHAR::VARCHAR(48)</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+AS Union,</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+.</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+.&nbsp; One for each of the several UDFs included with the BladeLet.</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+.</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 'Period_Interval(
+GetIntersect (' || T1.Id || ' , ' || T2.Id || ' )) is ' ||</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Period_Interval(GetIntersect (T1.When, T2.When))::LVARCHAR::VARCHAR(32)</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+AS Union_Interval</font>
+<br><font face="Courier New,Courier">&nbsp; FROM Test_DT_Period T1, Test_DT_Period
+T2;</font>
+<br>&nbsp;
+<ul>
+<ul>
+<center><b><i>Figure 12: Query Performing Minimal Regression Tests for
+UDFs in BladeLet</i></b></center>
+</ul>
+</ul>
+
+<p><br>The following figure presents a single printout comparing two pairs
+of DT_Period data instances.Similar queries are used throughout this documentation
+to illustrate how the various User-Defined Functions operate.
+<p><font face="Courier New,Courier">spacer&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+==========================================================</font>
+<br><font face="Courier New,Courier">first&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+"1999-10-10 12:10:10" to "1999-12-20 22:20:20"</font>
+<br><font face="Courier New,Courier">second&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+"1999-10-10 12:10:10" to "1999-12-20 22:20:20"</font>
+<br><font face="Courier New,Courier">first_pic&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+A&nbsp;&nbsp;&nbsp; |----|</font>
+<br><font face="Courier New,Courier">secon_pic&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+A&nbsp;&nbsp;&nbsp; |----|</font>
+<br><font face="Courier New,Courier">spacer_1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+----------------------------------------------------------</font>
+<br><font face="Courier New,Courier">comparestring&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+CompareString (A , A ) is EQ_LT_GT_EQ</font>
+<br><font face="Courier New,Courier">equal&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Equal (A , A ) is t</font>
+<br><font face="Courier New,Courier">notequal&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+NotEqual (A , A ) is f</font>
+<br><font face="Courier New,Courier">containsnottouches&nbsp; ContainsNotTouches
+(A , A ) is f</font>
+<br><font face="Courier New,Courier">contains&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Contains (A , A ) is t</font>
+<br><font face="Courier New,Courier">withinnottouches&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+WithinNotTouches (A , A ) is f</font>
+<br><font face="Courier New,Courier">within&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Within (A , A ) is t</font>
+<br><font face="Courier New,Courier">overlapnottouches&nbsp;&nbsp;&nbsp;
+OverlapNotTouches (A , A ) is f</font>
+<br><font face="Courier New,Courier">overlap&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Overlap (A , A ) is t</font>
+<br><font face="Courier New,Courier">before&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Before (A , A ) is f</font>
+<br><font face="Courier New,Courier">beforetouches&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+BeforeTouches (A , A ) is f</font>
+<br><font face="Courier New,Courier">after&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+After (A , A ) is f</font>
+<br><font face="Courier New,Courier">aftertouches&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+AfterTouches (A , A ) is f</font>
+<br><font face="Courier New,Courier">spacer_2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+----------------------------------------------------------</font>
+<br><font face="Courier New,Courier">intersect&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+GetIntersect (A , A ) is "1999-10-10 12:10:10" to "1999-12-20 22:20:20"</font>
+<br><font face="Courier New,Courier">union&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+GetUnion (A , A ) is "1999-10-10 12:10:10" to "1999-12-20 22:20:20"</font>
+<br><font face="Courier New,Courier">start_union&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Start( GetUnion (A , A )) is 1999-10-10 12:10:10</font>
+<br><font face="Courier New,Courier">finish_intersect&nbsp;&nbsp;&nbsp;
+Finish( GetIntersect (A , A )) is 1999-12-20 22:20:20</font>
+<br><font face="Courier New,Courier">length_union&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Length( GetUnion (A , A )) is 6171010</font>
+<br><font face="Courier New,Courier">intersect_interval&nbsp; Period_Interval(
+GetIntersect (A , A )) is 71 10:10:10</font>
+<p><font face="Courier New,Courier">&nbsp;.</font>
+<br><font face="Courier New,Courier">&nbsp;.</font>
+<br><font face="Courier New,Courier">&nbsp;.</font>
+<p><font face="Courier New,Courier">spacer&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+==========================================================</font>
+<br><font face="Courier New,Courier">first&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+"2000-02-09 08:30:30" to "2000-03-20 08:30:30"</font>
+<br><font face="Courier New,Courier">second&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+"1999-10-10 12:10:10" to "1999-12-20 22:20:20"</font>
+<br><font face="Courier New,Courier">first_pic&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+B&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+|---|</font>
+<br><font face="Courier New,Courier">secon_pic&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+A&nbsp;&nbsp;&nbsp; |----|</font>
+<br><font face="Courier New,Courier">spacer_1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+----------------------------------------------------------</font>
+<br><font face="Courier New,Courier">comparestring&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+CompareString (B , A ) is GT_GT_GT_GT</font>
+<br><font face="Courier New,Courier">equal&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Equal (B , A ) is f</font>
+<br><font face="Courier New,Courier">notequal&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+NotEqual (B , A ) is t</font>
+<br><font face="Courier New,Courier">containsnottouches&nbsp; ContainsNotTouches
+(B , A ) is f</font>
+<br><font face="Courier New,Courier">contains&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Contains (B , A ) is f</font>
+<br><font face="Courier New,Courier">withinnottouches&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+WithinNotTouches (B , A ) is f</font>
+<br><font face="Courier New,Courier">within&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Within (B , A ) is f</font>
+<br><font face="Courier New,Courier">overlapnottouches&nbsp;&nbsp;&nbsp;
+OverlapNotTouches (B , A ) is f</font>
+<br><font face="Courier New,Courier">overlap&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Overlap (B , A ) is f</font>
+<br><font face="Courier New,Courier">before&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Before (B , A ) is f</font>
+<br><font face="Courier New,Courier">beforetouches&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+BeforeTouches (B , A ) is f</font>
+<br><font face="Courier New,Courier">after&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+After (B , A ) is t</font>
+<br><font face="Courier New,Courier">aftertouches&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+AfterTouches (B , A ) is f</font>
+<br><font face="Courier New,Courier">spacer_2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+----------------------------------------------------------</font>
+<br><font face="Courier New,Courier">intersect</font>
+<br><font face="Courier New,Courier">union&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+GetUnion (B , A ) is "1999-10-10 12:10:10" to "2000-03-20 08:30:30"</font>
+<br><font face="Courier New,Courier">start_union&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Start( GetUnion (B , A )) is 1999-10-10 12:10:10</font>
+<br><font face="Courier New,Courier">finish_intersect</font>
+<br><font face="Courier New,Courier">length_union&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Length( GetUnion (B , A )) is 13983620</font>
+<br><font face="Courier New,Courier">intersect_interval</font>
+<br>&nbsp;
+<ul>
+<ul>
+<center><b><i>Figure 13: Output of Regression Tests Query for Two Pairs
+of DT_Periods</i></b></center>
+</ul>
+</ul>
+
+<p><br>Figure 13 illustrates the effect of these two manipulator UDFs.
+In the query that compares 'A' with itself, the Intersection and Union
+of the two DT_Period data values is the same, as the two values are 'Equal'.
+In the second query, comparing 'A' with 'B', the two DT_Period objects
+are not equal and do not overlap (in fact, 'B' is After 'A'). Therefore,
+the Union of 'A' and 'B' is simple A.Start to B.Finish, and their Intersection
+is NULL. When a NULL argument is passed into a UDF, by default it simply
+returns a NULL result. Calculating Finish_Intersect and Intersect_Interval
+illustrate NULL argument behavior.
+<p><a NAME="third"></a><font color="#000099">Interrogator Functions.</font>
+<p><font color="#000000">Interrogators extract information from a single
+Period or DT_Period. They calculate intermediate results in more complex
+query expressions. Figures 12 and 13 include examples that illustrate how
+each of these UDFs is invoked.</font>
+<p><b><font face="Courier">START_IS_EPOCH&nbsp;&nbsp;&nbsp; ( DT_PERIOD
+) -> BOOLEAN</font></b>
+<p>Returns true if the start of the DT_Period arguement is set to EPOCH.
+<p><b><font face="Courier">FINISH_IS_FOREVER ( DT_PERIOD ) -> BOOLEAN</font></b>
+<p>Returns true if the finish of the DT_Period arguement is set to FOREVER.
+<p><b><font face="Courier">LENGTH&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+( DT_PERIOD ) -> INTEGER</font></b>
+<br><b><font face="Courier">PERIOD_INTERVAL&nbsp;&nbsp; ( DT_PERIOD ) ->
+INTERVAL</font></b>
+<p>These two user-defined functions return a calculation of the length
+of the DT_Period argument. The Length() UDF returns the size in INTEGER
+seconds. The Period_Interval() UDF returns the size as an INTERVAL DAY(8)
+TO SECOND data value.
+<p><b><font face="Courier">START&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+( DT_PERIOD ) -> DATETIME</font></b>
+<br><b><font face="Courier">FINISH&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+( DT_PERIOD ) -> DATETIME</font></b>
+<p>Returns, respectively, the start and finish DATETIME YEAR TO SECOND
+of the argument DT_Period. If the start is EPOCH, or the finish is FOREVER,
+this UDF will return a NULL result. If alternative behavior is desired,
+use the SQL NVL() expression and a UDF to specificy what the application's
+default minimum and maximum date or datetime are.
+<p><a NAME="third"></a><font color="#000099">Comparison Functions.</font>
+<p>The key to making use of any new data type is the set of comparison
+functions that allow developers to write queries using the type. All comparison
+UDFs take two instances of the data type, and return a boolean value signifying
+whether or not the UDF's comparison was true or false.
+<p><b><font face="Courier">EQUAL&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+( DT_PERIOD,DT_PERIOD ) -> BOOLEAN&nbsp; -- Indexed</font></b>
+<br><b><font face="Courier">NOTEQUAL&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+( DT_PERIOD,DT_PERIOD ) -> BOOLEAN&nbsp; -- Not Indexed</font></b>
+<p>Equal() returns true if the start and finish of the first argument are
+equal to, respectively, the start and finish of the second. NotEqual()
+is true in all other cases. In Figure 12, the Period labelled 'A' is equal
+to itself.
+<p>Example:
+<p><font face="Courier New,Courier">SELECT '=========================================================='
+AS Spacer,</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+T1.When AS First,</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+T2.When AS Second,</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+T1.Picture AS First_Pic,</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+T2.Picture AS Secon_Pic,</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+'----------------------------------------------------------' AS Spacer_1,</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+'&nbsp;&nbsp;&nbsp;&nbsp; CompareString (' || T1.Id || ' , ' || T2.Id ||
+' ) is ' ||</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+CompareString( T1.When, T2.When )::LVARCHAR AS CompareString,</font>
+<p><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Equal (' || T1.Id || ' , ' || T2.Id || ' ) is ' ||</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Equal( T1.When, T2.When )::LVARCHAR::CHAR(2) AS Equal,</font>
+<p><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NotEqual (' ||
+T1.Id || ' , ' || T2.Id || ' ) is ' ||</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+NotEqual ( T1.When, T2.When )::LVARCHAR::CHAR(2) AS NotEqual,</font>
+<p><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+'----------------------------------------------------------' AS Spacer_2</font>
+<br><font face="Courier New,Courier">&nbsp; FROM Test_DT_Period T1, Test_DT_Period
+T2</font>
+<br><font face="Courier New,Courier">&nbsp;WHERE T1.Id IN ('A', 'D' )</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp; AND T2.Id IN ('A', 'D'
+);</font>
+<p><font face="Courier New,Courier">spacer&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+==========================================================</font>
+<br><font face="Courier New,Courier">first&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+"1999-10-10 12:10:10" to "1999-12-20 22:20:20"</font>
+<br><font face="Courier New,Courier">second&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+"1999-10-10 12:10:10" to "1999-12-20 22:20:20"</font>
+<br><font face="Courier New,Courier">first_pic&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+A&nbsp;&nbsp;&nbsp; |----|</font>
+<br><font face="Courier New,Courier">secon_pic&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+A&nbsp;&nbsp;&nbsp; |----|</font>
+<br><font face="Courier New,Courier">spacer_1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+----------------------------------------------------------</font>
+<br><font face="Courier New,Courier">comparestring&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+CompareString (A , A ) is EQ_LT_GT_EQ</font>
+<br><font face="Courier New,Courier">equal&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Equal (A , A ) is t</font>
+<br><font face="Courier New,Courier">notequal&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+NotEqual (A , A ) is f</font>
+<br><font face="Courier New,Courier">spacer_2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+----------------------------------------------------------</font>
+<p><font face="Courier New,Courier">spacer&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+==========================================================</font>
+<br><font face="Courier New,Courier">first&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+"2000-04-19 18:40:40" to "2000-06-08 18:40:40"</font>
+<br><font face="Courier New,Courier">second&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+"1999-10-10 12:10:10" to "1999-12-20 22:20:20"</font>
+<br><font face="Courier New,Courier">first_pic&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+D&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+|----|</font>
+<br><font face="Courier New,Courier">secon_pic&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+A&nbsp;&nbsp;&nbsp; |----|</font>
+<br><font face="Courier New,Courier">spacer_1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+----------------------------------------------------------</font>
+<br><font face="Courier New,Courier">comparestring&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+CompareString (D , A ) is GT_GT_GT_GT</font>
+<br><font face="Courier New,Courier">equal&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Equal (D , A ) is f</font>
+<br><font face="Courier New,Courier">notequal&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+NotEqual (D , A ) is t</font>
+<br><font face="Courier New,Courier">spacer_2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+----------------------------------------------------------</font>
+<p><font face="Courier New,Courier">spacer&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+==========================================================</font>
+<br><font face="Courier New,Courier">first&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+"1999-10-10 12:10:10" to "1999-12-20 22:20:20"</font>
+<br><font face="Courier New,Courier">second&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+"2000-04-19 18:40:40" to "2000-06-08 18:40:40"</font>
+<br><font face="Courier New,Courier">first_pic&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+A&nbsp;&nbsp;&nbsp; |----|</font>
+<br><font face="Courier New,Courier">secon_pic&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+D&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+|----|</font>
+<br><font face="Courier New,Courier">spacer_1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+----------------------------------------------------------</font>
+<br><font face="Courier New,Courier">comparestring&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+CompareString (A , D ) is LT_LT_LT_LT</font>
+<br><font face="Courier New,Courier">equal&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Equal (A , D ) is f</font>
+<br><font face="Courier New,Courier">notequal&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+NotEqual (A , D ) is t</font>
+<br><font face="Courier New,Courier">spacer_2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+----------------------------------------------------------</font>
+<p><font face="Courier New,Courier">spacer&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+==========================================================</font>
+<br><font face="Courier New,Courier">first&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+"2000-04-19 18:40:40" to "2000-06-08 18:40:40"</font>
+<br><font face="Courier New,Courier">second&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+"2000-04-19 18:40:40" to "2000-06-08 18:40:40"</font>
+<br><font face="Courier New,Courier">first_pic&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+D&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+|----|</font>
+<br><font face="Courier New,Courier">secon_pic&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+D&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+|----|</font>
+<br><font face="Courier New,Courier">spacer_1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+----------------------------------------------------------</font>
+<br><font face="Courier New,Courier">comparestring&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+CompareString (D , D ) is EQ_LT_GT_EQ</font>
+<br><font face="Courier New,Courier">equal&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Equal (D , D ) is t</font>
+<br><font face="Courier New,Courier">notequal&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+NotEqual (D , D ) is f</font>
+<br><font face="Courier New,Courier">spacer_2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+----------------------------------------------------------</font>
+<br>&nbsp;
+<ul>
+<ul>
+<center><b><i>Figure 14: Equal() and NotEqual() Example Query Expressions</i></b></center>
+</ul>
+</ul>
+
+<p><br>The results of the Equal() and NotEqual() UDF are consistent with
+the Compare() UDF (see below). Further, the if Equal ( 'A', 'B' ), then
+Hash('A') = Hash ( 'B' ). Designing the
+<p><b><font face="Courier">CONTAINSNOTTOUCHES ( DT_PERIOD,DT_PERIOD ) ->
+BOOLEAN&nbsp; -- Indexed</font></b>
+<br><b><font face="Courier">CONTAINS&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+( DT_PERIOD,DT_PERIOD ) -> BOOLEAN&nbsp; -- Indexed</font></b>
+<p>For any two Periods, there is a possibility that the first <i>contains</i>
+the second. For these UDFs, contains is interpreted to mean that both the
+start and the fnish of the second argument fall between the start and finish
+of the first. Where these two UDFs differ is in their treatment of cases
+where ends touch: that is, when first.start = second.start or first.finish
+= second.finish.
+<p><font face="Courier New,Courier">SELECT '=========================================================='
+AS Spacer,</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+T1.When AS First,</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+T2.When AS Second,</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+T1.Picture AS First_Pic,</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+T2.Picture AS Secon_Pic,</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+'----------------------------------------------------------' AS Spacer_1,</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+'&nbsp;&nbsp;&nbsp;&nbsp; CompareString (' || T1.Id || ' , ' || T2.Id ||
+' ) is ' ||</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+CompareString( T1.When, T2.When )::LVARCHAR AS CompareString,</font>
+<br>&nbsp;
+<p><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+'ContainsNotTouches (' || T1.Id || ' , ' || T2.Id || ' ) is ' ||</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ContainsNotTouches ( T1.When, T2.When ) AS ContainsNotTouches,</font>
+<p><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Contains (' ||
+T1.Id || ' , ' || T2.Id || ' ) is ' ||</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Contains ( T1.When, T2.When )::LVARCHAR::CHAR(2) AS Contains,</font>
+<p><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+'----------------------------------------------------------' AS Spacer_2</font>
+<p><font face="Courier New,Courier">&nbsp; FROM Test_DT_Period T1, Test_DT_Period
+T2</font>
+<br><font face="Courier New,Courier">&nbsp;WHERE T1.Id IN ('A', 'C', 'D'
+)</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp; AND T2.Id IN ('C', 'D'
+);</font>
+<p><font face="Courier New,Courier">spacer&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+==========================================================</font>
+<br><font face="Courier New,Courier">first&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+"1999-10-10 12:10:10" to "1999-12-20 22:20:20"</font>
+<br><font face="Courier New,Courier">second&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+"2000-03-20 08:30:30" to "2000-08-07 18:40:40"</font>
+<br><font face="Courier New,Courier">first_pic&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+A&nbsp;&nbsp;&nbsp; |----|</font>
+<br><font face="Courier New,Courier">secon_pic&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+C&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+|------------|</font>
+<br><font face="Courier New,Courier">spacer_1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+----------------------------------------------------------</font>
+<br><font face="Courier New,Courier">comparestring&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+CompareString (A , C ) is LT_LT_LT_LT</font>
+<br><font face="Courier New,Courier">containsnottouches&nbsp; ContainsNotTouches
+(A , C ) is f</font>
+<br><font face="Courier New,Courier">contains&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Contains (A , C ) is f</font>
+<br><font face="Courier New,Courier">spacer_2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+----------------------------------------------------------</font>
+<p><font face="Courier New,Courier">spacer&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+==========================================================</font>
+<br><font face="Courier New,Courier">first&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+"2000-03-20 08:30:30" to "2000-08-07 18:40:40"</font>
+<br><font face="Courier New,Courier">second&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+"2000-03-20 08:30:30" to "2000-08-07 18:40:40"</font>
+<br><font face="Courier New,Courier">first_pic&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+C&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+|------------|</font>
+<br><font face="Courier New,Courier">secon_pic&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+C&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+|------------|</font>
+<br><font face="Courier New,Courier">spacer_1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+----------------------------------------------------------</font>
+<br><font face="Courier New,Courier">comparestring&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+CompareString (C , C ) is EQ_LT_GT_EQ</font>
+<br><font face="Courier New,Courier">containsnottouches&nbsp; ContainsNotTouches
+(C , C ) is f</font>
+<br><font face="Courier New,Courier">contains&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Contains (C , C ) is t</font>
+<br><font face="Courier New,Courier">spacer_2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+----------------------------------------------------------</font>
+<p><font face="Courier New,Courier">spacer&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+==========================================================</font>
+<br><font face="Courier New,Courier">first&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+"2000-04-19 18:40:40" to "2000-06-08 18:40:40"</font>
+<br><font face="Courier New,Courier">second&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+"2000-03-20 08:30:30" to "2000-08-07 18:40:40"</font>
+<br><font face="Courier New,Courier">first_pic&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+D&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+|----|</font>
+<br><font face="Courier New,Courier">secon_pic&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+C&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+|------------|</font>
+<br><font face="Courier New,Courier">spacer_1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+----------------------------------------------------------</font>
+<br><font face="Courier New,Courier">comparestring&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+CompareString (D , C ) is GT_LT_GT_LT</font>
+<br><font face="Courier New,Courier">containsnottouches&nbsp; ContainsNotTouches
+(D , C ) is f</font>
+<br><font face="Courier New,Courier">contains&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Contains (D , C ) is f</font>
+<br><font face="Courier New,Courier">spacer_2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+----------------------------------------------------------</font>
+<p><font face="Courier New,Courier">spacer&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+==========================================================</font>
+<br><font face="Courier New,Courier">first&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+"2000-03-20 08:30:30" to "2000-08-07 18:40:40"</font>
+<br><font face="Courier New,Courier">second&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+"2000-04-19 18:40:40" to "2000-06-08 18:40:40"</font>
+<br><font face="Courier New,Courier">first_pic&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+C&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+|------------|</font>
+<br><font face="Courier New,Courier">secon_pic&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+D&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+|----|</font>
+<br><font face="Courier New,Courier">spacer_1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+----------------------------------------------------------</font>
+<br><font face="Courier New,Courier">comparestring&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+CompareString (C , D ) is LT_LT_GT_GT</font>
+<br><font face="Courier New,Courier">containsnottouches&nbsp; ContainsNotTouches
+(C , D ) is t</font>
+<br><font face="Courier New,Courier">contains&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Contains (C , D ) is t</font>
+<br><font face="Courier New,Courier">spacer_2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+----------------------------------------------------------</font>
+<br>&nbsp;
+<br>&nbsp;
+<ul>
+<ul>
+<center><b><i>Figure 15: Contains() and ContainsNotTouches() Example Query
+Expressions</i></b></center>
+</ul>
+</ul>
+
+<p><br>&nbsp;Figure 15 includes several rows illustrating aspects of the
+Contains() and ContainsNotTouches() UDFs. From the comparison between 'C'
+and itself, you can see the difference between Contains() and ContainsNotTouches().
+Comparing 'C'&nbsp; with 'D' illustrates the asymmetry of both of these
+routines: 'C' contains 'D', and 'C' contains 'D' without touching it, but
+it is not the case that 'D' contains 'C'.
+<p><b><font face="Courier">WITHINNOTTOUCHES&nbsp;&nbsp; ( DT_PERIOD,DT_PERIOD
+) -> BOOLEAN&nbsp; -- Indexed</font></b>
+<br><b><font face="Courier">WITHIN&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+( DT_PERIOD,DT_PERIOD ) -> BOOLEAN&nbsp; -- Indexed</font></b>
+<p>The Within() UDFs are the commutative UDFs for Contains(). If Contains
+( 'A', 'B'), then Within( 'B', 'A'). For these UDFs, within is interpreted
+to mean that both the start and the fnish of the first argument fall between
+the start and finish of the second. Where these two UDFs differ is in their
+treatment of cases where ends touch: that is, when first.start = second.start
+or first.finish = second.finish. Simple within includes touching, but WithinNotTouches()
+is only true when the containment is complete.
+<p><b><font face="Courier">OVERLAPNOTTOUCHES&nbsp; ( DT_PERIOD,DT_PERIOD
+) -> BOOLEAN&nbsp; -- Indexed</font></b>
+<br><b><font face="Courier">OVERLAP&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+( DT_PERIOD,DT_PERIOD ) -> BOOLEAN&nbsp; -- Indexed</font></b>
+<p>Four UDFs calculate an OUT Parameter, in addition to the boolean result.
+These OUT parameters can be used in statement local variables in a query
+expression. Each of these UDFs computes the size of the overlap in seconds.
+Returning an INTERVAL would be useful, but unfortunately there are two
+kinds of interval, and figuring out which is to be returned is difficult.
+<p><b><font face="Courier">OVERLAPNOTTOUCHES&nbsp; ( DT_PERIOD,DT_PERIOD,INTEGER
+) -> BOOLEAN -- Indexed</font></b>
+<br><b><font face="Courier">OVERLAP&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+( DT_PERIOD,DT_PERIOD,INTEGER ) -> BOOLEAN -- Indexed</font></b>
+<p>In the following figure we illustrate how these UDFs are used in a query.
+The Statement Local Variable is called Overlap_Length, and is of type INTEGER.
+This is computed by the OverlapNotTouches() user-defined function that
+is the last predicate in the WHERE clause. Note that the result data in
+Figure 15 is the entire list of results. Each table in the FROM clause
+is restricted to three rows, so the query in Figure 16 performs nine comparisons.
+'H' and 'D' do not overlap at all, and the three comparisons between 'C',
+'D' and 'H' with themselves do not satisfy OverlapNotTouches(). Only four
+pairs of Period objects do satisfy the UDF, so this query only produces
+four result rows.
+<p><font face="Courier New,Courier">SELECT '=========================================================='
+AS Spacer,</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+T1.When AS First,</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+T2.When AS Second,</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+T1.Picture AS First_Pic,</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+T2.Picture AS Secon_Pic,</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+'----------------------------------------------------------' AS Spacer_1,</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+'&nbsp;&nbsp;&nbsp;&nbsp; CompareString (' || T1.Id || ' , ' || T2.Id ||
+' ) is ' ||</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+CompareString( T1.When, T2.When )::LVARCHAR AS CompareString,</font>
+<p><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+' OverlapNotTouches (' || T1.Id || ' , ' || T2.Id || ' ) is ' ||</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+OverlapNotTouches ( T1.When, T2.When )::LVARCHAR::CHAR(2) ||</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+' with Length ' || Overlap_Length AS OverlapNotTouches,</font>
+<p><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Overlap ('
+|| T1.Id || ' , ' || T2.Id || ' ) is ' ||</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Overlap ( T1.When, T2.When )::LVARCHAR::CHAR(2) AS Overlap,</font>
+<p><font face="Courier New,Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+'----------------------------------------------------------' AS Spacer_2</font>
+<br><font face="Courier New,Courier">&nbsp; FROM Test_DT_Period T1, Test_DT_Period
+T2</font>
+<br><font face="Courier New,Courier">&nbsp;WHERE T1.Id IN ( 'C', 'D', 'H'
+)</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp; AND T2.Id IN ( 'C', 'D',
+'H' )</font>
+<br><font face="Courier New,Courier">&nbsp;&nbsp; AND OverlapNotTouches
+( T1.When, T2.When, Overlap_Length # INTEGER );</font>
+<br>&nbsp;
+<p><font face="Courier New,Courier">spacer&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+==========================================================</font>
+<br><font face="Courier New,Courier">first&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+"2000-03-20 08:30:30" to "2000-08-07 18:40:40"</font>
+<br><font face="Courier New,Courier">second&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+"2000-04-19 18:40:40" to "2000-06-08 18:40:40"</font>
+<br><font face="Courier New,Courier">first_pic&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+C&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+|------------|</font>
+<br><font face="Courier New,Courier">secon_pic&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+D&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+|----|</font>
+<br><font face="Courier New,Courier">spacer_1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+----------------------------------------------------------</font>
+<br><font face="Courier New,Courier">comparestring&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+CompareString (C , D ) is LT_LT_GT_GT</font>
+<br><font face="Courier New,Courier">overlapnottouches&nbsp;&nbsp; OverlapNotTouches
+(C , D ) is t&nbsp; with Length 4320000</font>
+<br><font face="Courier New,Courier">overlap&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Overlap (C , D ) is t</font>
+<br><font face="Courier New,Courier">spacer_2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+----------------------------------------------------------</font>
+<p><font face="Courier New,Courier">spacer&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+==========================================================</font>
+<br><font face="Courier New,Courier">first&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+"2000-03-20 08:30:30" to "2000-08-07 18:40:40"</font>
+<br><font face="Courier New,Courier">second&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+"2000-07-28 08:30:30" to "2000-09-17 04:50:50"</font>
+<br><font face="Courier New,Courier">first_pic&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+C&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+|------------|</font>
+<br><font face="Courier New,Courier">secon_pic&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+H&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+|---|</font>
+<br><font face="Courier New,Courier">spacer_1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+----------------------------------------------------------</font>
+<br><font face="Courier New,Courier">comparestring&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+CompareString (C , H ) is LT_LT_GT_LT</font>
+<br><font face="Courier New,Courier">overlapnottouches&nbsp;&nbsp; OverlapNotTouches
+(C , H ) is t&nbsp; with Length 900610</font>
+<br><font face="Courier New,Courier">overlap&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Overlap (C , H ) is t</font>
+<br><font face="Courier New,Courier">spacer_2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+----------------------------------------------------------</font>
+<p><font face="Courier New,Courier">spacer&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+==========================================================</font>
+<br><font face="Courier New,Courier">first&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+"2000-04-19 18:40:40" to "2000-06-08 18:40:40"</font>
+<br><font face="Courier New,Courier">second&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+"2000-03-20 08:30:30" to "2000-08-07 18:40:40"</font>
+<br><font face="Courier New,Courier">first_pic&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+D&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+|----|</font>
+<br><font face="Courier New,Courier">secon_pic&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+C&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+|------------|</font>
+<br><font face="Courier New,Courier">spacer_1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+----------------------------------------------------------</font>
+<br><font face="Courier New,Courier">comparestring&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+CompareString (D , C ) is GT_LT_GT_LT</font>
+<br><font face="Courier New,Courier">overlapnottouches&nbsp;&nbsp; OverlapNotTouches
+(D , C ) is t&nbsp; with Length 4320000</font>
+<br><font face="Courier New,Courier">overlap&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Overlap (D , C ) is t</font>
+<br><font face="Courier New,Courier">spacer_2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+----------------------------------------------------------</font>
+<p><font face="Courier New,Courier">spacer&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+==========================================================</font>
+<br><font face="Courier New,Courier">first&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+"2000-07-28 08:30:30" to "2000-09-17 04:50:50"</font>
+<br><font face="Courier New,Courier">second&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+"2000-03-20 08:30:30" to "2000-08-07 18:40:40"</font>
+<br><font face="Courier New,Courier">first_pic&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+H&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+|---|</font>
+<br><font face="Courier New,Courier">secon_pic&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+C&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+|------------|</font>
+<br><font face="Courier New,Courier">spacer_1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+----------------------------------------------------------</font>
+<br><font face="Courier New,Courier">comparestring&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+CompareString (H , C ) is GT_LT_GT_GT</font>
+<br><font face="Courier New,Courier">overlapnottouches&nbsp;&nbsp; OverlapNotTouches
+(H , C ) is t&nbsp; with Length 900610</font>
+<br><font face="Courier New,Courier">overlap&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Overlap (H , C ) is t</font>
+<br><font face="Courier New,Courier">spacer_2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+----------------------------------------------------------</font>
+<br>&nbsp;
+<ul>
+<ul>
+<center><b><i>Figure 16: OverlapsNotTouches() Returning a Statement Local
+Variable</i></b></center>
+</ul>
+</ul>
+
+<p><br>As with the Length() UDF, the Overlap() and OverlapNotTouches()
+UDFs returning a Length value differ in the units. When computing DT_Period
+overlaps, where the start and finish are datetime values, the value returned
+is the <i>number of seconds</i> in the interval. When the start, or the
+finish, is EPOCH, the OUT parameter is set to 0, because there is a bug
+that prevents setting an OUT parameter to NULL. For Period objects, where
+the start and finish are even dates, the interval length is computed in
+<i>number
+of days</i>.
+<p><b><font face="Courier">BEFORE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+( DT_PERIOD, DT_PERIOD ) -> BOOLEAN&nbsp; -- Not Indexed</font></b>
+<br><b><font face="Courier">BEFORETOUCHES&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+( DT_PERIOD, DT_PERIOD ) -> BOOLEAN&nbsp; -- Indexed</font></b>
+<br><b><font face="Courier">AFTER&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+( DT_PERIOD, DT_PERIOD ) -> BOOLEAN&nbsp; -- Not Indexed</font></b>
+<br><b><font face="Courier">AFTERTOUCHES&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+( DT_PERIOD, DT_PERIOD ) -> BOOLEAN&nbsp; -- Indexed</font></b>
+<p>These last four functions refer to relationships where the two Periods
+relate to non-overlapping intervals. One Period can come before, or after,
+another, if the finish of one comes (on or) before the start of the other.
+Touches is a special case where the start or one Period equals the finish
+of the other. As we have defined the terms, touching Periods do Overlap.
+They do not, however, OverlapNotTouches().
+<p>It is important to bring up a subtle aspect of this definition. An entirely
+different set of rules, where Overlap() is true only if there is some non-zero
+interval of time common to both Periods, results in a different, although
+entirely consistent, semantic.
+<p><a NAME="third"></a><font color="#000099">R-Tree Support Functions and
+Operator Class</font>
+<p>All of the UDFs in the previous section--except Before() and After()--can
+be indexed using the R-Tree. Building an R-Tree requires a set of support
+routines. These are introduced in the following section. These UDFs are
+not called from directly from SQL. There are alternative UDF calls--GetUnion(),
+GetIntersection(), and Length()--which return these results.
+<p><b><font face="Courier">UNION ( DT_PERIOD,DT_PERIOD,DT_PERIOD ) -> INTEGER</font></b>
+<br><b><font face="Courier">SIZE&nbsp; ( DT_PERIOD,FLOAT )&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+-> INTEGER</font></b>
+<br><b><font face="Courier">INTER ( DT_PERIOD,DT_PERIOD,DT_PERIOD ) ->
+INTEGER</font></b>
+<p>For each type, there is an operator class that must be used in the CREATE
+INDEX statement, as we see in the following figure.
+<p><font face="Courier New,Courier">CREATE INDEX Index_Index_1 ON Index_Test
+( When DT_Period_ops) USING RTREE;</font>
+<p>Part of the regression tests for the Period bladelet is a test of the
+logical correctness, and the efficacy, of the R-Tree. This CREATE INDEX
+statement is in a script file Period\install\reg_index.sql. That script
+also measures the performance advantages of the index over table scans.
+<p><a NAME="third"></a><font color="#000099">User-Defined Aggregate Support
+Function.</font>
+<p>As we mentioned in the introduction, the Period BladeLet includes a
+User-Defined Aggregate called <font face="Courier New,Courier">Min_Overlap()</font>,
+which simplifies the task of figuring out whether or not there is some
+period of time during which every one of a set of DT_Periods is current.
+For example, Figure 17 below reproduces a sub-set of the data from Figure
+1. Each of the scheduled periods in Figure 17 would correspond to a single
+row in a table like Figure 6 <font face="Courier New,Courier">Track_Schedule</font>.
+The final line in Figure 17 shows what the result would be if the <font face="Courier New,Courier">Min_Overlap()</font>
+UDA were run over just this set of scheduled intervals.
+<blockquote>
+<pre>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Time:
+Track&nbsp; : T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17
+Seg #:</pre>
+
+<pre>&nbsp; 3&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |-----------|
+
+&nbsp; 4&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |-----|
+
+&nbsp; 5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |----------------------------------------------------------)
+
+&nbsp; 6&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |---|&nbsp;&nbsp;
+
+&nbsp; 7&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |-------|</pre>
+
+<pre>Min_Overlap()&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |===|</pre>
+</blockquote>
+
+<center><b><i>Figure 17: Sub-Set of Figure 1 Data Illustrating Functionality
+of Min_Overlap() Aggregate</i></b></center>
+
+<p>Implementing a UDA requires that the developer implements four support
+routines and then combines them to implement a single aggregate. Four support
+routines are necessary due to the parallelizable query processing infrastructure
+built into the IDS product. When a query specifies that the <font face="Courier New,Courier">Min_Overlap()</font>
+aggregate is to be invoked, the IDS product divides the total data set
+into some number of sub-tasks and decides how many parallel threads to
+apply to the problem and runs the INIT support routine once for each of
+them. Then, within each sub-set of the overall aggregat, IDS invokes the
+ITER function once per row. Once all rows in all sub-sets have been examined,
+IDS then combines the results of each sub-task using COMBINE, before finally
+calling FINAL to compute the result.
+<p><b><font face="Courier">DT_PERIOD_OVERLAP_INIT&nbsp; ( DT_PERIOD )&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+-></font></b>
+<br><b><font face="Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+DT_PERIOD_OVERLAP_STATE</font></b>
+<br><b><font face="Courier">DT_PERIOD_OVERLAP_ITER&nbsp; ( DT_PERIOD_OVERLAP_STATE,</font></b>
+<br><b><font face="Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+DT_PERIOD )&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+-></font></b>
+<br><b><font face="Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+DT_PERIOD_OVERLAP_STATE</font></b>
+<br><b><font face="Courier">DT_PERIOD_OVERLAP_COMBINE ( DT_PERIOD_OVERLAP_STATE,</font></b>
+<br><b><font face="Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+DT_PERIOD_OVERLAP_STATE )&nbsp;&nbsp; ->&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+DT_PERIOD_OVERLAP_STATE</font></b>
+<br><b><font face="Courier">DT_PERIOD_OVERLAP_FINAL ( DT_PERIOD_OVERLAP_STATE
+)&nbsp;&nbsp;&nbsp; -></font></b>
+<br><b><font face="Courier">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+DT_PERIOD</font></b>
+<p>Readers should note that there is potential for serious mis-understanding
+when reading this description of the <font face="Courier New,Courier">Min_Overlap()</font>
+aggregate. Were you to run the aggregate over <b><i>all</i></b> of the
+data presented in Figure 1, the result would be NULL. There is no period
+of time during which every one of the periods is active. This case needs
+to be distinguished from more intuitively obvious, but formally more complex,
+question relating to periods of common activity for a set of resources
+(rather than overlapping periods per se.) Min_Overlaps() only ever returns
+a single Period (or DT_Period) instance. But when a set of resources are
+being allocated, and the question concerns periods during which all of
+the resources are allocated, the aggregate would need to return a <b><i>set</i></b>
+of Periods, rather than a single value.
+<p>User-defined Aggregates can return SET{} results, but it is suggested
+that such work be done in using SPL rather than 'C'.
+<p><a NAME="third"></a><font color="#000099">Miscellaneous Support Function.</font>
+<p>This user-defined function returns a string that reflects the 4 relationships
+between the start and finish of the first and second argument. Internally,
+this UDF simply computes a compare() between all four pairs of start and
+finish values of the first and second arguments. In the final section of
+this page, where we describe the internal design of the Bladelet's functionality,
+we list the possible values that this UDF returns.
+<p><b><font face="Courier">COMPARESTRING ( DT_PERIOD,DT_PERIOD ) -> LVARCHAR</font></b>
+<p>Several figures illustrate the CompareString() UDF in action. It is
+primarily intended as an aid for debugging.
+<p><a NAME="third"></a><font color="#000099">Query Processing Support Functions.</font>
+<p>As part of query processing, for example, to perform equi-joins and
+merge-joins, the following user-defined functions are useful. They are
+never called as part of any SQL query, but are instead invoked by the engine
+in HASH joins, or MERGE-SORT operations.
+<p><b><font face="Courier">HASH&nbsp;&nbsp;&nbsp; ( DT_PERIOD )&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+-> INTEGER</font></b>
+<br><b><font face="Courier">COMPARE ( DT_PERIOD,DT_PERIOD ) -> INTEGER</font></b>
+<br>&nbsp;
+<p><a NAME="third"></a><font color="#000099">Database Administrative Support
+Functions.</font>
+<p>Database Administrative Support Functions are typically invoked by the
+ORDBMS as part of its data processing. They are never called directly by
+SQL queries but are instead invoked when data from the ORDBMS is backed
+up, or sent to a client. These functions are paired into symmetric operations,
+each of which relates to a different administrative activity.
+<p><b><font face="Courier">DT_PERIODSEND ( DT_PERIOD ) -> SENDRECV</font></b>
+<br><b><font face="Courier">DT_PERIODRECV ( SENDRECV )&nbsp; -> DT_PERIOD</font></b>
+<br><b><font face="Courier">DT_PERIODIMPT ( IMPEXP )&nbsp;&nbsp;&nbsp;
+-> DT_PERIOD</font></b>
+<br><b><font face="Courier">DT_PERIODEXPT ( DT_PERIOD ) -> IMPEXP</font></b>
+<br><b><font face="Courier">DT_PERIODIMPB ( IMPEXPBIN ) -> DT_PERIOD</font></b>
+<br><b><font face="Courier">DT_PERIODEXPB ( DT_PERIOD ) -> IMPEXPBIN</font></b>
+<p>The regression test set for the Period BladeLet includes the use of
+the <font face="Courier New,Courier">ontape</font> utility to back-up and
+recover a database that involves these types. The idea is to test that
+these UDFs are working. They appear to be, but this is the weakest area
+of the testing.
+<p><a href="#contents">Contents</a></ul>
+
+<hr>
+<br>&nbsp;
+<h3>
+<a NAME="third"></a><font color="#000099">Code Walk through and Implementation
+Overview</font></h3>
+
+<blockquote>The 'C' code implementing this BladeLet is to be found in ./src/Period.c,
+./src/Period.h, and ./src/DT_Period.h. Several support functions are found
+in ./src/support.c. To build the shared object, the wad includes a Microsoft
+Developer Studio project file; ./Period.dsw, and a UNIX makefile in ./UNIX.mak.
+<p>A secondary objective of this BladeLet was to provide a generalizable
+framework for doing a variety of range object; ranges of INTEGER, FLOAT,
+VARCHAR in addition to DATE and DATETIME. Key to achieving this is the
+design of the type's comparison sub-system. It turns out that, given the
+rule that within any range object, finish >= start, comparing the start
+and the finish of two ranges yields only 18 logically possible outcomes,
+and that these can be determined entirely using only a Compare() function
+for the types at either end of the range. In Figure 18 below, we present
+the list of these outcomes from ./src/Period.h.
+<p><font face="Courier New,Courier">#define DT_CMP_ERROR 0&nbsp; /* Invalid
+- throw exception&nbsp;&nbsp;&nbsp; */</font>
+<br><font face="Courier New,Courier">#define EQ_EQ_EQ_EQ 1&nbsp;&nbsp;
+/* ( 1 -> 1 )&nbsp;&nbsp; ( 1 -> 1 )&nbsp; EQ&nbsp; */</font>
+<br><font face="Courier New,Courier">#define EQ_LT_EQ_LT 2&nbsp;&nbsp;
+/* ( 1 -> 1 )&nbsp;&nbsp; ( 1 -> 2 )&nbsp; LT&nbsp; */</font>
+<br><font face="Courier New,Courier">#define LT_LT_LT_LT 3&nbsp;&nbsp;
+/* ( 1 -> 1 )&nbsp;&nbsp; ( 2 -> 2 )&nbsp; LT&nbsp; */</font>
+<br><font face="Courier New,Courier">#define EQ_EQ_GT_GT 4&nbsp;&nbsp;
+/* ( 1 -> 2 )&nbsp;&nbsp; ( 1 -> 1 )&nbsp; GT&nbsp; */</font>
+<br><font face="Courier New,Courier">#define EQ_LT_GT_EQ 5&nbsp;&nbsp;
+/* ( 1 -> 2 )&nbsp;&nbsp; ( 1 -> 2 )&nbsp; EQ&nbsp; */</font>
+<br><font face="Courier New,Courier">#define EQ_LT_GT_LT 6&nbsp;&nbsp;
+/* ( 1 -> 2 )&nbsp;&nbsp; ( 1 -> 3 )&nbsp; LT&nbsp; */</font>
+<br><font face="Courier New,Courier">#define LT_LT_EQ_EQ 7&nbsp;&nbsp;
+/* ( 1 -> 2 )&nbsp;&nbsp; ( 2 -> 2 )&nbsp; LT&nbsp; */</font>
+<br><font face="Courier New,Courier">#define LT_LT_EQ_LT 8&nbsp;&nbsp;
+/* ( 1 -> 2 )&nbsp;&nbsp; ( 2 -> 3 )&nbsp; LT&nbsp; */</font>
+<br><font face="Courier New,Courier">#define EQ_LT_GT_GT 9&nbsp;&nbsp;
+/* ( 1 -> 3 )&nbsp;&nbsp; ( 1 -> 2 )&nbsp; GT&nbsp; */</font>
+<br><font face="Courier New,Courier">#define LT_LT_GT_GT 10&nbsp; /* (
+1 -> 3 )&nbsp;&nbsp; ( 2 -> 2 )&nbsp; LT&nbsp; */</font>
+<br><font face="Courier New,Courier">#define LT_LT_GT_EQ 11&nbsp; /* (
+1 -> 3 )&nbsp;&nbsp; ( 2 -> 3 )&nbsp; LT&nbsp; */</font>
+<br><font face="Courier New,Courier">#define LT_LT_GT_LT 12&nbsp; /* (
+1 -> 3 )&nbsp;&nbsp; ( 2 -> 4 )&nbsp; LT&nbsp; */</font>
+<br><font face="Courier New,Courier">#define GT_GT_GT_GT 13&nbsp; /* (
+2 -> 2 )&nbsp;&nbsp; ( 1 -> 1 )&nbsp; GT&nbsp; */</font>
+<br><font face="Courier New,Courier">#define GT_EQ_GT_EQ 14&nbsp; /* (
+2 -> 2 )&nbsp;&nbsp; ( 1 -> 2 )&nbsp; GT&nbsp; */</font>
+<br><font face="Courier New,Courier">#define GT_LT_GT_LT 15&nbsp; /* (
+2 -> 2 )&nbsp;&nbsp; ( 1 -> 3 )&nbsp; GT&nbsp; */</font>
+<br><font face="Courier New,Courier">#define GT_EQ_GT_GT 16&nbsp; /* (
+2 -> 3 )&nbsp;&nbsp; ( 1 -> 2 )&nbsp; GT&nbsp; */</font>
+<br><font face="Courier New,Courier">#define GT_LT_GT_EQ 17&nbsp; /* (
+2 -> 3 )&nbsp;&nbsp; ( 1 -> 3 )&nbsp; GT&nbsp; */</font>
+<br><font face="Courier New,Courier">#define GT_LT_GT_GT 18&nbsp; /* (
+2 -> 4 )&nbsp;&nbsp; ( 1 -> 3 )&nbsp; GT&nbsp; */</font>
+<blockquote>
+<blockquote>
+<center><b><i>Figure 18:&nbsp; Set of Logically Possible Comparisons Between
+Two Legal Range Objects</i></b></center>
+</blockquote>
+</blockquote>
+In Figure 18, the composition of the macro string ("GT_LT_GT_LT", for example)
+reflects the relationships between the four elements of the two range values;
+First.Start and Second.Start, First.Start and Second.Finish, First.Finish
+and Second.Start, and finally First.Finish and Second.Finish. Each relationship
+can have one of three possible values; LessThan, Equal, or GreaterThan.
+To clarify the relationship between the ranges, each macro is accompanied
+by a pair of examples where the start and finish values are taken from
+the range of INTEGERS, 1 through 4.
+<p>Thus, for example, in case number 9, First.Start equals Second.Start,
+First.Start is less than Second.Finish, First.Finish is greater than Second.Start,
+and First.Finish is greater than Second.Finish. This situation arises when
+the pair of ranges involved are of the form ( 1 -> 3 ) and ( 1 -> 2 ).
+<p>Different logical relationships between pairs of ranges--<font face="Courier New,Courier">Overlap()</font>,
+<font face="Courier New,Courier">Within()</font>, <font face="Courier New,Courier">Equal()</font>
+and so on--can be determined as a mapping from these basic possibilities.
+Further, sorting operations can be supported by implementing a <font face="Courier New,Courier">Compare()</font>
+for ranges although such a concept has little semantic value. The macro
+strings in Figure 18 are returned the <font face="Courier New,Courier">CompareString(
+DT_Period, DT_Period )</font> User-defined function.
+<p><a NAME="third"></a> <font color="#3333FF">Statistics and Selectivity</font>
+<p>The Period BladeLet includes statistics gathering and selectivity estimation
+functionality. Given the nature of the objects being indexed, standard
+approaches--histograms--are a bit awkward. It is not clear, for example,
+how one would figure out the average size of an Period in a column given
+histograms of the start and finish. And using histogram techniques to determine
+the selectivity of operations like <font face="Courier New,Courier">Overlap()</font>
+and <font face="Courier New,Courier">Within()</font> is problematic because
+the start and finish values are not independent: a necessary assumption
+before standard probability can be used.
+<br>&nbsp;
+<br>&nbsp;
+<br>&nbsp;
+<br>&nbsp;</blockquote>
+
+<hr>
+<h3>
+<a NAME="glossary"></a><font color="#0000FF">Glossary</font></h3>
+
+<blockquote>Terms and acronyms used by this tech note include:
+<blockquote>&nbsp;
+<table BORDER=0 CELLPADDING=5 >
+<tr>
+<td>Blade or BladeLet</td>
+
+<td>Set of semantically related extensions -- types and functions -- to
+the ORDBMS.</td>
+</tr>
+
+<tr>
+<td>APITB</td>
+
+<td>A Pain in the Behind.</td>
+</tr>
+
+<tr>
+<td>COLLECTION</td>
+
+<td>Non-first normal form object. That is, a set of data values that can
+be considered as a single data value for some purposes (variables). COLLECTIONS
+can also be thought of as small, in-memory, temporary tables for the purpose
+of querying.</td>
+</tr>
+
+<tr>
+<td>DBA</td>
+
+<td>DataBase Administrator.</td>
+</tr>
+
+<tr>
+<td>Iterator</td>
+
+<td>An iterator is a special kind of UDF that returns more than one result.
+Implementing Iterators raises conceptual and engineering difficulties.
+This Bladelet contains an example of a quite complex Iterator.</td>
+</tr>
+
+<tr>
+<td>User-defined Function (UDF)</td>
+
+<td>Module of procedural logic that extends SQL. This Bladelet included
+UDFs implemented in 'C' and SPL. Through out this document I use the term
+Routine synonymously with UDF.</td>
+</tr>
+
+<tr>
+<td>SAPI</td>
+
+<td>Server Application Programming Interface. This is the set of data structures
+and 'C' functions used to implement ORDBMS extensions.</td>
+</tr>
+
+<tr>
+<td>SPL</td>
+
+<td>Stored Procedure Language. Simple procedural language that can be used
+to implement UDFs. SPL is much simpler than 'C', but it is not parallelizable,
+nor as run-time efficient for complex operations.&nbsp;</td>
+</tr>
+
+<tr>
+<td>Statement Local Variable</td>
+
+<td>Variable value returned by reference from a UDF and associated with
+a name in the query expression. When referring to this as the mechanism
+for returning more than one value from a UDF it is more common to refer
+to it as an OUT parameter.&nbsp;</td>
+</tr>
+</table>
+</blockquote>
+
+<p><br>
+<hr>
+<h3>
+<a NAME="glossary"></a><font color="#000099">References</font></h3>
+
+<blockquote>&nbsp;</blockquote>
+</blockquote>
+<a href="#contents">Contents</a>
+<hr>
+<p>Last updated 31-March-2000.
+</body>
+</html>

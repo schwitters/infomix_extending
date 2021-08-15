@@ -1,0 +1,191 @@
+
+     Overriding the OS System Memory Allocation Operators in Legacy Code
+     -=================================================================-
+
+       NOTE: This example uses Solaris. Other Unix platforms may use
+             different compiler directives.
+
+Contents:
+    Background
+    Overview
+    Running the Demos
+    Changes to the Generated Code
+    idn_LegacyC
+    idn_LegacyCPP
+    Proving that it Works
+    Change History
+
+Background:
+----------
+
+  One serious problem with using legacy code in DataBlade modules is unsafe
+  memory allocation. Routines that run as server functions in Informix
+  Dynamic Server/Universal Data Option must use the DataBlade API functions
+  -- mi_alloc(), mi_dalloc(), or mi_zalloc() -- to allocate memory. Memory 
+  that is allocated with malloc() or any of its variants is not safe in 
+  DataBlades.
+
+  The malloc() routines in C language legacy code can easily be overridden
+  by providing local malloc() and free() routines that call mi_alloc() and
+  mi_free(). (Note: Overrides for calloc() or other memory allocation
+  routines should also be provided for legacy code that uses these.)
+
+  In C++, memory is typically allocated by a call to malloc() or one of its
+  variants that is made from within the C++ "new" operator. Therefore, when
+  using C++, the "new" and "delete" operators (and their array counterparts,
+  "new[]" and "delete[]") must also be overridden.
+
+Overview:
+--------
+
+  idn_LegacyC is a simple DataBlade module that demonstrates how to
+  globally override the system malloc() and free() functions in a
+  DataBlade written entirely with C.
+
+  idn_LegacyCPP demonstrates how to globally override the C++ "new" and 
+  "delete" operators so that legacy C++ libraries can be used in a DataBlade. 
+
+  Both DataBlades follow the same format and structure. They both implement
+  routines that call pre-existing code, and they include tracing statements
+  that track the calls to memory allocation routines. All trace output is
+  sent to files in /tmp.
+
+Running the Demos:
+-----------------
+
+  Before you run the demos, you'll need to install the demo DataBlades
+  on your server. To do this, run the "install.sh" script in this directory
+  to create the installation directories under $INFORMIX/extend, and to copy
+  in the appropriate files:
+
+     % install.sh
+
+  NOTE: You must run this script as the "informix" user.
+
+  To run the demos, cd into the "demo" directory under "C" or "C++" and
+  invoke the "main.sh" script:
+
+     % cd C/demo
+     % main.sh
+
+  The test script will create a database, register the appropriate
+  DataBlade (idn_LegacyC.1.2 or idn_LegacyCPP.1.2), and execute two
+  DataBlade functions. The first function turns on tracing for the
+  session, and the second executes a function that calls "malloc()"
+  (or "new[]", in the C++ version).
+
+  The trace output should match the copy in the demo directory, except
+  for date, time, and session number.
+
+
+Changes to the Generated Code:
+-----------------------------
+
+  Both DataBlades were created using BladeSmith. After generating the source
+  code and scripts, the following changes were made:
+
+  idn_LegacyC:
+  -------------
+  0. Added two source files to the src directory:
+
+         mallocfix.c -   Implements the global overrides of malloc() and
+                         free().
+
+         call_c.c    -   Is a simple C routine that is called by
+                         the DataBlade, and that uses malloc().
+
+  1. udr.c:
+
+     Added code to call the function implemented in call_c.c.
+
+  2. idn_LegacyCU.mak:
+
+     a. Added a definition for the $(DATABLADE_LIBS)
+
+          DATABLADE_LIBS = $(BINDIR)/call_c.o $(BINDIR)/mallocfix.o
+
+     b. Added lines to build mallocfix.o
+
+          # build mallocfix.o
+          $(BINDIR)/mallocfix.o : c/mallocfix.c
+               $(CC) $(CFLAGS) -o $(BINDIR)/mallocfix.o -c c/mallocfix.c
+
+     c. Added lines to compile the called routines
+
+          # Construct the DataBlade-specific libraries
+          $(DATABLADE_LIBS) : c/call_c.c c/mallocfix.c
+          $(CC) $(CFLAGS) -c -o $(BINDIR)/call_c.o c/call_c.c
+          $(CC) $(CFLAGS) -c -o $(BINDIR)/mallocfix.o c/mallocfix.c
+
+
+     d. Added $(DATABLADE_LIBS) to the dependency list for $(PROJECT_LIBS)
+
+            $(PROJECT_LIBS) : $(PROJECT_OBJS) $(DATABLADE_LIBS) 
+
+     e. Added $(BINDIR)/mallocfix.o and $(BINDIR)/call_c.o to the
+        "clean" directive.
+
+    See idn_LegacyCU.mak_generated for the original DBDK-generated makefile.
+
+
+  idn_LegacyCPP:
+  -------------
+  0. Added two C++ source files to the src directory:
+
+         mallocfix.cpp - Implements the global overrides of malloc() and
+                         free(), and of the C++ new and delete operators.
+
+         call_cplusplus.cpp - Is a simple C++ routine that is called by
+                      the DataBlade, and that uses new and delete. 
+
+  1. udr.c:
+
+     Added code to call the function implemented in call_cplusplus.cpp.
+
+  2. idn_LegacyCPPU.mak:
+
+     a. Added a definition for the $(DATABLADE_LIBS)
+
+          DATABLADE_LIBS = $(BINDIR)/cplusplus.o $(BINDIR)/mallocfix.o
+
+     b. Added lines to build $(DATABLADE_LIBS)
+
+          # Construct the DataBlade-specific libraries
+          $(DATABLADE_LIBS) : c/call_cplusplus.cpp c/mallocfix.cpp
+          CC $(CFLAGS) -c -o $(BINDIR)/call_cplusplus.o c/call_cplusplus.cpp
+          CC $(CFLAGS) -c -o $(BINDIR)/mallocfix.o c/mallocfix.cpp
+
+
+        Note:  We use the Solaris "CC" command to compile the C++
+        modules, and NOT the $(CC) Makefile variable, which resolves
+        to "cc", the standard C compiler.
+
+     c. Added $(DATABLADE_LIBS) to the dependency list for $(PROJECT_LIBS)
+
+            $(PROJECT_LIBS) : $(PROJECT_OBJS) $(DATABLADE_LIBS)
+
+     d. Added libC to the ld list:
+
+            $(PROJECT_OBJS) $(LIBS) $(DATABLADE_LIBS) \
+            -Bstatic /opt/SUNWspro/SC4.0/lib/libC.a
+
+    See idn_LegacyCPPU.mak_generated for the original DBDK-generated makefile.
+
+
+Proving That it Works:
+---------------------
+
+  To demonstrate that the local overrides are being called, just run the
+  demos. Your trace output should match the copy in the demo directory,
+  except for date, time, and session number.
+
+  You can modify and rebuild the DataBlade shared objects in the usual
+  way ("make -f idn_LegacyCPPU.mak"). If you do, be sure to copy the new .bld
+  file to $INFORMIXDIR/extend/<blade directory> and recycle (stop and restart)
+  your server before re-running the modified DataBlade.
+
+Change History:
+--------------
+
+  23-August-1999 - Recompiled for server release 9.2 and dbdk 4.00
+-----------------------------------------------------------------------------

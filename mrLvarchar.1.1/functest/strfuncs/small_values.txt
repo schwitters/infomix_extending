@@ -1,0 +1,5 @@
+1|small value|One: Here is one small value|
+2|small value|Two: Here is the second small value|
+3|small value|Three: Here is the third small value|
+4|small value|Four: Here is the fourth small value|
+5|small value|Five: Here is the fifth small value|

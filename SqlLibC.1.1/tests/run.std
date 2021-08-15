@@ -1,0 +1,2671 @@
+
+Database selected.
+
+-- run the ceil() routine against each column in the SQLNumbers table
+--
+select decimalColumn, ceil(decimalColumn) ceil
+from SQLNumbers;
+
+   decimalcolumn        ceil 
+
+123.456000000000         124
+-123.45600000000        -123
+0.00000000000000           0
+
+ 1215: Value exceeds limit of INTEGER precision
+Error in line 2
+Near character position 14
+
+
+select integerColumn, ceil(integerColumn) ceil
+from SQLNumbers;
+
+integercolumn        ceil 
+
+          123         123
+         -123        -123
+            0           0
+   2147483647  2147483647
+  -2147483647 -2147483647
+
+5 row(s) retrieved.
+
+
+
+select int8Column, ceil(int8Column) ceil
+from SQLNumbers;
+
+          int8column        ceil 
+
+              123456      123456
+             -123456     -123456
+                   0           0
+
+ 1215: Value exceeds limit of INTEGER precision
+Error in line 2
+Near character position 14
+
+
+select realColumn, ceil(realColumn) ceil
+from SQLNumbers;
+
+    realcolumn        ceil 
+
+123.4560010000         124
+-123.456001000        -123
+          0.00           0
+1234567.750000     1234568
+-1234567.75000    -1234567
+
+5 row(s) retrieved.
+
+
+
+select smallintColumn, ceil(smallintColumn) ceil
+from SQLNumbers;
+
+smallintcolumn        ceil 
+
+           123         123
+          -123        -123
+             0           0
+         32767       32767
+        -32767      -32767
+
+5 row(s) retrieved.
+
+
+
+select doubleColumn, ceil(doubleColumn) ceil
+from SQLNumbers;
+
+  doublecolumn        ceil 
+
+12345.67890000       12346
+-12345.6789000      -12345
+          0.00           0
+1234567890.123  1234567891
+
+ 1215: Value exceeds limit of INTEGER precision
+Error in line 2
+Near character position 14
+
+
+
+
+Database closed.
+
+
+Database selected.
+
+-- --------------------------------------------------------------------------
+-- testchrs.sql
+--
+-- This script will test both ascii() and chr() for the whole range of
+-- ascii values. chr() will also be tested with numbers that do not
+-- represent ascii values.
+--
+-- The test works by piggybacking the two functions together, converting
+-- from a chracter to an ascii value, then back again.
+-- --------------------------------------------------------------------------
+--
+select 'a', chr(ascii('a')) from oneval;
+
+(constant) (constant) 
+
+a          a
+
+1 row(s) retrieved.
+
+
+select 'b', chr(ascii('b')) from oneval;
+
+(constant) (constant) 
+
+b          b
+
+1 row(s) retrieved.
+
+
+select 'c', chr(ascii('c')) from oneval;
+
+(constant) (constant) 
+
+c          c
+
+1 row(s) retrieved.
+
+
+select 'd', chr(ascii('d')) from oneval;
+
+(constant) (constant) 
+
+d          d
+
+1 row(s) retrieved.
+
+
+select 'e', chr(ascii('e')) from oneval;
+
+(constant) (constant) 
+
+e          e
+
+1 row(s) retrieved.
+
+
+select 'f', chr(ascii('f')) from oneval;
+
+(constant) (constant) 
+
+f          f
+
+1 row(s) retrieved.
+
+
+select 'g', chr(ascii('g')) from oneval;
+
+(constant) (constant) 
+
+g          g
+
+1 row(s) retrieved.
+
+
+select 'h', chr(ascii('h')) from oneval;
+
+(constant) (constant) 
+
+h          h
+
+1 row(s) retrieved.
+
+
+select 'i', chr(ascii('i')) from oneval;
+
+(constant) (constant) 
+
+i          i
+
+1 row(s) retrieved.
+
+
+select 'j', chr(ascii('j')) from oneval;
+
+(constant) (constant) 
+
+j          j
+
+1 row(s) retrieved.
+
+
+select 'k', chr(ascii('k')) from oneval;
+
+(constant) (constant) 
+
+k          k
+
+1 row(s) retrieved.
+
+
+select 'l', chr(ascii('l')) from oneval;
+
+(constant) (constant) 
+
+l          l
+
+1 row(s) retrieved.
+
+
+select 'm', chr(ascii('m')) from oneval;
+
+(constant) (constant) 
+
+m          m
+
+1 row(s) retrieved.
+
+
+select 'n', chr(ascii('n')) from oneval;
+
+(constant) (constant) 
+
+n          n
+
+1 row(s) retrieved.
+
+
+select 'o', chr(ascii('o')) from oneval;
+
+(constant) (constant) 
+
+o          o
+
+1 row(s) retrieved.
+
+
+select 'p', chr(ascii('p')) from oneval;
+
+(constant) (constant) 
+
+p          p
+
+1 row(s) retrieved.
+
+
+select 'q', chr(ascii('q')) from oneval;
+
+(constant) (constant) 
+
+q          q
+
+1 row(s) retrieved.
+
+
+select 'r', chr(ascii('r')) from oneval;
+
+(constant) (constant) 
+
+r          r
+
+1 row(s) retrieved.
+
+
+select 's', chr(ascii('s')) from oneval;
+
+(constant) (constant) 
+
+s          s
+
+1 row(s) retrieved.
+
+
+select 't', chr(ascii('t')) from oneval;
+
+(constant) (constant) 
+
+t          t
+
+1 row(s) retrieved.
+
+
+select 'u', chr(ascii('u')) from oneval;
+
+(constant) (constant) 
+
+u          u
+
+1 row(s) retrieved.
+
+
+select 'v', chr(ascii('v')) from oneval;
+
+(constant) (constant) 
+
+v          v
+
+1 row(s) retrieved.
+
+
+select 'w', chr(ascii('w')) from oneval;
+
+(constant) (constant) 
+
+w          w
+
+1 row(s) retrieved.
+
+
+select 'x', chr(ascii('x')) from oneval;
+
+(constant) (constant) 
+
+x          x
+
+1 row(s) retrieved.
+
+
+select 'y', chr(ascii('y')) from oneval;
+
+(constant) (constant) 
+
+y          y
+
+1 row(s) retrieved.
+
+
+select 'z', chr(ascii('z')) from oneval;
+
+(constant) (constant) 
+
+z          z
+
+1 row(s) retrieved.
+
+
+
+select 'A', chr(ascii('A')) from oneval;
+
+(constant) (constant) 
+
+A          A
+
+1 row(s) retrieved.
+
+
+select 'B', chr(ascii('B')) from oneval;
+
+(constant) (constant) 
+
+B          B
+
+1 row(s) retrieved.
+
+
+select 'C', chr(ascii('C')) from oneval;
+
+(constant) (constant) 
+
+C          C
+
+1 row(s) retrieved.
+
+
+select 'D', chr(ascii('D')) from oneval;
+
+(constant) (constant) 
+
+D          D
+
+1 row(s) retrieved.
+
+
+select 'E', chr(ascii('E')) from oneval;
+
+(constant) (constant) 
+
+E          E
+
+1 row(s) retrieved.
+
+
+select 'F', chr(ascii('F')) from oneval;
+
+(constant) (constant) 
+
+F          F
+
+1 row(s) retrieved.
+
+
+select 'G', chr(ascii('G')) from oneval;
+
+(constant) (constant) 
+
+G          G
+
+1 row(s) retrieved.
+
+
+select 'H', chr(ascii('H')) from oneval;
+
+(constant) (constant) 
+
+H          H
+
+1 row(s) retrieved.
+
+
+select 'I', chr(ascii('I')) from oneval;
+
+(constant) (constant) 
+
+I          I
+
+1 row(s) retrieved.
+
+
+select 'J', chr(ascii('J')) from oneval;
+
+(constant) (constant) 
+
+J          J
+
+1 row(s) retrieved.
+
+
+select 'K', chr(ascii('K')) from oneval;
+
+(constant) (constant) 
+
+K          K
+
+1 row(s) retrieved.
+
+
+select 'L', chr(ascii('L')) from oneval;
+
+(constant) (constant) 
+
+L          L
+
+1 row(s) retrieved.
+
+
+select 'M', chr(ascii('M')) from oneval;
+
+(constant) (constant) 
+
+M          M
+
+1 row(s) retrieved.
+
+
+select 'N', chr(ascii('N')) from oneval;
+
+(constant) (constant) 
+
+N          N
+
+1 row(s) retrieved.
+
+
+select 'O', chr(ascii('O')) from oneval;
+
+(constant) (constant) 
+
+O          O
+
+1 row(s) retrieved.
+
+
+select 'P', chr(ascii('P')) from oneval;
+
+(constant) (constant) 
+
+P          P
+
+1 row(s) retrieved.
+
+
+select 'Q', chr(ascii('Q')) from oneval;
+
+(constant) (constant) 
+
+Q          Q
+
+1 row(s) retrieved.
+
+
+select 'R', chr(ascii('R')) from oneval;
+
+(constant) (constant) 
+
+R          R
+
+1 row(s) retrieved.
+
+
+select 'S', chr(ascii('S')) from oneval;
+
+(constant) (constant) 
+
+S          S
+
+1 row(s) retrieved.
+
+
+select 'T', chr(ascii('T')) from oneval;
+
+(constant) (constant) 
+
+T          T
+
+1 row(s) retrieved.
+
+
+select 'U', chr(ascii('U')) from oneval;
+
+(constant) (constant) 
+
+U          U
+
+1 row(s) retrieved.
+
+
+select 'V', chr(ascii('V')) from oneval;
+
+(constant) (constant) 
+
+V          V
+
+1 row(s) retrieved.
+
+
+select 'W', chr(ascii('W')) from oneval;
+
+(constant) (constant) 
+
+W          W
+
+1 row(s) retrieved.
+
+
+select 'X', chr(ascii('X')) from oneval;
+
+(constant) (constant) 
+
+X          X
+
+1 row(s) retrieved.
+
+
+select 'Y', chr(ascii('Y')) from oneval;
+
+(constant) (constant) 
+
+Y          Y
+
+1 row(s) retrieved.
+
+
+select 'Z', chr(ascii('Z')) from oneval;
+
+(constant) (constant) 
+
+Z          Z
+
+1 row(s) retrieved.
+
+
+
+select '1', chr(ascii('1')) from oneval;
+
+(constant) (constant) 
+
+1          1
+
+1 row(s) retrieved.
+
+
+select '2', chr(ascii('2')) from oneval;
+
+(constant) (constant) 
+
+2          2
+
+1 row(s) retrieved.
+
+
+select '3', chr(ascii('3')) from oneval;
+
+(constant) (constant) 
+
+3          3
+
+1 row(s) retrieved.
+
+
+select '4', chr(ascii('4')) from oneval;
+
+(constant) (constant) 
+
+4          4
+
+1 row(s) retrieved.
+
+
+select '5', chr(ascii('5')) from oneval;
+
+(constant) (constant) 
+
+5          5
+
+1 row(s) retrieved.
+
+
+select '6', chr(ascii('6')) from oneval;
+
+(constant) (constant) 
+
+6          6
+
+1 row(s) retrieved.
+
+
+select '7', chr(ascii('7')) from oneval;
+
+(constant) (constant) 
+
+7          7
+
+1 row(s) retrieved.
+
+
+select '8', chr(ascii('8')) from oneval;
+
+(constant) (constant) 
+
+8          8
+
+1 row(s) retrieved.
+
+
+select '9', chr(ascii('9')) from oneval;
+
+(constant) (constant) 
+
+9          9
+
+1 row(s) retrieved.
+
+
+select '0', chr(ascii('0')) from oneval;
+
+(constant) (constant) 
+
+0          0
+
+1 row(s) retrieved.
+
+
+
+select '~', chr(ascii('~')) from oneval;
+
+(constant) (constant) 
+
+~          ~
+
+1 row(s) retrieved.
+
+
+select '`', chr(ascii('`')) from oneval;
+
+(constant) (constant) 
+
+`          `
+
+1 row(s) retrieved.
+
+
+select '!', chr(ascii('!')) from oneval;
+
+(constant) (constant) 
+
+!          !
+
+1 row(s) retrieved.
+
+
+select '@', chr(ascii('@')) from oneval;
+
+(constant) (constant) 
+
+@          @
+
+1 row(s) retrieved.
+
+
+select '#', chr(ascii('#')) from oneval;
+
+(constant) (constant) 
+
+#          #
+
+1 row(s) retrieved.
+
+
+select '$', chr(ascii('$')) from oneval;
+
+(constant) (constant) 
+
+$          $
+
+1 row(s) retrieved.
+
+
+select '%', chr(ascii('%')) from oneval;
+
+(constant) (constant) 
+
+%          %
+
+1 row(s) retrieved.
+
+
+select '^', chr(ascii('^')) from oneval;
+
+(constant) (constant) 
+
+^          ^
+
+1 row(s) retrieved.
+
+
+select '&', chr(ascii('&')) from oneval;
+
+(constant) (constant) 
+
+&          &
+
+1 row(s) retrieved.
+
+
+select '*', chr(ascii('*')) from oneval;
+
+(constant) (constant) 
+
+*          *
+
+1 row(s) retrieved.
+
+
+select '(', chr(ascii('(')) from oneval;
+
+(constant) (constant) 
+
+(          (
+
+1 row(s) retrieved.
+
+
+select ')', chr(ascii(')')) from oneval;
+
+(constant) (constant) 
+
+)          )
+
+1 row(s) retrieved.
+
+
+select '-', chr(ascii('-')) from oneval;
+
+(constant) (constant) 
+
+-          -
+
+1 row(s) retrieved.
+
+
+select '_', chr(ascii('_')) from oneval;
+
+(constant) (constant) 
+
+_          _
+
+1 row(s) retrieved.
+
+
+select '+', chr(ascii('+')) from oneval;
+
+(constant) (constant) 
+
++          +
+
+1 row(s) retrieved.
+
+
+select '=', chr(ascii('=')) from oneval;
+
+(constant) (constant) 
+
+=          =
+
+1 row(s) retrieved.
+
+
+select '|', chr(ascii('|')) from oneval;
+
+(constant) (constant) 
+
+|          |
+
+1 row(s) retrieved.
+
+
+select '\', chr(ascii('\')) from oneval;
+
+(constant) (constant) 
+
+\          \
+
+1 row(s) retrieved.
+
+
+select ']', chr(ascii(']')) from oneval;
+
+(constant) (constant) 
+
+]          ]
+
+1 row(s) retrieved.
+
+
+select '}', chr(ascii('}')) from oneval;
+
+(constant) (constant) 
+
+}          }
+
+1 row(s) retrieved.
+
+
+select '{', chr(ascii('{')) from oneval;
+
+(constant) (constant) 
+
+{          {
+
+1 row(s) retrieved.
+
+
+select '[', chr(ascii('[')) from oneval;
+
+(constant) (constant) 
+
+[          [
+
+1 row(s) retrieved.
+
+
+select '"', chr(ascii('"')) from oneval;
+
+(constant) (constant) 
+
+"          "
+
+1 row(s) retrieved.
+
+
+select "'", chr(ascii("'")) from oneval;
+
+(constant) (constant) 
+
+'          '
+
+1 row(s) retrieved.
+
+
+select ':', chr(ascii(':')) from oneval;
+
+(constant) (constant) 
+
+:          :
+
+1 row(s) retrieved.
+
+
+select ';', chr(ascii(';')) from oneval;
+
+(constant) (constant) 
+
+;          ;
+
+1 row(s) retrieved.
+
+
+select '.', chr(ascii('.')) from oneval;
+
+(constant) (constant) 
+
+.          .
+
+1 row(s) retrieved.
+
+
+select ',', chr(ascii(',')) from oneval;
+
+(constant) (constant) 
+
+,          ,
+
+1 row(s) retrieved.
+
+
+select '/', chr(ascii('/')) from oneval;
+
+(constant) (constant) 
+
+/          /
+
+1 row(s) retrieved.
+
+
+select '?', chr(ascii('?')) from oneval;
+
+(constant) (constant) 
+
+?          ?
+
+1 row(s) retrieved.
+
+
+
+-- These should fail:
+execute function chr(999);
+
+(expression) 
+
+
+(USQ01) - chr: Input value 999 outside range of 0-127.
+Error in line 1
+Near character position 25
+
+execute function chr(128);
+
+(expression) 
+
+
+(USQ01) - chr: Input value 128 outside range of 0-127.
+Error in line 1
+Near character position 25
+
+execute function chr(-1);
+
+(expression) 
+
+
+(USQ01) - chr: Input value -1 outside range of 0-127.
+Error in line 1
+Near character position 24
+
+
+
+
+Database closed.
+
+
+Database selected.
+
+-- -------------------------------------------------------------------------
+-- Tests for the instr() function.
+-- -------------------------------------------------------------------------
+--
+-- Test with just two arguments:
+--
+-- Should return "6":
+execute function instr("The Mississippi flows north to south.", "i");
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "is");
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "issi");
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+
+-- Should return "1":
+execute function instr("The Mississippi flows north to south.", "T");
+
+(expression) 
+
+           1
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "The");
+
+(expression) 
+
+           1
+
+1 row(s) retrieved.
+
+
+
+-- Should return "37":
+execute function instr("The Mississippi flows north to south.", ".");
+
+(expression) 
+
+          37
+
+1 row(s) retrieved.
+
+
+
+-- Should return "0" (no match):
+execute function instr("The Mississippi flows north to south.", "east");
+
+(expression) 
+
+           0
+
+1 row(s) retrieved.
+
+
+
+-- -------------------------------------------------------------------------
+-- Test with three arguments:
+-- -------------------------------------------------------------------------
+-- Should return "6":
+execute function instr("The Mississippi flows north to south.", "i", 0);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "is", 0);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "issi", 0);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "i", 1);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "is", 1);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "issi", 1);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "issi", 6);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+
+-- Should return "9":
+execute function instr("The Mississippi flows north to south.", "i", 7);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "is", 7);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "issi", 7);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "issi", 8);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "issi", 9);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+
+-- Should return "35":
+execute function instr("The Mississippi flows north to south.", "th", -1);
+
+(expression) 
+
+          35
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "th", -2);
+
+(expression) 
+
+          35
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "th", -3);
+
+(expression) 
+
+          35
+
+1 row(s) retrieved.
+
+
+
+-- Should return "26":
+execute function instr("The Mississippi flows north to south.", "th", -4);
+
+(expression) 
+
+          26
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "th", -5);
+
+(expression) 
+
+          26
+
+1 row(s) retrieved.
+
+
+
+-- Should return "9":
+execute function instr("The Mississippi flows north to south.", "issi", -1);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "issi", -26);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "issi", -27);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "issi", -29);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+
+-- Should return "6":
+execute function instr("The Mississippi flows north to south.", "issi", -30);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "issi", -31);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "issi", -32);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+
+-- Should return "0" (not found):
+execute function instr("The Mississippi flows north to south.", "issi", -33);
+
+(expression) 
+
+           0
+
+1 row(s) retrieved.
+
+
+
+
+-- -------------------------------------------------------------------------
+-- Test with four arguments:
+-- -------------------------------------------------------------------------
+-- Should return "6":
+execute function instr("The Mississippi flows north to south.", "i", 0, 1);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "is", 0, 1);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "issi", 0, 1);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "i", 1, 1);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "is", 1, 1);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "issi", 1, 1);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+
+-- Should return "9":
+execute function instr("The Mississippi flows north to south.", "i", 0, 2);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "is", 0, 2);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "issi", 0, 2);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "i", 1, 2);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "is", 1, 2);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "issi", 1, 2);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+
+-- Should return "0" (no match):
+execute function instr("The Mississippi flows north to south.", "issi", 10, 1);
+
+(expression) 
+
+           0
+
+1 row(s) retrieved.
+
+
+
+-- Should return "26":
+execute function instr("The Mississippi flows north to south.", "th", 1, 1);
+
+(expression) 
+
+          26
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "th", 10, 1);
+
+(expression) 
+
+          26
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "th", 26, 1);
+
+(expression) 
+
+          26
+
+1 row(s) retrieved.
+
+
+
+-- Should return "35":
+execute function instr("The Mississippi flows north to south.", "th", 1, 2);
+
+(expression) 
+
+          35
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "th", 10, 2);
+
+(expression) 
+
+          35
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "th", 26, 2);
+
+(expression) 
+
+          35
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "th", 27, 1);
+
+(expression) 
+
+          35
+
+1 row(s) retrieved.
+
+
+
+-- Should return "15":
+execute function instr("The Mississippi flows north to south.", "i", -1, 1);
+
+(expression) 
+
+          15
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "i", -22, 1);
+
+(expression) 
+
+          15
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "i", -23, 1);
+
+(expression) 
+
+          15
+
+1 row(s) retrieved.
+
+
+
+-- Should return "12":
+execute function instr("The Mississippi flows north to south.", "i", -24, 1);
+
+(expression) 
+
+          12
+
+1 row(s) retrieved.
+
+
+
+-- Should return "9":
+execute function instr("The Mississippi flows north to south.", "issi", -1, 1);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "issi", -28, 1);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "issi", -29, 1);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+
+-- Should return "6":
+execute function instr("The Mississippi flows north to south.", "issi", -1, 2);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "issi", -30, 1);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+
+-- Specify a negative occurrence number (should error):
+execute function instr("The Mississippi flows north to south.", "issi", -1, -1);
+
+(expression) 
+
+
+(USQ01) - instr: Input value -1 outside range of > 0.
+Error in line 1
+Near character position 79
+
+
+
+
+
+Database closed.
+
+
+Database selected.
+
+-- -------------------------------------------------------------------------
+-- Tests for the instrb() function.
+-- -------------------------------------------------------------------------
+--
+-- Test with just two arguments:
+--
+-- Should return "6":
+execute function instrb("The Mississippi flows north to south.", "i");
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instrb("The Mississippi flows north to south.", "is");
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instrb("The Mississippi flows north to south.", "issi");
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+
+-- Should return "1":
+execute function instrb("The Mississippi flows north to south.", "T");
+
+(expression) 
+
+           1
+
+1 row(s) retrieved.
+
+
+execute function instrb("The Mississippi flows north to south.", "The");
+
+(expression) 
+
+           1
+
+1 row(s) retrieved.
+
+
+
+-- Should return "37":
+execute function instrb("The Mississippi flows north to south.", ".");
+
+(expression) 
+
+          37
+
+1 row(s) retrieved.
+
+
+
+-- Should return "0" (no match):
+execute function instrb("The Mississippi flows north to south.", "east");
+
+(expression) 
+
+           0
+
+1 row(s) retrieved.
+
+
+
+-- -------------------------------------------------------------------------
+-- Test with three arguments:
+-- -------------------------------------------------------------------------
+-- Should return "6":
+execute function instrb("The Mississippi flows north to south.", "i", 0);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instrb("The Mississippi flows north to south.", "is", 0);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instrb("The Mississippi flows north to south.", "issi", 0);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instrb("The Mississippi flows north to south.", "i", 1);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instrb("The Mississippi flows north to south.", "is", 1);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instrb("The Mississippi flows north to south.", "issi", 1);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instrb("The Mississippi flows north to south.", "issi", 6);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+
+-- Should return "9":
+execute function instrb("The Mississippi flows north to south.", "i", 7);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+execute function instrb("The Mississippi flows north to south.", "is", 7);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+execute function instrb("The Mississippi flows north to south.", "issi", 7);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+execute function instrb("The Mississippi flows north to south.", "issi", 8);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+execute function instrb("The Mississippi flows north to south.", "issi", 9);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+
+-- Should return "35":
+execute function instrb("The Mississippi flows north to south.", "th", -1);
+
+(expression) 
+
+          35
+
+1 row(s) retrieved.
+
+
+execute function instrb("The Mississippi flows north to south.", "th", -2);
+
+(expression) 
+
+          35
+
+1 row(s) retrieved.
+
+
+execute function instrb("The Mississippi flows north to south.", "th", -3);
+
+(expression) 
+
+          35
+
+1 row(s) retrieved.
+
+
+
+-- Should return "26":
+execute function instrb("The Mississippi flows north to south.", "th", -4);
+
+(expression) 
+
+          26
+
+1 row(s) retrieved.
+
+
+execute function instrb("The Mississippi flows north to south.", "th", -5);
+
+(expression) 
+
+          26
+
+1 row(s) retrieved.
+
+
+
+-- Should return "9":
+execute function instrb("The Mississippi flows north to south.", "issi", -1);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+execute function instrb("The Mississippi flows north to south.", "issi", -26);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+execute function instrb("The Mississippi flows north to south.", "issi", -27);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+execute function instrb("The Mississippi flows north to south.", "issi", -29);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+
+-- Should return "6":
+execute function instrb("The Mississippi flows north to south.", "issi", -30);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instrb("The Mississippi flows north to south.", "issi", -31);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instrb("The Mississippi flows north to south.", "issi", -32);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+
+-- Should return "0" (not found):
+execute function instrb("The Mississippi flows north to south.", "issi", -33);
+
+(expression) 
+
+           0
+
+1 row(s) retrieved.
+
+
+
+
+-- -------------------------------------------------------------------------
+-- Test with four arguments:
+-- -------------------------------------------------------------------------
+-- Should return "6":
+execute function instrb("The Mississippi flows north to south.", "i", 0, 1);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instrb("The Mississippi flows north to south.", "is", 0, 1);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instrb("The Mississippi flows north to south.", "issi", 0, 1);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instrb("The Mississippi flows north to south.", "i", 1, 1);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instrb("The Mississippi flows north to south.", "is", 1, 1);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instrb("The Mississippi flows north to south.", "issi", 1, 1);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+
+-- Should return "9":
+execute function instrb("The Mississippi flows north to south.", "i", 0, 2);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+execute function instrb("The Mississippi flows north to south.", "is", 0, 2);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+execute function instrb("The Mississippi flows north to south.", "issi", 0, 2);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+execute function instrb("The Mississippi flows north to south.", "i", 1, 2);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+execute function instrb("The Mississippi flows north to south.", "is", 1, 2);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+execute function instrb("The Mississippi flows north to south.", "issi", 1, 2);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+
+-- Should return "0" (no match):
+execute function instrb("The Mississippi flows north to south.", "issi", 10, 1);
+
+(expression) 
+
+           0
+
+1 row(s) retrieved.
+
+
+
+-- Should return "26":
+execute function instrb("The Mississippi flows north to south.", "th", 1, 1);
+
+(expression) 
+
+          26
+
+1 row(s) retrieved.
+
+
+execute function instrb("The Mississippi flows north to south.", "th", 10, 1);
+
+(expression) 
+
+          26
+
+1 row(s) retrieved.
+
+
+execute function instrb("The Mississippi flows north to south.", "th", 26, 1);
+
+(expression) 
+
+          26
+
+1 row(s) retrieved.
+
+
+
+-- Should return "35":
+execute function instrb("The Mississippi flows north to south.", "th", 1, 2);
+
+(expression) 
+
+          35
+
+1 row(s) retrieved.
+
+
+execute function instrb("The Mississippi flows north to south.", "th", 10, 2);
+
+(expression) 
+
+          35
+
+1 row(s) retrieved.
+
+
+execute function instrb("The Mississippi flows north to south.", "th", 26, 2);
+
+(expression) 
+
+          35
+
+1 row(s) retrieved.
+
+
+execute function instrb("The Mississippi flows north to south.", "th", 27, 1);
+
+(expression) 
+
+          35
+
+1 row(s) retrieved.
+
+
+
+-- Should return "15":
+execute function instrb("The Mississippi flows north to south.", "i", -1, 1);
+
+(expression) 
+
+          15
+
+1 row(s) retrieved.
+
+
+execute function instrb("The Mississippi flows north to south.", "i", -22, 1);
+
+(expression) 
+
+          15
+
+1 row(s) retrieved.
+
+
+execute function instrb("The Mississippi flows north to south.", "i", -23, 1);
+
+(expression) 
+
+          15
+
+1 row(s) retrieved.
+
+
+
+-- Should return "12":
+execute function instrb("The Mississippi flows north to south.", "i", -24, 1);
+
+(expression) 
+
+          12
+
+1 row(s) retrieved.
+
+
+
+-- Should return "9":
+execute function instrb("The Mississippi flows north to south.", "issi", -1, 1);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+execute function instrb("The Mississippi flows north to south.", "issi", -28, 1);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+execute function instrb("The Mississippi flows north to south.", "issi", -29, 1);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+
+-- Should return "6":
+execute function instrb("The Mississippi flows north to south.", "issi", -1, 2);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instrb("The Mississippi flows north to south.", "issi", -30, 1);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+
+-- Specify a negative occurrence number (should error):
+execute function instrb("The Mississippi flows north to south.", "issi", -1, -1);
+
+(expression) 
+
+
+(USQ01) - instrb: Input value -1 outside range of > 0.
+Error in line 1
+Near character position 80
+
+
+
+
+
+Database closed.
+
+
+Database selected.
+
+-- run the sign() routine against each column in the SQLNumbers table
+--
+select decimalColumn, sign(decimalColumn) sign
+from SQLNumbers;
+
+   decimalcolumn        sign 
+
+123.456000000000           1
+-123.45600000000          -1
+0.00000000000000           0
+1234567890123456           1
+-1.2345678901e15          -1
+
+5 row(s) retrieved.
+
+
+
+select integerColumn, sign(integerColumn) sign
+from SQLNumbers;
+
+integercolumn        sign 
+
+          123           1
+         -123          -1
+            0           0
+   2147483647           1
+  -2147483647          -1
+
+5 row(s) retrieved.
+
+
+
+select int8Column, sign(int8Column) sign
+from SQLNumbers;
+
+          int8column        sign 
+
+              123456           1
+             -123456          -1
+                   0           0
+ 9223372036854775807           1
+-9223372036854775807          -1
+
+5 row(s) retrieved.
+
+
+
+select realColumn, sign(realColumn) sign
+from SQLNumbers;
+
+    realcolumn        sign 
+
+123.4560010000           1
+-123.456001000          -1
+          0.00           0
+1234567.750000           1
+-1234567.75000          -1
+
+5 row(s) retrieved.
+
+
+
+select smallintColumn, sign(smallintColumn) sign
+from SQLNumbers;
+
+smallintcolumn        sign 
+
+           123           1
+          -123          -1
+             0           0
+         32767           1
+        -32767          -1
+
+5 row(s) retrieved.
+
+
+
+select doubleColumn, sign(doubleColumn) sign
+from SQLNumbers;
+
+  doublecolumn        sign 
+
+12345.67890000           1
+-12345.6789000          -1
+          0.00           0
+1234567890.123           1
+-1.23456789e13          -1
+
+5 row(s) retrieved.
+
+
+
+
+
+Database closed.
+
+
+Database selected.
+
+-- run the to_decimal() routine against several valid and invalid values
+--
+-- should return 0:
+execute function to_decimal('0');
+
+    (expression) 
+
+0.00000000000000
+
+1 row(s) retrieved.
+
+
+--
+-- should return 0:
+execute function to_decimal('0.0');
+
+    (expression) 
+
+0.00000000000000
+
+1 row(s) retrieved.
+
+
+--
+-- should return 1:
+execute function to_decimal('1');
+
+    (expression) 
+
+1.00000000000000
+
+1 row(s) retrieved.
+
+
+--
+-- should return -1:
+execute function to_decimal('-1');
+
+    (expression) 
+
+-1.0000000000000
+
+1 row(s) retrieved.
+
+
+--
+-- should return 100.123:
+execute function to_decimal('100.123');
+
+    (expression) 
+
+100.123000000000
+
+1 row(s) retrieved.
+
+
+--
+-- should return -100.123:
+execute function to_decimal('-100.123');
+
+    (expression) 
+
+-100.12300000000
+
+1 row(s) retrieved.
+
+
+--
+-- should return 2147483647999:
+execute function to_decimal('2147483647999');
+
+    (expression) 
+
+2147483647999.00
+
+1 row(s) retrieved.
+
+
+--
+-- should error:
+execute function to_decimal('13A');
+
+    (expression) 
+
+
+ 1213: Character to numeric conversion error
+Error in line 1
+Near character position 34
+
+
+-- Should return 204:
+execute function to_decimal('314', '%o');
+
+    (expression) 
+
+204.000000000000
+
+1 row(s) retrieved.
+
+
+
+-- Should return 314:
+execute function to_decimal('13A', '%x');
+
+    (expression) 
+
+314.000000000000
+
+1 row(s) retrieved.
+
+
+
+
+Database closed.
+
+
+Database selected.
+
+-- run the to_float() routine against several valid and invalid values
+--
+-- should return 0:
+execute function to_float('0');
+
+  (expression) 
+
+          0.00
+
+1 row(s) retrieved.
+
+
+--
+-- should return 0:
+execute function to_float('0.0');
+
+  (expression) 
+
+          0.00
+
+1 row(s) retrieved.
+
+
+--
+-- should return 1:
+execute function to_float('1');
+
+  (expression) 
+
+1.000000000000
+
+1 row(s) retrieved.
+
+
+--
+-- should return -1:
+execute function to_float('-1');
+
+  (expression) 
+
+-1.00000000000
+
+1 row(s) retrieved.
+
+
+--
+-- should return 100.123:
+execute function to_float('100.123');
+
+  (expression) 
+
+100.1230000000
+
+1 row(s) retrieved.
+
+
+--
+-- should return -100.123:
+execute function to_float('-100.123');
+
+  (expression) 
+
+-100.123000000
+
+1 row(s) retrieved.
+
+
+--
+-- should return 2147483647999:
+execute function to_float('2147483647999');
+
+  (expression) 
+
+ 2147483647999
+
+1 row(s) retrieved.
+
+
+--
+-- should error:
+execute function to_float('13A');
+
+  (expression) 
+
+
+ 1213: Character to numeric conversion error
+Error in line 1
+Near character position 32
+
+
+-- Should return 204:
+execute function to_float('314', '%o');
+
+  (expression) 
+
+204.0000000000
+
+1 row(s) retrieved.
+
+
+
+-- Should return 314:
+execute function to_float('13A', '%x');
+
+  (expression) 
+
+314.0000000000
+
+1 row(s) retrieved.
+
+
+
+
+Database closed.
+
+
+Database selected.
+
+-- run the to_integer() routine against several valid and invalid values
+--
+-- should return 0:
+execute function to_integer('0');
+
+(expression) 
+
+           0
+
+1 row(s) retrieved.
+
+
+--
+-- should return 0:
+execute function to_integer('0.0');
+
+(expression) 
+
+           0
+
+1 row(s) retrieved.
+
+
+--
+-- should return 1:
+execute function to_integer('1');
+
+(expression) 
+
+           1
+
+1 row(s) retrieved.
+
+
+--
+-- should return -1:
+execute function to_integer('-1');
+
+(expression) 
+
+          -1
+
+1 row(s) retrieved.
+
+
+--
+-- should return 100:
+execute function to_integer('100.123');
+
+(expression) 
+
+         100
+
+1 row(s) retrieved.
+
+
+--
+-- should return -100:
+execute function to_integer('-100.123');
+
+(expression) 
+
+        -100
+
+1 row(s) retrieved.
+
+
+--
+-- should return return an error that value exceeds limit:
+execute function to_integer('2147483647999');
+
+(expression) 
+
+
+ 1215: Value exceeds limit of INTEGER precision
+Error in line 1
+Near character position 44
+
+--
+-- should error:
+execute function to_integer('13A');
+
+(expression) 
+
+
+ 1213: Character to numeric conversion error
+Error in line 1
+Near character position 34
+
+
+-- Should return 204:
+execute function to_integer('314', '%o');
+
+(expression) 
+
+         204
+
+1 row(s) retrieved.
+
+
+
+-- Should return 314:
+execute function to_integer('13A', '%x');
+
+(expression) 
+
+         314
+
+1 row(s) retrieved.
+
+
+
+
+Database closed.
+

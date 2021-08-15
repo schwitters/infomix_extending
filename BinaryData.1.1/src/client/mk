@@ -1,0 +1,3 @@
+cc -g -c -I$INFORMIXDIR/incl/public -I$INFORMIXDIR/incl/esql -o meps.o meps.c
+esql -static -o ../../demo/meps meps.o $INFORMIXDIR/lib/dmi/libdmi.a
+

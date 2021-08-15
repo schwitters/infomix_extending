@@ -1,0 +1,747 @@
+
+
+QUERY:
+------
+select DeepCopy(idn_mrLvarcharIn("here is a small value"))
+from systables
+where tabid=1
+
+Estimated Cost: 1
+Estimated # of Rows Returned: 1
+
+  1) informix.systables: INDEX PATH
+
+    (1) Index Keys: tabid   (Key-Only)
+        Lower Index Filter: informix.systables.tabid = 1 
+
+UDRs in query:
+--------------
+    UDR id  :	235
+    UDR name:	deepcopy
+    UDR id  :	213
+    UDR name:	idn_mrlvarcharin
+
+QUERY:
+------
+insert into test_mr values (0, "in-row.sql", "here is a small value")
+
+Estimated Cost: 3
+Estimated # of Rows Returned: 1
+
+UDRs in query:
+--------------
+    UDR id  :	213
+    UDR name:	idn_mrlvarcharin
+    UDR id  :	221
+    UDR name:	assign
+
+QUERY:
+------
+select * from test_mr where id=0
+
+Estimated Cost: 3
+Estimated # of Rows Returned: 1
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+        Filters: jta.test_mr.id = 0 
+
+
+QUERY:
+------
+select id, Length(mrcol) from test_mr where id=0
+
+Estimated Cost: 3
+Estimated # of Rows Returned: 1
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+        Filters: jta.test_mr.id = 0 
+
+UDRs in query:
+--------------
+    UDR id  :	229
+    UDR name:	length
+
+QUERY:
+------
+select id, Sbspace(mrcol) from test_mr where id=0
+
+Estimated Cost: 3
+Estimated # of Rows Returned: 1
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+        Filters: jta.test_mr.id = 0 
+
+UDRs in query:
+--------------
+    UDR id  :	232
+    UDR name:	sbspace
+
+QUERY:
+------
+select id, Refcount(mrcol) from test_mr where id=0
+
+Estimated Cost: 3
+Estimated # of Rows Returned: 1
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+        Filters: jta.test_mr.id = 0 
+
+UDRs in query:
+--------------
+    UDR id  :	233
+    UDR name:	refcount
+
+QUERY:
+------
+select id, LOHandles(mrcol) from test_mr where id=0
+
+Estimated Cost: 3
+Estimated # of Rows Returned: 1
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+        Filters: jta.test_mr.id = 0 
+
+UDRs in query:
+--------------
+    UDR id  :	223
+    UDR name:	lohandles
+
+QUERY:
+------
+update test_mr 
+set mrcol = "here is a modified small value"
+where id = 0
+
+Estimated Cost: 3
+Estimated # of Rows Returned: 1
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+        Filters: jta.test_mr.id = 0 
+
+UDRs in query:
+--------------
+    UDR id  :	213
+    UDR name:	idn_mrlvarcharin
+    UDR id  :	221
+    UDR name:	assign
+
+QUERY:
+------
+select * from test_mr where id=0
+
+Estimated Cost: 3
+Estimated # of Rows Returned: 1
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+        Filters: jta.test_mr.id = 0 
+
+
+QUERY:
+------
+select id, concat(mrcol,mrcol) from test_mr where id=0
+
+Estimated Cost: 3
+Estimated # of Rows Returned: 1
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+        Filters: jta.test_mr.id = 0 
+
+UDRs in query:
+--------------
+    UDR id  :	227
+    UDR name:	concat
+
+QUERY:
+------
+select id, mrcol || ' and here is some more' from test_mr where id=0
+
+Estimated Cost: 3
+Estimated # of Rows Returned: 1
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+        Filters: jta.test_mr.id = 0 
+
+UDRs in query:
+--------------
+    UDR id  :	227
+    UDR name:	concat
+
+QUERY:
+------
+select id, Concat(mrcol, ': the end')
+from   test_mr
+where  Concat(mrcol, ': the end') = "here is a modified small value: the end"
+
+Estimated Cost: 3
+Estimated # of Rows Returned: 1
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+        Filters: informix.equal(informix.concat(jta.test_mr.mrcol ,UDT ),UDT )
+
+UDRs in query:
+--------------
+    UDR id  :	225
+    UDR name:	equal
+    UDR id  :	227
+    UDR name:	concat
+    UDR id  :	227
+    UDR name:	concat
+
+QUERY:
+------
+update test_mr
+     set mrcol = mrcol || ' and here is some more' 
+where id=0
+
+Estimated Cost: 3
+Estimated # of Rows Returned: 1
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+        Filters: jta.test_mr.id = 0 
+
+UDRs in query:
+--------------
+    UDR id  :	227
+    UDR name:	concat
+    UDR id  :	221
+    UDR name:	assign
+
+QUERY:
+------
+select * from test_mr where id=0
+
+Estimated Cost: 3
+Estimated # of Rows Returned: 1
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+        Filters: jta.test_mr.id = 0 
+
+
+QUERY:
+------
+delete from test_mr where id=0
+
+Estimated Cost: 3
+Estimated # of Rows Returned: 1
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+        Filters: jta.test_mr.id = 0 
+
+
+QUERY:
+------
+select * from test_mr where id=0
+
+Estimated Cost: 3
+Estimated # of Rows Returned: 1
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+        Filters: jta.test_mr.id = 0 
+
+
+QUERY:
+------
+select * from test_mr
+
+Estimated Cost: 3
+Estimated # of Rows Returned: 1
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+
+QUERY:
+------
+select * from test_mr order by 1
+
+Estimated Cost: 3
+Estimated # of Rows Returned: 1
+Temporary Files Required For: Order By  
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+
+QUERY:
+------
+select * from test_mr
+
+Estimated Cost: 3
+Estimated # of Rows Returned: 1
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+
+QUERY:
+------
+select * from test_mr where mrcol = 'three'
+
+Estimated Cost: 3
+Estimated # of Rows Returned: 1
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+        Filters: informix.equal(jta.test_mr.mrcol ,UDT )
+
+UDRs in query:
+--------------
+    UDR id  :	225
+    UDR name:	equal
+
+QUERY:
+------
+select * from test_mr where mrcol <> 'three'
+
+Estimated Cost: 3
+Estimated # of Rows Returned: 1
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+        Filters: informix.notequal(jta.test_mr.mrcol ,UDT )
+
+UDRs in query:
+--------------
+    UDR id  :	226
+    UDR name:	notequal
+
+QUERY:
+------
+select * from test_mr order by mrcol
+
+Estimated Cost: 3
+Estimated # of Rows Returned: 1
+Temporary Files Required For: Order By  
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+UDRs in query:
+--------------
+    UDR id  :	224
+    UDR name:	compare
+
+QUERY:
+------
+select distinct mrcol 
+from   test_mr
+order  by mrcol
+
+Estimated Cost: 3
+Estimated # of Rows Returned: 1
+Temporary Files Required For: Order By  
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+UDRs in query:
+--------------
+    UDR id  :	224
+    UDR name:	compare
+
+QUERY:
+------
+select id, 
+       mrcol,
+       length(mrcol) mrcol_len,
+       idn_mrLvarcharRecv(idn_mrLvarcharSend(mrcol)) sendrecv_result,
+       length(idn_mrLvarcharRecv(idn_mrLvarcharSend(mrcol))) sendrecv_len
+from   test_mr
+order  by 1
+
+Estimated Cost: 3
+Estimated # of Rows Returned: 1
+Temporary Files Required For: Order By  
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+UDRs in query:
+--------------
+    UDR id  :	229
+    UDR name:	length
+    UDR id  :	216
+    UDR name:	idn_mrlvarcharrecv
+    UDR id  :	215
+    UDR name:	idn_mrlvarcharsend
+    UDR id  :	216
+    UDR name:	idn_mrlvarcharrecv
+    UDR id  :	215
+    UDR name:	idn_mrlvarcharsend
+    UDR id  :	229
+    UDR name:	length
+
+QUERY:
+------
+select id, 
+       mrcol,
+       idn_mrLvarcharRecv(idn_mrLvarcharSend(mrcol)) sendrecv_result,
+       Compare(mrcol,idn_mrLvarcharRecv(idn_mrLvarcharSend(mrcol))) comparison
+from   test_mr
+order  by 1
+
+Estimated Cost: 3
+Estimated # of Rows Returned: 1
+Temporary Files Required For: Order By  
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+UDRs in query:
+--------------
+    UDR id  :	224
+    UDR name:	compare
+    UDR id  :	216
+    UDR name:	idn_mrlvarcharrecv
+    UDR id  :	215
+    UDR name:	idn_mrlvarcharsend
+    UDR id  :	216
+    UDR name:	idn_mrlvarcharrecv
+    UDR id  :	215
+    UDR name:	idn_mrlvarcharsend
+
+QUERY:
+------
+select id, 
+       mrcol,
+       idn_mrLvarcharRecv(idn_mrLvarcharSend(mrcol)) sendrecv_result,
+       Equal(mrcol,idn_mrLvarcharRecv(idn_mrLvarcharSend(mrcol))) equality
+from   test_mr
+order  by 1
+
+Estimated Cost: 3
+Estimated # of Rows Returned: 1
+Temporary Files Required For: Order By  
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+UDRs in query:
+--------------
+    UDR id  :	225
+    UDR name:	equal
+    UDR id  :	216
+    UDR name:	idn_mrlvarcharrecv
+    UDR id  :	215
+    UDR name:	idn_mrlvarcharsend
+    UDR id  :	216
+    UDR name:	idn_mrlvarcharrecv
+    UDR id  :	215
+    UDR name:	idn_mrlvarcharsend
+
+QUERY:
+------
+insert into test_mr 
+values (
+6, 
+'in-row.sql', 
+'The Mouse, the Frog, and the Hawk: A MOUSE who always lived on the land, by an unlucky chance formed an intimate acquaintance with a Frog, who lived for the most part in the water.  The Frog, one day intent on mischief, bound the foot of the Mouse tightly to his own.  Thus joined together, the Frog first of all led his friend the Mouse to the meadow where they were accustomed to find their food.  After this, he gradually led him towards the pool in which he lived, until reaching the very brink, he suddenly jumped in, dragging the Mouse with him.  The Frog enjoyed the water amazingly, and swam croaking about, as if he had done a good deed.  The unhappy Mouse was soon suffocated by the water, and his dead body floated about on the surface, tied to the foot of the Frog.  A Hawk observed it, and, pouncing upon it with his talons, carried it aloft.  The Frog, being still fastened to the leg of the Mouse, was also carried off a prisoner, and was eaten by the Hawk.  (Moral: Harm hatch, harm catch.)')
+
+Estimated Cost: 3
+Estimated # of Rows Returned: 1
+
+UDRs in query:
+--------------
+    UDR id  :	213
+    UDR name:	idn_mrlvarcharin
+    UDR id  :	221
+    UDR name:	assign
+
+QUERY:
+------
+select id, 
+       length(mrcol) mrcol_len 
+from   test_mr
+
+Estimated Cost: 3
+Estimated # of Rows Returned: 1
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+UDRs in query:
+--------------
+    UDR id  :	229
+    UDR name:	length
+
+QUERY:
+------
+select id, 
+       clip(mrcol) mrcol_clipped 
+from   test_mr
+
+Estimated Cost: 3
+Estimated # of Rows Returned: 1
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+UDRs in query:
+--------------
+    UDR id  :	234
+    UDR name:	clip
+
+QUERY:
+------
+select id, 
+       length(clip(mrcol)) clipped_len
+from   test_mr
+
+Estimated Cost: 3
+Estimated # of Rows Returned: 1
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+UDRs in query:
+--------------
+    UDR id  :	234
+    UDR name:	clip
+
+QUERY:
+------
+delete from test_mr
+
+Estimated Cost: 2
+Estimated # of Rows Returned: 6
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+
+QUERY:
+------
+insert into test_mr values (1, "in-row.sql", "one")
+
+Estimated Cost: 2
+Estimated # of Rows Returned: 6
+
+UDRs in query:
+--------------
+    UDR id  :	213
+    UDR name:	idn_mrlvarcharin
+    UDR id  :	221
+    UDR name:	assign
+
+QUERY:
+------
+insert into test_mr values (2, "in-row.sql", "two")
+
+Estimated Cost: 2
+Estimated # of Rows Returned: 6
+
+UDRs in query:
+--------------
+    UDR id  :	213
+    UDR name:	idn_mrlvarcharin
+    UDR id  :	221
+    UDR name:	assign
+
+QUERY:
+------
+insert into test_mr values (3, "in-row.sql", "three")
+
+Estimated Cost: 2
+Estimated # of Rows Returned: 6
+
+UDRs in query:
+--------------
+    UDR id  :	213
+    UDR name:	idn_mrlvarcharin
+    UDR id  :	221
+    UDR name:	assign
+
+QUERY:
+------
+insert into test_mr values (4, "in-row.sql", "four")
+
+Estimated Cost: 2
+Estimated # of Rows Returned: 6
+
+UDRs in query:
+--------------
+    UDR id  :	213
+    UDR name:	idn_mrlvarcharin
+    UDR id  :	221
+    UDR name:	assign
+
+QUERY:
+------
+insert into test_mr values (5, "in-row.sql", "five")
+
+Estimated Cost: 2
+Estimated # of Rows Returned: 6
+
+UDRs in query:
+--------------
+    UDR id  :	213
+    UDR name:	idn_mrlvarcharin
+    UDR id  :	221
+    UDR name:	assign
+
+QUERY:
+------
+select id, mrcol from test_mr
+
+Estimated Cost: 2
+Estimated # of Rows Returned: 6
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+
+QUERY:
+------
+select ConcatAll(mrcol) concat_result
+from   test_mr
+
+Estimated Cost: 2
+Estimated # of Rows Returned: 1
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+UDRs in query:
+--------------
+    UDR id  :	228
+    UDR name:	concatall_iter
+    UDR id  :	228
+    UDR name:	concatall_iter
+
+QUERY:
+------
+select ConcatAll(mrcol) concat_result
+from   test_mr
+where  id < 3
+union
+select ConcatAll(mrcol) concat_result
+from   test_mr
+where  id > 3
+order by 1
+
+Estimated Cost: 4
+Estimated # of Rows Returned: 2
+Temporary Files Required For: Order By  
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+        Filters: jta.test_mr.id < 3 
+
+
+Union Query:
+------------
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+        Filters: jta.test_mr.id > 3 
+
+UDRs in query:
+--------------
+    UDR id  :	224
+    UDR name:	compare
+    UDR id  :	228
+    UDR name:	concatall_iter
+    UDR id  :	228
+    UDR name:	concatall_iter
+    UDR id  :	228
+    UDR name:	concatall_iter
+    UDR id  :	228
+    UDR name:	concatall_iter
+UDRs in query:
+--------------
+    UDR id  :	224
+    UDR name:	compare
+    UDR id  :	228
+    UDR name:	concatall_iter
+    UDR id  :	228
+    UDR name:	concatall_iter
+    UDR id  :	228
+    UDR name:	concatall_iter
+    UDR id  :	228
+    UDR name:	concatall_iter
+
+QUERY:
+------
+insert into test_mr values
+( (select max(id)+1 from test_mr),
+  "in-row.sql",
+  (select ConcatAll(mrcol) from test_mr)
+)
+
+Estimated Cost: 2
+Estimated # of Rows Returned: 6
+
+UDRs in query:
+--------------
+    UDR id  :	228
+    UDR name:	concatall_iter
+    UDR id  :	228
+    UDR name:	concatall_iter
+    UDR id  :	221
+    UDR name:	assign
+
+QUERY:
+------
+insert into test_mr values
+( (select max(id)+1 from test_mr),
+  "in-row.sql",
+  (select ConcatAll(mrcol) from test_mr)
+)
+
+Estimated Cost: 2
+Estimated # of Rows Returned: 1
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+UDRs in query:
+--------------
+    UDR id  :	228
+    UDR name:	concatall_iter
+    UDR id  :	228
+    UDR name:	concatall_iter
+    UDR id  :	221
+    UDR name:	assign
+
+QUERY:
+------
+insert into test_mr values
+( (select max(id)+1 from test_mr),
+  "in-row.sql",
+  (select ConcatAll(mrcol) from test_mr)
+)
+
+Estimated Cost: 2
+Estimated # of Rows Returned: 1
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+UDRs in query:
+--------------
+    UDR id  :	228
+    UDR name:	concatall_iter
+    UDR id  :	228
+    UDR name:	concatall_iter
+    UDR id  :	221
+    UDR name:	assign
+
+QUERY:
+------
+select * from test_mr
+order by id
+
+Estimated Cost: 2
+Estimated # of Rows Returned: 6
+Temporary Files Required For: Order By  
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+
+QUERY:
+------
+delete from test_mr
+
+Estimated Cost: 2
+Estimated # of Rows Returned: 6
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+

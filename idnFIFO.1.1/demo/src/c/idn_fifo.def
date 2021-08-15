@@ -1,0 +1,8 @@
+;
+; The following symbols are exported for
+; the idn_fifo DataBlade module.
+;
+DESCRIPTION 'This is the idn_fifo DataBlade module.'
+
+EXPORTS
+	idnCallFIFO

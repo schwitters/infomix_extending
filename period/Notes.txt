@@ -1,0 +1,49 @@
+Where am I up to:
+
+ 1. 
+
+    Documentation needs updating.
+
+ 2. 
+
+     Statistics and selectivity. The plan is to capture the following
+	 set of values:
+
+	 Count:
+	 Number_Start_Epoch:
+	 Number_Finish_Unbound:
+	 Minimum_Start that is not epoch.
+	 Maximum_Finish that is not open.
+	 Mean_Start:
+	 Mean_Finish:
+
+	 Based on these values, it is possible to compute the selectivity of
+	 the various operators, at least more accurately than the guestimates
+	 the engine uses by default.
+
+  3. 
+
+     The aggregate is not as useful as it could be. The idea is to compute,
+	 in a single pass, whether or not any overlap exists among a set of 
+	 sets of periods. This may itself result in a set of periods, each of
+	 which has its own.
+
+	 SELECT T.Track,
+	        Overlap_Set ( T.When )
+	   FROM Train_Schedule T
+	  GROUP BY T.Track;
+
+	 Try doing this as an SPL aggregate.
+
+  4. Nuts. The OUT Parameters in the Overlap() and OverlapWithTouches()
+     appears to be broken. When you set the arg(2) to NULL, the return
+	 from the SLV appears to be 0, regardless of the actual value. 
+
+	 Possibilities: set return to -1 rather than NULL, and do log a bug
+	 on this.
+
+  5. Working on the statistics and selectivity for the DT_Period. Mostly
+     working in DT_Period.c, on the DT_PeriodConsColSelectivity, and the
+	 StatCollect UDFs.
+
+  

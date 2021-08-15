@@ -1,0 +1,59 @@
+
+To run this demo:
+
+0. This demo requires an instance of the named virtual processor class
+   "IDN". Edit your $INFORMIXDIR/etc/onconfig file, and add the 
+   following line to the end of it:
+
+        VPCLASS         IDN,noyield,num=1   # some of the idn demos use this
+
+   Now restart your server (onmode -k, followed by oninit)
+
+1. Install the DataBlade on your server. As user informix:
+
+   a. Create a new installation directory: $INFORMIXDIR/extend/idn_socket2.1.1
+
+   b. Copy the files in the "scripts" directory to the new DataBlade 
+      installation directory.
+
+   c. Copy the shared object file (.../src/solaris-sparc/idn_socket2.bld) 
+      to the new DataBlade installation directory.
+
+   d. Copy the external executable (...src/c/idnSock2Client) to the DataBlade
+      installation directory.
+
+2. Run the "main.sh" script:
+
+     % main.sh
+
+   After some setup steps, dbaccess is called and passed the demo.sql
+   script, which contains a series of calls to the idnCallSocket2() 
+   SQL function. The output is written to "demo.out", which is displayed
+   after the script completes.
+
+   Did you get the correct output? Your "demo.out" file should look
+   something like the "demo.out.sample" file in this directory.
+
+   Also, you should find two files in your /tmp directory:
+
+     idn_sockserver.log  - Socket server trace file
+     idn_sockclient.log  - Socket client trace file
+
+   These should compare with the "idn_*.sample" files in this directory.
+
+3. You can use dbaccess or sqleditor to send your own requests to the
+   socket server. For example:
+
+      % dbaccess sock2demodb -
+      execute function idnCallSocket2("This is a text string");
+
+4. When you're done, shut down the external socket client by sending the
+   string "Shutdown":
+
+      > execute function idnCallSocket2("Shutdown");
+
+   (You could also kill its PID with the OS "kill" command.) You can drop the
+   "sock2demodb" database and clean up the demo's temp files by running the
+   "cleanup.sh" script.
+
+

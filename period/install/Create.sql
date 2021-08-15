@@ -1,0 +1,24 @@
+--
+--  File: Create.sql
+--
+-- About:
+--
+--    This file contains a simple script that creates a new database
+--   with logging, and grants DBA permissions on that database to the
+--   public. It should be run through the 'dbaccess' command
+--   line tool.
+--
+-- Example;
+--
+--   > dbaccess sysmaster < Create.sql
+--
+--
+--  NOTE: You will need to change this dbspace.
+--
+-- CREATE DATABASE Book_Test WITH LOG;
+-- CREATE DATABASE Book_Test IN ol_pc260dl WITH LOG;
+-- CREATE DATABASE Book_Test IN ol_pc415hp11 WITH LOG;
+CREATE DATABASE Period IN ol_pc937dl7 WITH LOG;
+-- CREATE DATABASE Period IN ol_pc614dl11 WITH LOG;
+-- 
+GRANT DBA TO PUBLIC;

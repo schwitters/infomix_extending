@@ -1,0 +1,41 @@
+--
+-- demo.sql
+--
+execute function 
+idnCallFIFO("racecar");
+
+
+(expression)  racecar 
+
+--
+execute function 
+idnCallFIFO("are we not drawn onward, we few, drawn onward to new era?");
+
+
+(expression)  ?are wen ot drawno nward ,wef ew ,drawno nward ton ew era 
+
+--
+execute function 
+idnCallFIFO("Was it a rat I saw?");
+
+
+(expression)  ?was I tar a ti saW 
+
+--
+execute function 
+idnCallFIFO("pull up if I pull up");
+
+
+(expression)  pu llup I fi pu llup 
+
+--
+-- This isn't working, is it? ;)
+--
+execute function
+idnCallFIFO("Ok, this one should work!");
+
+
+(expression)  !krow dluohs eno siht ,kO 
+
+--
+

@@ -1,0 +1,1281 @@
+
+Database selected.
+
+-----------------------------------------------------------------
+-- NAME
+--     regexp_replace.sql
+--
+-- DESCRIPTION
+--     Functional tests for regexp_replace() UDR.
+--
+--     Generated from the U of Toronto regexp tests like this:
+--
+--     + removed lines with a blank field from the 'tests' file
+--     + ran this awk command again the 'tests' files:
+--
+--       BEGIN {FS="\t"; total=1}
+--       {print "-- " total++ ". result: '" $5 \
+--         "'\nexecute function regexp_replace('" $2 "','" $1 "','" $4 "');\n"}
+--
+--     + Hand mangled the script further to produce more meaningful
+--       tests for SQL. In general, any regular expression that was
+--       solely '&' became '.&.' to make the replacement in the
+--       original string more visible.
+--
+--     + Toronto substitution output is just the sub string. This
+--       output was modified to reflect the replace of the entire
+--       string.
+-----------------------------------------------------------------
+
+-- execute procedure traceset_regexp("/tmp/re_replace.trc", 30);
+
+--
+-- 0. Boundary checks
+--
+
+-- Begin-line           : should return '..abcdefgabcdefg'
+execute function regexp_replace ('abcdefgabcdefg', '^', '.&.');
+
+
+(expression)  ..abcdefgabcdefg 
+
+1 row(s) retrieved.
+
+
+
+-- First character      : should return '.a.bcdefg.a.bcdefg'
+execute function regexp_replace ('abcdefgabcdefg', 'a', '.&.');
+
+
+(expression)  .a.bcdefg.a.bcdefg 
+
+1 row(s) retrieved.
+
+
+
+-- Just first character : should return '.a.bcdefgabcdefg'
+execute function regexp_replace ('abcdefgabcdefg', '^a', '.&.');
+
+
+(expression)  .a.bcdefgabcdefg 
+
+1 row(s) retrieved.
+
+
+
+-- First two characters : should return '.ab.cdefg.ab.cdefg'
+execute function regexp_replace ('abcdefgabcdefg', 'ab', '.&.');
+
+
+(expression)  .ab.cdefg.ab.cdefg 
+
+1 row(s) retrieved.
+
+
+
+-- Just first two chars : should return '.ab.cdefgabcdefg'
+execute function regexp_replace ('abcdefgabcdefg', '^ab', '.&.');
+
+
+(expression)  .ab.cdefgabcdefg 
+
+1 row(s) retrieved.
+
+
+
+-- Second character     : should return 'a.b.cdefga.b.cdefg'
+execute function regexp_replace ('abcdefgabcdefg', 'b', '.&.');
+
+
+(expression)  a.b.cdefga.b.cdefg 
+
+1 row(s) retrieved.
+
+
+
+-- Last character       : should return 'abcdef.g.abcdef.g.'
+execute function regexp_replace ('abcdefgabcdefg', 'g', '.&.');
+
+
+(expression)  abcdef.g.abcdef.g. 
+
+1 row(s) retrieved.
+
+
+
+-- Just last character  : should return 'abcdefgabcdef.g.'
+execute function regexp_replace ('abcdefgabcdefg', 'g$', '.&.');
+
+
+(expression)  abcdefgabcdef.g. 
+
+1 row(s) retrieved.
+
+
+
+-- End-of-line          : should return 'abcdefgabcdefg..'
+execute function regexp_replace ('abcdefgabcdefg', '$', '.&.');
+
+
+(expression)  abcdefgabcdefg.. 
+
+1 row(s) retrieved.
+
+
+
+-- 1. result: '.abc.'
+execute function regexp_replace('abc','abc','.&.');
+
+
+(expression)  .abc. 
+
+1 row(s) retrieved.
+
+
+
+-- 2. result: 'xbc'
+execute function regexp_replace('xbc','abc','-');
+
+
+(expression)  xbc 
+
+1 row(s) retrieved.
+
+
+
+-- 3. result: 'axc'
+execute function regexp_replace('axc','abc','-');
+
+
+(expression)  axc 
+
+1 row(s) retrieved.
+
+
+
+-- 4. result: 'abx'
+execute function regexp_replace('abx','abc','-');
+
+
+(expression)  abx 
+
+1 row(s) retrieved.
+
+
+
+-- 5. result: 'x.abc.y'
+execute function regexp_replace('xabcy','abc','.&.');
+
+
+(expression)  x.abc.y 
+
+1 row(s) retrieved.
+
+
+
+-- 6. result: 'ab.abc.'
+execute function regexp_replace('ababc','abc','.&.');
+
+
+(expression)  ab.abc. 
+
+1 row(s) retrieved.
+
+
+
+-- 7. result: '.abc.'
+execute function regexp_replace('abc','ab*c','.&.');
+
+
+(expression)  .abc. 
+
+1 row(s) retrieved.
+
+
+
+-- 8. result: '.abc.'
+execute function regexp_replace('abc','ab*bc','.&.');
+
+
+(expression)  .abc. 
+
+1 row(s) retrieved.
+
+
+
+-- 9. result: '.abbc.'
+execute function regexp_replace('abbc','ab*bc','.&.');
+
+
+(expression)  .abbc. 
+
+1 row(s) retrieved.
+
+
+
+-- 10. result: '.abbbbc.'
+execute function regexp_replace('abbbbc','ab*bc','.&.');
+
+
+(expression)  .abbbbc. 
+
+1 row(s) retrieved.
+
+
+
+-- 11. result: '.abbc.'
+execute function regexp_replace('abbc','ab+bc','.&.');
+
+
+(expression)  .abbc. 
+
+1 row(s) retrieved.
+
+
+
+-- 12. result: 'abc'
+execute function regexp_replace('abc','ab+bc','-');
+
+
+(expression)  abc 
+
+1 row(s) retrieved.
+
+
+
+-- 13. result: 'abq'
+execute function regexp_replace('abq','ab+bc','-');
+
+
+(expression)  abq 
+
+1 row(s) retrieved.
+
+
+
+-- 14. result: '.abbbbc.'
+execute function regexp_replace('abbbbc','ab+bc','.&.');
+
+
+(expression)  .abbbbc. 
+
+1 row(s) retrieved.
+
+
+
+-- 15. result: '.abbc.'
+execute function regexp_replace('abbc','ab?bc','.&.');
+
+
+(expression)  .abbc. 
+
+1 row(s) retrieved.
+
+
+
+-- 16. result: '.abc.'
+execute function regexp_replace('abc','ab?bc','.&.');
+
+
+(expression)  .abc. 
+
+1 row(s) retrieved.
+
+
+
+-- 17. result: 'abbbbc'
+execute function regexp_replace('abbbbc','ab?bc','-');
+
+
+(expression)  abbbbc 
+
+1 row(s) retrieved.
+
+
+
+-- 18. result: '.abc.'
+execute function regexp_replace('abc','ab?c','.&.');
+
+
+(expression)  .abc. 
+
+1 row(s) retrieved.
+
+
+
+-- 19. result: '.abc.'
+execute function regexp_replace('abc','^abc$','.&.');
+
+
+(expression)  .abc. 
+
+1 row(s) retrieved.
+
+
+
+-- 20. result: 'abcc'
+execute function regexp_replace('abcc','^abc$','-');
+
+
+(expression)  abcc 
+
+1 row(s) retrieved.
+
+
+
+-- 21. result: '.abc.c.'
+execute function regexp_replace('abcc','^abc','.&.');
+
+
+(expression)  .abc.c 
+
+1 row(s) retrieved.
+
+
+
+-- 22. result: 'aabc'
+execute function regexp_replace('aabc','^abc$','-');
+
+
+(expression)  aabc 
+
+1 row(s) retrieved.
+
+
+
+-- 23. result: 'a.abc.'
+execute function regexp_replace('aabc','abc$','.&.');
+
+
+(expression)  a.abc. 
+
+1 row(s) retrieved.
+
+
+
+-- 24. result: '..abc'
+execute function regexp_replace('abc','^','.&.');
+
+
+(expression)  ..abc 
+
+1 row(s) retrieved.
+
+
+
+-- 25. result: 'abc..'
+execute function regexp_replace('abc','$','.&.');
+
+
+(expression)  abc.. 
+
+1 row(s) retrieved.
+
+
+
+-- 26. result: '.abc.'
+execute function regexp_replace('abc','a.c','.&.');
+
+
+(expression)  .abc. 
+
+1 row(s) retrieved.
+
+
+
+-- 27. result: '.axc.'
+execute function regexp_replace('axc','a.c','.&.');
+
+
+(expression)  .axc. 
+
+1 row(s) retrieved.
+
+
+
+-- 28. result: '.axyzc.'
+execute function regexp_replace('axyzc','a.*c','.&.');
+
+
+(expression)  .axyzc. 
+
+1 row(s) retrieved.
+
+
+
+-- 29. result: 'axyzd'
+execute function regexp_replace('axyzd','a.*c','-');
+
+
+(expression)  axyzd 
+
+1 row(s) retrieved.
+
+
+
+-- 30. result: 'abc'
+execute function regexp_replace('abc','a[bc]d','-');
+
+
+(expression)  abc 
+
+1 row(s) retrieved.
+
+
+
+-- 31. result: '.abd.'
+execute function regexp_replace('abd','a[bc]d','.&.');
+
+
+(expression)  .abd. 
+
+1 row(s) retrieved.
+
+
+
+-- 32. result: 'abd'
+execute function regexp_replace('abd','a[b-d]e','-');
+
+
+(expression)  abd 
+
+1 row(s) retrieved.
+
+
+
+-- 33. result: '.ace.'
+execute function regexp_replace('ace','a[b-d]e','.&.');
+
+
+(expression)  .ace. 
+
+1 row(s) retrieved.
+
+
+
+-- 34. result: 'a.ac.'
+execute function regexp_replace('aac','a[b-d]','.&.');
+
+
+(expression)  a.ac. 
+
+1 row(s) retrieved.
+
+
+
+-- 35. result: '.a-.'
+execute function regexp_replace('a-','a[-b]','.&.');
+
+
+(expression)  .a-. 
+
+1 row(s) retrieved.
+
+
+
+-- 36. result: '.a-.'
+execute function regexp_replace('a-','a[b-]','.&.');
+
+
+(expression)  .a-. 
+
+1 row(s) retrieved.
+
+
+
+-- 37. result: 'ab'
+execute function regexp_replace('ab','[k]','-');
+
+
+(expression)  ab 
+
+1 row(s) retrieved.
+
+
+
+-- 38. result: '.a].'
+execute function regexp_replace('a]','a]','.&.');
+
+
+(expression)  .a]. 
+
+1 row(s) retrieved.
+
+
+
+-- 39. result: '.a]b.'
+execute function regexp_replace('a]b','a[]]b','.&.');
+
+
+(expression)  .a]b. 
+
+1 row(s) retrieved.
+
+
+
+-- 40. result: 'aed'
+execute function regexp_replace('aed','a[^bc]d','.&.');
+
+
+(expression)  .aed. 
+
+1 row(s) retrieved.
+
+
+
+-- 41. result: 'abd'
+execute function regexp_replace('abd','a[^bc]d','-');
+
+
+(expression)  abd 
+
+1 row(s) retrieved.
+
+
+
+-- 42. result: '.adc.'
+execute function regexp_replace('adc','a[^-b]c','.&.');
+
+
+(expression)  .adc. 
+
+1 row(s) retrieved.
+
+
+
+-- 43. result: 'a-c'
+execute function regexp_replace('a-c','a[^-b]c','-');
+
+
+(expression)  a-c 
+
+1 row(s) retrieved.
+
+
+
+-- 44. result: 'a]c'
+execute function regexp_replace('a]c','a[^]b]c','-');
+
+
+(expression)  a]c 
+
+1 row(s) retrieved.
+
+
+
+-- 45. result: '.adc.'
+execute function regexp_replace('adc','a[^]b]c','.&.');
+
+
+(expression)  .adc. 
+
+1 row(s) retrieved.
+
+
+
+-- 46. result: '.ab.c'
+execute function regexp_replace('abc','ab|cd','.&.');
+
+
+(expression)  .ab.c 
+
+1 row(s) retrieved.
+
+
+
+-- 47. result: q1 '.ab..cd.'  
+--             q2 '.ab.cd'
+execute function regexp_replace('abcd','ab|cd','.&.');
+
+
+(expression)  .ab..cd. 
+
+1 row(s) retrieved.
+
+
+execute function regexp_replace('abcd','ab|cd','.&.', 1);
+
+
+(expression)  .ab.cd 
+
+1 row(s) retrieved.
+
+
+
+-- 48. result: 'd.ef-.'
+execute function regexp_replace('def','()ef','.&-\1.');
+
+
+(expression)  d.ef-. 
+
+1 row(s) retrieved.
+
+
+
+-- 49. result: 'b'
+execute function regexp_replace('b','$b','-');
+
+
+(expression)  b 
+
+1 row(s) retrieved.
+
+
+
+-- 50. result: '.a(b-.'
+execute function regexp_replace('a(b','a\(b','.&-\1.');
+
+
+(expression)  .a(b-. 
+
+1 row(s) retrieved.
+
+
+
+-- 51. result: '.ab.'
+execute function regexp_replace('ab','a\(*b','.&.');
+
+
+(expression)  .ab. 
+
+1 row(s) retrieved.
+
+
+
+-- 52. result: '.a((b.'
+execute function regexp_replace('a((b','a\(*b','.&.');
+
+
+(expression)  .a((b. 
+
+1 row(s) retrieved.
+
+
+
+-- 53. result: '.a\b.'
+execute function regexp_replace('a\b','a\\b','.&.');
+
+
+(expression)  .a\b. 
+
+1 row(s) retrieved.
+
+
+
+-- 54. result: '.a-a-a.bc'
+execute function regexp_replace('abc','((a))','.&-\1-\2.');
+
+
+(expression)  .a-a-a.bc 
+
+1 row(s) retrieved.
+
+
+
+-- 55. result: '.abc-a-c.'
+execute function regexp_replace('abc','(a)b(c)','.&-\1-\2.');
+
+
+(expression)  .abc-a-c. 
+
+1 row(s) retrieved.
+
+
+
+-- 56. result: 'aabb.abc.'
+execute function regexp_replace('aabbabc','a+b+c','.&.');
+
+
+(expression)  aabb.abc. 
+
+1 row(s) retrieved.
+
+
+
+-- 57. result: q1 '.ab-b..-.'
+--             q2 '.ab-b.'
+execute function regexp_replace('ab','(a+|b)*','.&-\1.');
+
+
+(expression)  .ab-b..-. 
+
+1 row(s) retrieved.
+
+
+execute function regexp_replace('ab','(a+|b)*','.&-\1.', 1);
+
+
+(expression)  .ab-b. 
+
+1 row(s) retrieved.
+
+
+
+-- 58. result: '.ab-b.'
+execute function regexp_replace('ab','(a+|b)+','.&-\1.');
+
+
+(expression)  .ab-b. 
+
+1 row(s) retrieved.
+
+
+
+-- 59. result: q1 '.a-a..b-b..-.'
+--             q2 '.a-a.b'
+execute function regexp_replace('ab','(a+|b)?','.&-\1.');
+
+
+(expression)  .a-a..b-b..-. 
+
+1 row(s) retrieved.
+
+
+execute function regexp_replace('ab','(a+|b)?','.&-\1.', 1);
+
+
+(expression)  .a-a.b 
+
+1 row(s) retrieved.
+
+
+
+-- 60. result: q1 '.cde...'
+--             q2 '.cde.'
+execute function regexp_replace('cde','[^ab]*','.&.');
+
+
+(expression)  .cde... 
+
+1 row(s) retrieved.
+
+
+execute function regexp_replace('cde','[^ab]*','.&.', 1);
+
+
+(expression)  .cde. 
+
+1 row(s) retrieved.
+
+
+
+-- 61. result: 'abcd-&-\abcd'
+execute function regexp_replace('abcd','abcd','&-\&-\\&');
+
+
+(expression)  abcd-&-\abcd 
+
+1 row(s) retrieved.
+
+
+
+-- 62. result: 'bc-\1-\bc'
+execute function regexp_replace('abcd','a(bc)d','\1-\\1-\\\1');
+
+
+(expression)  bc-\1-\bc 
+
+1 row(s) retrieved.
+
+
+
+-- 63. result: 'abbbcd-c'
+execute function regexp_replace('abbbcd','([abc])*d','&-\1');
+
+
+(expression)  abbbcd-c 
+
+1 row(s) retrieved.
+
+
+
+-- 64. result: 'abcd-a'
+execute function regexp_replace('abcd','([abc])*bcd','&-\1');
+
+
+(expression)  abcd-a 
+
+1 row(s) retrieved.
+
+
+
+-- 65. result: 'e'
+execute function regexp_replace('e','a|b|c|d|e','&');
+
+
+(expression)  e 
+
+1 row(s) retrieved.
+
+
+
+-- 66. result: 'ef-e'
+execute function regexp_replace('ef','(a|b|c|d|e)f','&-\1');
+
+
+(expression)  ef-e 
+
+1 row(s) retrieved.
+
+
+
+-- 67. result: 'abcdefg'
+execute function regexp_replace('abcdefg','abcd*efg','&');
+
+
+(expression)  abcdefg 
+
+1 row(s) retrieved.
+
+
+
+-- 68. result: q1 'x.ab.y.abbb.z'
+--             q2 'x.ab.yabbbz'
+execute function regexp_replace('xabyabbbz','ab*','.&.');
+
+
+(expression)  x.ab.y.abbb.z 
+
+1 row(s) retrieved.
+
+
+execute function regexp_replace('xabyabbbz','ab*','.&.', 1);
+
+
+(expression)  x.ab.yabbbz 
+
+1 row(s) retrieved.
+
+
+
+-- 69. result: q1 'x.a.y.abbb.z'
+--             q2 'x.a.yabbbz'
+execute function regexp_replace('xayabbbz','ab*','.&.');
+
+
+(expression)  x.a.y.abbb.z 
+
+1 row(s) retrieved.
+
+
+execute function regexp_replace('xayabbbz','ab*','.&.', 1);
+
+
+(expression)  x.a.yabbbz 
+
+1 row(s) retrieved.
+
+
+
+-- 70. result: 'ab.cde-cd.'
+execute function regexp_replace('abcde','(ab|cd)e','.&-\1.');
+
+
+(expression)  ab.cde-cd. 
+
+1 row(s) retrieved.
+
+
+
+-- 71. result: '.hij.'
+execute function regexp_replace('hij','[abhgefdc]ij','.&.');
+
+
+(expression)  .hij. 
+
+1 row(s) retrieved.
+
+
+
+-- 72. jta suspects the Toronto result for this one test might be incorrect.
+--     The 'tests' file indicates that the substring replace should
+--     be 'xy'; however, it also lists that the match should return
+--     'n'. regexp_match() agrees with the 'n' (returns 'false').
+--     In that case, the replace and substitute columns should be -.
+--
+--     result: 'abcde'
+execute function regexp_match('abcde','^(ab|cd)e');
+
+(expression) 
+
+           f
+
+1 row(s) retrieved.
+
+
+
+execute function regexp_replace('abcde','^(ab|cd)e','x\1y');
+
+
+(expression)  abcde 
+
+1 row(s) retrieved.
+
+
+
+-- 73. result: 'abcd.ef-.'
+execute function regexp_replace('abcdef','(abc|)ef','.&-\1.');
+
+
+(expression)  abcd.ef-. 
+
+1 row(s) retrieved.
+
+
+
+-- 74. result: 'a.bcd-b.'
+execute function regexp_replace('abcd','(a|b)c*d','.&-\1.');
+
+
+(expression)  a.bcd-b. 
+
+1 row(s) retrieved.
+
+
+
+-- 75. result: '.abc-a.'
+execute function regexp_replace('abc','(ab|ab*)bc','.&-\1.');
+
+
+(expression)  .abc-a. 
+
+1 row(s) retrieved.
+
+
+
+-- 76. result: '.abc-bc.'
+execute function regexp_replace('abc','a([bc]*)c*','.&-\1.');
+
+
+(expression)  .abc-bc. 
+
+1 row(s) retrieved.
+
+
+
+-- 77. result: '.abcd-bc-d.'
+execute function regexp_replace('abcd','a([bc]*)(c*d)','.&-\1-\2.');
+
+
+(expression)  .abcd-bc-d. 
+
+1 row(s) retrieved.
+
+
+
+-- 78. result: '.abcd-bc-d.'
+execute function regexp_replace('abcd','a([bc]+)(c*d)','.&-\1-\2.');
+
+
+(expression)  .abcd-bc-d. 
+
+1 row(s) retrieved.
+
+
+
+-- 79. result: '.abcd-b-cd.'
+execute function regexp_replace('abcd','a([bc]*)(c+d)','.&-\1-\2.');
+
+
+(expression)  .abcd-b-cd. 
+
+1 row(s) retrieved.
+
+
+
+-- 80. result: '.adcdcde.'
+execute function regexp_replace('adcdcde','a[bcd]*dcdcde','.&.');
+
+
+(expression)  .adcdcde. 
+
+1 row(s) retrieved.
+
+
+
+-- 81. result: 'adcdcde'
+execute function regexp_replace('adcdcde','a[bcd]+dcdcde','-');
+
+
+(expression)  adcdcde 
+
+1 row(s) retrieved.
+
+
+
+-- 82. result: '.abc-ab.'
+execute function regexp_replace('abc','(ab|a)b*c','.&-\1.');
+
+
+(expression)  .abc-ab. 
+
+1 row(s) retrieved.
+
+
+
+-- 83. result: 'abc-a-b-d'
+execute function regexp_replace('abcd','((a)(b)c)(d)','.\1-\2-\3-\4.');
+
+
+(expression)  .abc-a-b-d. 
+
+1 row(s) retrieved.
+
+
+
+-- 84. result: q1 '.abc...'
+--             q2 '.abc.'
+execute function regexp_replace('abc','[ -~]*','.&.');
+
+
+(expression)  .abc... 
+
+1 row(s) retrieved.
+
+
+execute function regexp_replace('abc','[ -~]*','.&.', 1);
+
+
+(expression)  .abc. 
+
+1 row(s) retrieved.
+
+
+
+-- 85. result: q1 '.abc...'
+--             q2 '.abc.'
+execute function regexp_replace('abc','[ -~ -~]*','.&.');
+
+
+(expression)  .abc... 
+
+1 row(s) retrieved.
+
+
+execute function regexp_replace('abc','[ -~ -~]*','.&.', 1);
+
+
+(expression)  .abc. 
+
+1 row(s) retrieved.
+
+
+
+-- 86. result: q1 '.abc...'
+--             q2 '.abc.'
+execute function regexp_replace('abc','[ -~ -~ -~]*','.&.');
+
+
+(expression)  .abc... 
+
+1 row(s) retrieved.
+
+
+execute function regexp_replace('abc','[ -~ -~ -~]*','.&.', 1);
+
+
+(expression)  .abc. 
+
+1 row(s) retrieved.
+
+
+
+-- 87. result: q1 '.abc...'
+--             q2 '.abc.'
+execute function regexp_replace('abc','[ -~ -~ -~ -~]*','.&.');
+
+
+(expression)  .abc... 
+
+1 row(s) retrieved.
+
+
+execute function regexp_replace('abc','[ -~ -~ -~ -~]*','.&.', 1);
+
+
+(expression)  .abc. 
+
+1 row(s) retrieved.
+
+
+
+-- 88. result: q1 '.abc...'
+--             q2 '.abc.'
+execute function regexp_replace('abc','[ -~ -~ -~ -~ -~]*','.&.');
+
+
+(expression)  .abc... 
+
+1 row(s) retrieved.
+
+
+execute function regexp_replace('abc','[ -~ -~ -~ -~ -~]*','.&.',1);
+
+
+(expression)  .abc. 
+
+1 row(s) retrieved.
+
+
+
+-- 89. result: q1 '.abc...'
+--             q2 '.abc.'
+execute function regexp_replace('abc','[ -~ -~ -~ -~ -~ -~]*','.&.');
+
+
+(expression)  .abc... 
+
+1 row(s) retrieved.
+
+
+execute function regexp_replace('abc','[ -~ -~ -~ -~ -~ -~]*','.&.',1);
+
+
+(expression)  .abc. 
+
+1 row(s) retrieved.
+
+
+
+-- 90. result: q1 '.abc...'
+--             q2 '.abc.'
+execute function regexp_replace('abc','[ -~ -~ -~ -~ -~ -~ -~]*','.&.');
+
+
+(expression)  .abc... 
+
+1 row(s) retrieved.
+
+
+execute function regexp_replace('abc','[ -~ -~ -~ -~ -~ -~ -~]*','.&.',1);
+
+
+(expression)  .abc. 
+
+1 row(s) retrieved.
+
+
+
+-- 91. result: '.alpha.'
+execute function regexp_replace('alpha','[a-zA-Z_][a-zA-Z0-9_]*','.&.');
+
+
+(expression)  .alpha. 
+
+1 row(s) retrieved.
+
+
+
+-- 92. result: 'a.bh-.'
+execute function regexp_replace('abh','^a(bc+|b[eh])g|.h$','.&-\1.');
+
+
+(expression)  a.bh-. 
+
+1 row(s) retrieved.
+
+
+
+-- 93. result: '.effgz-effgz-.'
+execute function regexp_replace('effgz','(bc+d$|ef*g.|h?i(j|k))','.&-\1-\2.');
+
+
+(expression)  .effgz-effgz-. 
+
+1 row(s) retrieved.
+
+
+
+-- 94. result: '.ij-ij-j.'
+execute function regexp_replace('ij','(bc+d$|ef*g.|h?i(j|k))','.&-\1-\2.');
+
+
+(expression)  .ij-ij-j. 
+
+1 row(s) retrieved.
+
+
+
+-- 95. result: 'effg'
+execute function regexp_replace('effg','(bc+d$|ef*g.|h?i(j|k))','-');
+
+
+(expression)  effg 
+
+1 row(s) retrieved.
+
+
+
+-- 96. result: 'bcdd'
+execute function regexp_replace('bcdd','(bc+d$|ef*g.|h?i(j|k))','-');
+
+
+(expression)  bcdd 
+
+1 row(s) retrieved.
+
+
+
+-- 97. result: 'r.effgz-effgz-.'
+execute function regexp_replace('reffgz','(bc+d$|ef*g.|h?i(j|k))','.&-\1-\2.');
+
+
+(expression)  r.effgz-effgz-. 
+
+1 row(s) retrieved.
+
+
+
+-- 98. result: '.a.'
+execute function regexp_replace('a','(((((((((a)))))))))','.&.');
+
+
+(expression)  .a. 
+
+1 row(s) retrieved.
+
+
+
+-- 99. result: 'uh-uh'
+execute function regexp_replace('uh-uh','multiple words of text','-');
+
+
+(expression)  uh-uh 
+
+1 row(s) retrieved.
+
+
+
+-- 100. result: '.multiple words., yeah'
+execute function regexp_replace('multiple words, yeah','multiple words','.&.');
+
+
+(expression)  .multiple words., yeah 
+
+1 row(s) retrieved.
+
+
+
+-- 101. result: '.abcde-ab-de.'
+execute function regexp_replace('abcde','(.*)c(.*)','.&-\1-\2.');
+
+
+(expression)  .abcde-ab-de. 
+
+1 row(s) retrieved.
+
+
+
+-- 102. result: '(b, a)'
+execute function regexp_replace('(a, b)','\((.*), (.*)\)','(\2, \1)');
+
+
+(expression)  (b, a) 
+
+1 row(s) retrieved.
+
+
+
+
+Database closed.
+

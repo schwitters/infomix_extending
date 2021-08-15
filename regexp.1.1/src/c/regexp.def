@@ -1,0 +1,18 @@
+;
+; The following symbols are exported for
+; the regexp bladelet.
+;
+DESCRIPTION 'This is the regexp bladelet.'
+
+EXPORTS
+	regexp_match_char
+	regexp_match_clob
+	regexp_replace_char
+	regexp_replace_char_n
+	regexp_replace_clob
+	regexp_replace_clob_n
+	regexp_extract
+	regexp_extract_n
+	regexp_split
+	regexp_split_n
+	TraceSet_regexp

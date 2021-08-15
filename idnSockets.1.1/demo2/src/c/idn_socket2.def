@@ -1,0 +1,9 @@
+;
+; The following symbols are exported for
+; the idn_socket2 DataBlade module.
+;
+DESCRIPTION 'This is the idn_socket2 DataBlade module.'
+
+EXPORTS
+	idnCallSocket2
+	idnSock2Release

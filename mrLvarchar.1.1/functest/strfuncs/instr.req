@@ -1,0 +1,1247 @@
+
+Database selected.
+
+-- --------------------------------------------------------------------------
+-- 
+-- Module          : Functional Test for instr(idn_mrLvarchar)
+-- Filename        : instr.sql
+-- Description     : Tests additional string functions introduced in 1.1
+-- 
+-- Tests:
+-- 
+--    1. Small values
+--    2. Big values
+--    3. Dynamically generated big values
+--    4. Original SqlLib tests
+--
+-- If enabled, additional trace info gets output to /tmp/mrLvarchar_instr.trc.
+-- --------------------------------------------------------------------------
+
+--
+-- Turn tracing on.
+--
+-- execute procedure TraceSet_mrLvarchar ("/tmp/mrLvarchar_instr.trc", 20);
+
+--
+-- Set explain on.
+--
+
+set explain on;
+Explain set.
+
+
+
+-- 1. Small values
+
+-- Find the first space
+select mrcol, instr(mrcol, ' ') index
+from   test_mr
+where  id <=5;
+
+
+mrcol  One: Here is one small value 
+index  5
+
+mrcol  Two: Here is the second small value 
+index  5
+
+mrcol  Three: Here is the third small value 
+index  7
+
+mrcol  Four: Here is the fourth small value 
+index  6
+
+mrcol  Five: Here is the fifth small value 
+index  6
+
+5 row(s) retrieved.
+
+
+
+-- Find the last space
+select mrcol, instr(mrcol, ' ', -1) index
+from   test_mr
+where  id <=5;
+
+
+mrcol  One: Here is one small value 
+index  23
+
+mrcol  Two: Here is the second small value 
+index  30
+
+mrcol  Three: Here is the third small value 
+index  31
+
+mrcol  Four: Here is the fourth small value 
+index  31
+
+mrcol  Five: Here is the fifth small value 
+index  30
+
+5 row(s) retrieved.
+
+
+
+-- Starting at the 10th character, find the first space
+select mrcol, instr(mrcol, ' ', 10) index
+from   test_mr
+where  id <=5;
+
+
+mrcol  One: Here is one small value 
+index  10
+
+mrcol  Two: Here is the second small value 
+index  10
+
+mrcol  Three: Here is the third small value 
+index  12
+
+mrcol  Four: Here is the fourth small value 
+index  11
+
+mrcol  Five: Here is the fifth small value 
+index  11
+
+5 row(s) retrieved.
+
+
+
+
+-- Starting at the 1 character, find the third space
+select mrcol, instr(mrcol, ' ', 1, 3) index
+from   test_mr
+where  id <=5;
+
+
+mrcol  One: Here is one small value 
+index  13
+
+mrcol  Two: Here is the second small value 
+index  13
+
+mrcol  Three: Here is the third small value 
+index  15
+
+mrcol  Four: Here is the fourth small value 
+index  14
+
+mrcol  Five: Here is the fifth small value 
+index  14
+
+5 row(s) retrieved.
+
+
+
+-- 2. Big values
+-- Find the first occurrence of the word 'son'
+select mrcol, instr(mrcol, 'son') index
+from   test_mr
+where  id >5;
+
+
+mrcol  A fable by Aesop: The Buffoon and the Countryman : A RICH NOBLEMAN once 
+       opened the theaters without charge to the people, and gave a public noti
+       ce that he would handsomely reward any person who invented a new amuseme
+       nt for the occasion. Various public performers contended for the prize. 
+        Among them came a Buffoon well known among the populace for his jokes, 
+       and said that he had a kind of entertainment which had never been brough
+       t out on any stage before.  This report being spread about made a great 
+       stir, and the theater was crowded in every part. The Buffoon appeared al
+       one upon the platform, without any apparatus or confederates, and the ve
+       ry sense of expectation caused an intense silence.  He suddenly bent his
+        head towards his bosom and imitated the squeaking of a little pig so ad
+       mirably with his voice that the audience declared he had a porker under 
+       his cloak, and demanded that it should be shaken out.  When that was don
+       e and nothing was found, they cheered the actor, and loaded him with the
+        loudest applause.  A Countryman in the crowd, observing all that has pa
+       ssed, said, "So help me, Hercules, he shall not beat me at that trick!" 
+        and at once proclaimed that he would do the same thing on the next day,
+        though in a much more natural way.  On the morrow a still larger crowd 
+       assembled in the theater, but now partiality for their favorite actor ve
+       ry generally prevailed, and the audience came rather to ridicule the Cou
+       ntryman than to see the spectacle.  Both of the performers appeared on t
+       he stage.  The Buffoon grunted and squeaked away first, and obtained, as
+        on the preceding day, the applause and cheers of the spectators.  Next 
+       the Countryman commenced, and pretending that he concealed a little pig 
+       beneath his clothes (which in truth he did, but not suspected by the aud
+       ience ) contrived to take hold of and to pull his ear causing the pig to
+        squeak.  The Crowd, however, cried out with one consent that the Buffoo
+       n had given a far more exact imitation, and clamored for the Countryman 
+       to be kicked out of the theater.  On this the rustic produced the little
+        pig from his cloak and showed by the most positive proof the greatness 
+       of their mistake.  "Look here," he said, "this shows what sort of judges
+        you are." 
+index  187
+
+mrcol  A fable by Aesop: The Miller, His Son, and Their Ass: A MILLER and his s
+       on were driving their Ass to a neighboring fair to sell him.  They had n
+       ot gone far when they met with a troop of women collected round a well, 
+       talking and laughing.  "Look there," cried one of them, "did you ever se
+       e such fellows, to be trudging along the road on foot when they might ri
+       de?'  The old man hearing this, quickly made his son mount the Ass, and 
+       continued to walk along merrily by his side.  Presently they came up to 
+       a group of old men in earnest debate.  "There," said one of them, "it pr
+       oves what I was a-saying.  What respect is shown to old age in these day
+       s? Do you see that idle lad riding while his old father has to walk? Get
+        down, you young scapegrace, and let the old man rest his weary limbs." 
+        Upon this the old man made his son dismount, and got up himself.  In th
+       is manner they had not proceeded far when they met a company of women an
+       d children: "Why, you lazy old fellow," cried several tongues at once, "
+       how can you ride upon the beast, while that poor little lad there can ha
+       rdly keep pace by the side of you?'  The good-natured Miller immediately
+        took up his son behind him.  They had now almost reached the town.    "
+       Pray, honest friend," said a citizen, "is that Ass your own?'  "Yes," re
+       plied the old man.  "O, one would not have thought so," said the other, 
+       "by the way you load him. Why, you two fellows are better able to carry 
+       the poor beast than he you."  "Anything to please you," said the old man
+       ; "we can but try."  So, alighting with his son, they tied the legs of t
+       he Ass together and with the help of a pole endeavored to carry him on t
+       heir shoulders over a bridge near the entrance to the town. This enterta
+       ining sight brought the people in crowds to laugh at it, till the Ass, n
+       ot liking the noise nor the strange handling that he was subject to, bro
+       ke the cords that bound him and, tumbling off the pole, fell into the ri
+       ver.  Upon this, the old man, vexed and ashamed, made the best of his wa
+       y home again, convinced that by endeavoring to please everybody he had p
+       leased nobody, and lost his Ass in the bargain. 
+index  72
+
+2 row(s) retrieved.
+
+
+
+-- Starting at the 100th character, find the first occurrence
+select mrcol, instr(mrcol, 'son', 100) index
+from   test_mr
+where  id >5;
+
+
+mrcol  A fable by Aesop: The Buffoon and the Countryman : A RICH NOBLEMAN once 
+       opened the theaters without charge to the people, and gave a public noti
+       ce that he would handsomely reward any person who invented a new amuseme
+       nt for the occasion. Various public performers contended for the prize. 
+        Among them came a Buffoon well known among the populace for his jokes, 
+       and said that he had a kind of entertainment which had never been brough
+       t out on any stage before.  This report being spread about made a great 
+       stir, and the theater was crowded in every part. The Buffoon appeared al
+       one upon the platform, without any apparatus or confederates, and the ve
+       ry sense of expectation caused an intense silence.  He suddenly bent his
+        head towards his bosom and imitated the squeaking of a little pig so ad
+       mirably with his voice that the audience declared he had a porker under 
+       his cloak, and demanded that it should be shaken out.  When that was don
+       e and nothing was found, they cheered the actor, and loaded him with the
+        loudest applause.  A Countryman in the crowd, observing all that has pa
+       ssed, said, "So help me, Hercules, he shall not beat me at that trick!" 
+        and at once proclaimed that he would do the same thing on the next day,
+        though in a much more natural way.  On the morrow a still larger crowd 
+       assembled in the theater, but now partiality for their favorite actor ve
+       ry generally prevailed, and the audience came rather to ridicule the Cou
+       ntryman than to see the spectacle.  Both of the performers appeared on t
+       he stage.  The Buffoon grunted and squeaked away first, and obtained, as
+        on the preceding day, the applause and cheers of the spectators.  Next 
+       the Countryman commenced, and pretending that he concealed a little pig 
+       beneath his clothes (which in truth he did, but not suspected by the aud
+       ience ) contrived to take hold of and to pull his ear causing the pig to
+        squeak.  The Crowd, however, cried out with one consent that the Buffoo
+       n had given a far more exact imitation, and clamored for the Countryman 
+       to be kicked out of the theater.  On this the rustic produced the little
+        pig from his cloak and showed by the most positive proof the greatness 
+       of their mistake.  "Look here," he said, "this shows what sort of judges
+        you are." 
+index  187
+
+mrcol  A fable by Aesop: The Miller, His Son, and Their Ass: A MILLER and his s
+       on were driving their Ass to a neighboring fair to sell him.  They had n
+       ot gone far when they met with a troop of women collected round a well, 
+       talking and laughing.  "Look there," cried one of them, "did you ever se
+       e such fellows, to be trudging along the road on foot when they might ri
+       de?'  The old man hearing this, quickly made his son mount the Ass, and 
+       continued to walk along merrily by his side.  Presently they came up to 
+       a group of old men in earnest debate.  "There," said one of them, "it pr
+       oves what I was a-saying.  What respect is shown to old age in these day
+       s? Do you see that idle lad riding while his old father has to walk? Get
+        down, you young scapegrace, and let the old man rest his weary limbs." 
+        Upon this the old man made his son dismount, and got up himself.  In th
+       is manner they had not proceeded far when they met a company of women an
+       d children: "Why, you lazy old fellow," cried several tongues at once, "
+       how can you ride upon the beast, while that poor little lad there can ha
+       rdly keep pace by the side of you?'  The good-natured Miller immediately
+        took up his son behind him.  They had now almost reached the town.    "
+       Pray, honest friend," said a citizen, "is that Ass your own?'  "Yes," re
+       plied the old man.  "O, one would not have thought so," said the other, 
+       "by the way you load him. Why, you two fellows are better able to carry 
+       the poor beast than he you."  "Anything to please you," said the old man
+       ; "we can but try."  So, alighting with his son, they tied the legs of t
+       he Ass together and with the help of a pole endeavored to carry him on t
+       heir shoulders over a bridge near the entrance to the town. This enterta
+       ining sight brought the people in crowds to laugh at it, till the Ass, n
+       ot liking the noise nor the strange handling that he was subject to, bro
+       ke the cords that bound him and, tumbling off the pole, fell into the ri
+       ver.  Upon this, the old man, vexed and ashamed, made the best of his wa
+       y home again, convinced that by endeavoring to please everybody he had p
+       leased nobody, and lost his Ass in the bargain. 
+index  410
+
+2 row(s) retrieved.
+
+
+
+
+-- Starting at the 1 character, find the third occurrence
+select mrcol, instr(mrcol, ' ', 1, 3) index
+from   test_mr
+where  id >5;
+
+
+mrcol  A fable by Aesop: The Buffoon and the Countryman : A RICH NOBLEMAN once 
+       opened the theaters without charge to the people, and gave a public noti
+       ce that he would handsomely reward any person who invented a new amuseme
+       nt for the occasion. Various public performers contended for the prize. 
+        Among them came a Buffoon well known among the populace for his jokes, 
+       and said that he had a kind of entertainment which had never been brough
+       t out on any stage before.  This report being spread about made a great 
+       stir, and the theater was crowded in every part. The Buffoon appeared al
+       one upon the platform, without any apparatus or confederates, and the ve
+       ry sense of expectation caused an intense silence.  He suddenly bent his
+        head towards his bosom and imitated the squeaking of a little pig so ad
+       mirably with his voice that the audience declared he had a porker under 
+       his cloak, and demanded that it should be shaken out.  When that was don
+       e and nothing was found, they cheered the actor, and loaded him with the
+        loudest applause.  A Countryman in the crowd, observing all that has pa
+       ssed, said, "So help me, Hercules, he shall not beat me at that trick!" 
+        and at once proclaimed that he would do the same thing on the next day,
+        though in a much more natural way.  On the morrow a still larger crowd 
+       assembled in the theater, but now partiality for their favorite actor ve
+       ry generally prevailed, and the audience came rather to ridicule the Cou
+       ntryman than to see the spectacle.  Both of the performers appeared on t
+       he stage.  The Buffoon grunted and squeaked away first, and obtained, as
+        on the preceding day, the applause and cheers of the spectators.  Next 
+       the Countryman commenced, and pretending that he concealed a little pig 
+       beneath his clothes (which in truth he did, but not suspected by the aud
+       ience ) contrived to take hold of and to pull his ear causing the pig to
+        squeak.  The Crowd, however, cried out with one consent that the Buffoo
+       n had given a far more exact imitation, and clamored for the Countryman 
+       to be kicked out of the theater.  On this the rustic produced the little
+        pig from his cloak and showed by the most positive proof the greatness 
+       of their mistake.  "Look here," he said, "this shows what sort of judges
+        you are." 
+index  11
+
+mrcol  A fable by Aesop: The Miller, His Son, and Their Ass: A MILLER and his s
+       on were driving their Ass to a neighboring fair to sell him.  They had n
+       ot gone far when they met with a troop of women collected round a well, 
+       talking and laughing.  "Look there," cried one of them, "did you ever se
+       e such fellows, to be trudging along the road on foot when they might ri
+       de?'  The old man hearing this, quickly made his son mount the Ass, and 
+       continued to walk along merrily by his side.  Presently they came up to 
+       a group of old men in earnest debate.  "There," said one of them, "it pr
+       oves what I was a-saying.  What respect is shown to old age in these day
+       s? Do you see that idle lad riding while his old father has to walk? Get
+        down, you young scapegrace, and let the old man rest his weary limbs." 
+        Upon this the old man made his son dismount, and got up himself.  In th
+       is manner they had not proceeded far when they met a company of women an
+       d children: "Why, you lazy old fellow," cried several tongues at once, "
+       how can you ride upon the beast, while that poor little lad there can ha
+       rdly keep pace by the side of you?'  The good-natured Miller immediately
+        took up his son behind him.  They had now almost reached the town.    "
+       Pray, honest friend," said a citizen, "is that Ass your own?'  "Yes," re
+       plied the old man.  "O, one would not have thought so," said the other, 
+       "by the way you load him. Why, you two fellows are better able to carry 
+       the poor beast than he you."  "Anything to please you," said the old man
+       ; "we can but try."  So, alighting with his son, they tied the legs of t
+       he Ass together and with the help of a pole endeavored to carry him on t
+       heir shoulders over a bridge near the entrance to the town. This enterta
+       ining sight brought the people in crowds to laugh at it, till the Ass, n
+       ot liking the noise nor the strange handling that he was subject to, bro
+       ke the cords that bound him and, tumbling off the pole, fell into the ri
+       ver.  Upon this, the old man, vexed and ashamed, made the best of his wa
+       y home again, convinced that by endeavoring to please everybody he had p
+       leased nobody, and lost his Ass in the bargain. 
+index  11
+
+2 row(s) retrieved.
+
+
+
+-- Find the last period followed by a space (start of last sentence).
+select id,
+       length(mrcol)-8 length, 
+       instr(mrcol, '. ', -1) index
+from   test_mr
+where  id >5;
+
+         id        length       index 
+
+          9          2242        2177
+         10          2135        1948
+
+2 row(s) retrieved.
+
+
+
+-- Find the last space.
+select id,
+       length(mrcol)-8 length, 
+       instr(mrcol, ' ', -1) index
+from   test_mr
+where  id >5;
+
+         id        length       index 
+
+          9          2242        2237
+         10          2135        2127
+
+2 row(s) retrieved.
+
+
+
+-- 3. Dynamically generated big values
+-- Find the first occurrence of the word 'son'
+select mrcol, instr(lower(mrcol), 'son') index
+from   test_mr
+where  id >5;
+
+
+mrcol  A fable by Aesop: The Buffoon and the Countryman : A RICH NOBLEMAN once 
+       opened the theaters without charge to the people, and gave a public noti
+       ce that he would handsomely reward any person who invented a new amuseme
+       nt for the occasion. Various public performers contended for the prize. 
+        Among them came a Buffoon well known among the populace for his jokes, 
+       and said that he had a kind of entertainment which had never been brough
+       t out on any stage before.  This report being spread about made a great 
+       stir, and the theater was crowded in every part. The Buffoon appeared al
+       one upon the platform, without any apparatus or confederates, and the ve
+       ry sense of expectation caused an intense silence.  He suddenly bent his
+        head towards his bosom and imitated the squeaking of a little pig so ad
+       mirably with his voice that the audience declared he had a porker under 
+       his cloak, and demanded that it should be shaken out.  When that was don
+       e and nothing was found, they cheered the actor, and loaded him with the
+        loudest applause.  A Countryman in the crowd, observing all that has pa
+       ssed, said, "So help me, Hercules, he shall not beat me at that trick!" 
+        and at once proclaimed that he would do the same thing on the next day,
+        though in a much more natural way.  On the morrow a still larger crowd 
+       assembled in the theater, but now partiality for their favorite actor ve
+       ry generally prevailed, and the audience came rather to ridicule the Cou
+       ntryman than to see the spectacle.  Both of the performers appeared on t
+       he stage.  The Buffoon grunted and squeaked away first, and obtained, as
+        on the preceding day, the applause and cheers of the spectators.  Next 
+       the Countryman commenced, and pretending that he concealed a little pig 
+       beneath his clothes (which in truth he did, but not suspected by the aud
+       ience ) contrived to take hold of and to pull his ear causing the pig to
+        squeak.  The Crowd, however, cried out with one consent that the Buffoo
+       n had given a far more exact imitation, and clamored for the Countryman 
+       to be kicked out of the theater.  On this the rustic produced the little
+        pig from his cloak and showed by the most positive proof the greatness 
+       of their mistake.  "Look here," he said, "this shows what sort of judges
+        you are." 
+index  187
+
+mrcol  A fable by Aesop: The Miller, His Son, and Their Ass: A MILLER and his s
+       on were driving their Ass to a neighboring fair to sell him.  They had n
+       ot gone far when they met with a troop of women collected round a well, 
+       talking and laughing.  "Look there," cried one of them, "did you ever se
+       e such fellows, to be trudging along the road on foot when they might ri
+       de?'  The old man hearing this, quickly made his son mount the Ass, and 
+       continued to walk along merrily by his side.  Presently they came up to 
+       a group of old men in earnest debate.  "There," said one of them, "it pr
+       oves what I was a-saying.  What respect is shown to old age in these day
+       s? Do you see that idle lad riding while his old father has to walk? Get
+        down, you young scapegrace, and let the old man rest his weary limbs." 
+        Upon this the old man made his son dismount, and got up himself.  In th
+       is manner they had not proceeded far when they met a company of women an
+       d children: "Why, you lazy old fellow," cried several tongues at once, "
+       how can you ride upon the beast, while that poor little lad there can ha
+       rdly keep pace by the side of you?'  The good-natured Miller immediately
+        took up his son behind him.  They had now almost reached the town.    "
+       Pray, honest friend," said a citizen, "is that Ass your own?'  "Yes," re
+       plied the old man.  "O, one would not have thought so," said the other, 
+       "by the way you load him. Why, you two fellows are better able to carry 
+       the poor beast than he you."  "Anything to please you," said the old man
+       ; "we can but try."  So, alighting with his son, they tied the legs of t
+       he Ass together and with the help of a pole endeavored to carry him on t
+       heir shoulders over a bridge near the entrance to the town. This enterta
+       ining sight brought the people in crowds to laugh at it, till the Ass, n
+       ot liking the noise nor the strange handling that he was subject to, bro
+       ke the cords that bound him and, tumbling off the pole, fell into the ri
+       ver.  Upon this, the old man, vexed and ashamed, made the best of his wa
+       y home again, convinced that by endeavoring to please everybody he had p
+       leased nobody, and lost his Ass in the bargain. 
+index  35
+
+2 row(s) retrieved.
+
+
+
+-- Starting at the 100th character, find the first occurrence
+select mrcol, instr(lower(mrcol), 'son', 100) index
+from   test_mr
+where  id >5;
+
+
+mrcol  A fable by Aesop: The Buffoon and the Countryman : A RICH NOBLEMAN once 
+       opened the theaters without charge to the people, and gave a public noti
+       ce that he would handsomely reward any person who invented a new amuseme
+       nt for the occasion. Various public performers contended for the prize. 
+        Among them came a Buffoon well known among the populace for his jokes, 
+       and said that he had a kind of entertainment which had never been brough
+       t out on any stage before.  This report being spread about made a great 
+       stir, and the theater was crowded in every part. The Buffoon appeared al
+       one upon the platform, without any apparatus or confederates, and the ve
+       ry sense of expectation caused an intense silence.  He suddenly bent his
+        head towards his bosom and imitated the squeaking of a little pig so ad
+       mirably with his voice that the audience declared he had a porker under 
+       his cloak, and demanded that it should be shaken out.  When that was don
+       e and nothing was found, they cheered the actor, and loaded him with the
+        loudest applause.  A Countryman in the crowd, observing all that has pa
+       ssed, said, "So help me, Hercules, he shall not beat me at that trick!" 
+        and at once proclaimed that he would do the same thing on the next day,
+        though in a much more natural way.  On the morrow a still larger crowd 
+       assembled in the theater, but now partiality for their favorite actor ve
+       ry generally prevailed, and the audience came rather to ridicule the Cou
+       ntryman than to see the spectacle.  Both of the performers appeared on t
+       he stage.  The Buffoon grunted and squeaked away first, and obtained, as
+        on the preceding day, the applause and cheers of the spectators.  Next 
+       the Countryman commenced, and pretending that he concealed a little pig 
+       beneath his clothes (which in truth he did, but not suspected by the aud
+       ience ) contrived to take hold of and to pull his ear causing the pig to
+        squeak.  The Crowd, however, cried out with one consent that the Buffoo
+       n had given a far more exact imitation, and clamored for the Countryman 
+       to be kicked out of the theater.  On this the rustic produced the little
+        pig from his cloak and showed by the most positive proof the greatness 
+       of their mistake.  "Look here," he said, "this shows what sort of judges
+        you are." 
+index  187
+
+mrcol  A fable by Aesop: The Miller, His Son, and Their Ass: A MILLER and his s
+       on were driving their Ass to a neighboring fair to sell him.  They had n
+       ot gone far when they met with a troop of women collected round a well, 
+       talking and laughing.  "Look there," cried one of them, "did you ever se
+       e such fellows, to be trudging along the road on foot when they might ri
+       de?'  The old man hearing this, quickly made his son mount the Ass, and 
+       continued to walk along merrily by his side.  Presently they came up to 
+       a group of old men in earnest debate.  "There," said one of them, "it pr
+       oves what I was a-saying.  What respect is shown to old age in these day
+       s? Do you see that idle lad riding while his old father has to walk? Get
+        down, you young scapegrace, and let the old man rest his weary limbs." 
+        Upon this the old man made his son dismount, and got up himself.  In th
+       is manner they had not proceeded far when they met a company of women an
+       d children: "Why, you lazy old fellow," cried several tongues at once, "
+       how can you ride upon the beast, while that poor little lad there can ha
+       rdly keep pace by the side of you?'  The good-natured Miller immediately
+        took up his son behind him.  They had now almost reached the town.    "
+       Pray, honest friend," said a citizen, "is that Ass your own?'  "Yes," re
+       plied the old man.  "O, one would not have thought so," said the other, 
+       "by the way you load him. Why, you two fellows are better able to carry 
+       the poor beast than he you."  "Anything to please you," said the old man
+       ; "we can but try."  So, alighting with his son, they tied the legs of t
+       he Ass together and with the help of a pole endeavored to carry him on t
+       heir shoulders over a bridge near the entrance to the town. This enterta
+       ining sight brought the people in crowds to laugh at it, till the Ass, n
+       ot liking the noise nor the strange handling that he was subject to, bro
+       ke the cords that bound him and, tumbling off the pole, fell into the ri
+       ver.  Upon this, the old man, vexed and ashamed, made the best of his wa
+       y home again, convinced that by endeavoring to please everybody he had p
+       leased nobody, and lost his Ass in the bargain. 
+index  410
+
+2 row(s) retrieved.
+
+
+
+
+-- Starting at the 1st character, find the third occurrence
+select mrcol, instr(lower(mrcol), 'son', 1, 3) index
+from   test_mr
+where  id >5;
+
+
+mrcol  A fable by Aesop: The Buffoon and the Countryman : A RICH NOBLEMAN once 
+       opened the theaters without charge to the people, and gave a public noti
+       ce that he would handsomely reward any person who invented a new amuseme
+       nt for the occasion. Various public performers contended for the prize. 
+        Among them came a Buffoon well known among the populace for his jokes, 
+       and said that he had a kind of entertainment which had never been brough
+       t out on any stage before.  This report being spread about made a great 
+       stir, and the theater was crowded in every part. The Buffoon appeared al
+       one upon the platform, without any apparatus or confederates, and the ve
+       ry sense of expectation caused an intense silence.  He suddenly bent his
+        head towards his bosom and imitated the squeaking of a little pig so ad
+       mirably with his voice that the audience declared he had a porker under 
+       his cloak, and demanded that it should be shaken out.  When that was don
+       e and nothing was found, they cheered the actor, and loaded him with the
+        loudest applause.  A Countryman in the crowd, observing all that has pa
+       ssed, said, "So help me, Hercules, he shall not beat me at that trick!" 
+        and at once proclaimed that he would do the same thing on the next day,
+        though in a much more natural way.  On the morrow a still larger crowd 
+       assembled in the theater, but now partiality for their favorite actor ve
+       ry generally prevailed, and the audience came rather to ridicule the Cou
+       ntryman than to see the spectacle.  Both of the performers appeared on t
+       he stage.  The Buffoon grunted and squeaked away first, and obtained, as
+        on the preceding day, the applause and cheers of the spectators.  Next 
+       the Countryman commenced, and pretending that he concealed a little pig 
+       beneath his clothes (which in truth he did, but not suspected by the aud
+       ience ) contrived to take hold of and to pull his ear causing the pig to
+        squeak.  The Crowd, however, cried out with one consent that the Buffoo
+       n had given a far more exact imitation, and clamored for the Countryman 
+       to be kicked out of the theater.  On this the rustic produced the little
+        pig from his cloak and showed by the most positive proof the greatness 
+       of their mistake.  "Look here," he said, "this shows what sort of judges
+        you are." 
+index  0
+
+mrcol  A fable by Aesop: The Miller, His Son, and Their Ass: A MILLER and his s
+       on were driving their Ass to a neighboring fair to sell him.  They had n
+       ot gone far when they met with a troop of women collected round a well, 
+       talking and laughing.  "Look there," cried one of them, "did you ever se
+       e such fellows, to be trudging along the road on foot when they might ri
+       de?'  The old man hearing this, quickly made his son mount the Ass, and 
+       continued to walk along merrily by his side.  Presently they came up to 
+       a group of old men in earnest debate.  "There," said one of them, "it pr
+       oves what I was a-saying.  What respect is shown to old age in these day
+       s? Do you see that idle lad riding while his old father has to walk? Get
+        down, you young scapegrace, and let the old man rest his weary limbs." 
+        Upon this the old man made his son dismount, and got up himself.  In th
+       is manner they had not proceeded far when they met a company of women an
+       d children: "Why, you lazy old fellow," cried several tongues at once, "
+       how can you ride upon the beast, while that poor little lad there can ha
+       rdly keep pace by the side of you?'  The good-natured Miller immediately
+        took up his son behind him.  They had now almost reached the town.    "
+       Pray, honest friend," said a citizen, "is that Ass your own?'  "Yes," re
+       plied the old man.  "O, one would not have thought so," said the other, 
+       "by the way you load him. Why, you two fellows are better able to carry 
+       the poor beast than he you."  "Anything to please you," said the old man
+       ; "we can but try."  So, alighting with his son, they tied the legs of t
+       he Ass together and with the help of a pole endeavored to carry him on t
+       heir shoulders over a bridge near the entrance to the town. This enterta
+       ining sight brought the people in crowds to laugh at it, till the Ass, n
+       ot liking the noise nor the strange handling that he was subject to, bro
+       ke the cords that bound him and, tumbling off the pole, fell into the ri
+       ver.  Upon this, the old man, vexed and ashamed, made the best of his wa
+       y home again, convinced that by endeavoring to please everybody he had p
+       leased nobody, and lost his Ass in the bargain. 
+index  410
+
+2 row(s) retrieved.
+
+
+
+-- =========================================================================
+-- 4. SqlLib tests
+--
+-- -------------------------------------------------------------------------
+-- Tests for the instr() function.
+-- -------------------------------------------------------------------------
+--
+-- Test with just two arguments:
+--
+-- Should return "6":
+execute function instr("The Mississippi flows north to south.", "i");
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "is");
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "issi");
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+
+-- Should return "1":
+execute function instr("The Mississippi flows north to south.", "T");
+
+(expression) 
+
+           1
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "The");
+
+(expression) 
+
+           1
+
+1 row(s) retrieved.
+
+
+
+-- Should return "37":
+execute function instr("The Mississippi flows north to south.", ".");
+
+(expression) 
+
+          37
+
+1 row(s) retrieved.
+
+
+
+-- Should return "0" (no match):
+execute function instr("The Mississippi flows north to south.", "east");
+
+(expression) 
+
+           0
+
+1 row(s) retrieved.
+
+
+
+-- -------------------------------------------------------------------------
+-- Test with three arguments:
+-- -------------------------------------------------------------------------
+-- Should return "6":
+execute function instr("The Mississippi flows north to south.", "i", 0);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "is", 0);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "issi", 0);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "i", 1);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "is", 1);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "issi", 1);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "issi", 6);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+
+-- Should return "9":
+execute function instr("The Mississippi flows north to south.", "i", 7);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "is", 7);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "issi", 7);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "issi", 8);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "issi", 9);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+
+-- Should return "35":
+execute function instr("The Mississippi flows north to south.", "th", -1);
+
+(expression) 
+
+          35
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "th", -2);
+
+(expression) 
+
+          35
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "th", -3);
+
+(expression) 
+
+          35
+
+1 row(s) retrieved.
+
+
+
+-- Should return "26":
+execute function instr("The Mississippi flows north to south.", "th", -4);
+
+(expression) 
+
+          26
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "th", -5);
+
+(expression) 
+
+          26
+
+1 row(s) retrieved.
+
+
+
+-- Should return "9":
+execute function instr("The Mississippi flows north to south.", "issi", -1);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "issi", -26);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "issi", -27);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "issi", -29);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+
+-- Should return "6":
+execute function instr("The Mississippi flows north to south.", "issi", -30);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "issi", -31);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "issi", -32);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+
+-- Should return "0" (not found):
+execute function instr("The Mississippi flows north to south.", "issi", -33);
+
+(expression) 
+
+           0
+
+1 row(s) retrieved.
+
+
+
+
+-- -------------------------------------------------------------------------
+-- Test with four arguments:
+-- -------------------------------------------------------------------------
+-- Should return "6":
+execute function instr("The Mississippi flows north to south.", "i", 0, 1);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "is", 0, 1);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "issi", 0, 1);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "i", 1, 1);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "is", 1, 1);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "issi", 1, 1);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+
+-- Should return "9":
+execute function instr("The Mississippi flows north to south.", "i", 0, 2);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "is", 0, 2);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "issi", 0, 2);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "i", 1, 2);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "is", 1, 2);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "issi", 1, 2);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+
+-- Should return "0" (no match):
+execute function instr("The Mississippi flows north to south.", "issi", 10, 1);
+
+(expression) 
+
+           0
+
+1 row(s) retrieved.
+
+
+
+-- Should return "26":
+execute function instr("The Mississippi flows north to south.", "th", 1, 1);
+
+(expression) 
+
+          26
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "th", 10, 1);
+
+(expression) 
+
+          26
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "th", 26, 1);
+
+(expression) 
+
+          26
+
+1 row(s) retrieved.
+
+
+
+-- Should return "35":
+execute function instr("The Mississippi flows north to south.", "th", 1, 2);
+
+(expression) 
+
+          35
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "th", 10, 2);
+
+(expression) 
+
+          35
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "th", 26, 2);
+
+(expression) 
+
+          35
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "th", 27, 1);
+
+(expression) 
+
+          35
+
+1 row(s) retrieved.
+
+
+
+-- Should return "15":
+execute function instr("The Mississippi flows north to south.", "i", -1, 1);
+
+(expression) 
+
+          15
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "i", -22, 1);
+
+(expression) 
+
+          15
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "i", -23, 1);
+
+(expression) 
+
+          15
+
+1 row(s) retrieved.
+
+
+
+-- Should return "12":
+execute function instr("The Mississippi flows north to south.", "i", -24, 1);
+
+(expression) 
+
+          12
+
+1 row(s) retrieved.
+
+
+
+-- Should return "9":
+execute function instr("The Mississippi flows north to south.", "issi", -1, 1);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "issi", -28, 1);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "issi", -29, 1);
+
+(expression) 
+
+           9
+
+1 row(s) retrieved.
+
+
+
+-- Should return "6":
+execute function instr("The Mississippi flows north to south.", "issi", -1, 2);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+execute function instr("The Mississippi flows north to south.", "issi", -30, 1);
+
+(expression) 
+
+           6
+
+1 row(s) retrieved.
+
+
+
+-- Specify a negative occurrence number (should error):
+execute function instr("The Mississippi flows north to south.", "issi", -1, -1);
+
+(expression) 
+
+
+(U0001) - instr: occurrence parameter is '-1', but must be > 0
+Error in line 217
+Near character position 79
+
+
+
+Database closed.
+

@@ -1,0 +1,24 @@
+;
+; The following symbols are exported for
+; the SqlLibC DataBlade module.
+;
+DESCRIPTION 'This is the SqlLibC DataBlade module.'
+
+EXPORTS
+	SqlLibC_ascii
+	SqlLibC_ceil
+	SqlLibC_chr
+	SqlLibC_sign
+	SqlLibC_instr_2
+	SqlLibC_instr_3
+	SqlLibC_instr_4
+	SqlLibC_instrb_2
+	SqlLibC_instrb_3
+	SqlLibC_instrb_4
+	SqlLibC_to_decimal
+	SqlLibC_to_decimal_fmt
+	SqlLibC_to_float
+	SqlLibC_to_float_fmt
+	SqlLibC_to_integer
+	SqlLibC_to_integer_fmt
+	TraceSet_SqlLibC

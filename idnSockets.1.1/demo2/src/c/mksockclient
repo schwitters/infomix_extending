@@ -1,0 +1,2 @@
+# This script builds the stand-alone socket client executable on Solaris
+cc -g -o idnSock2Client idnSock2Client.c -lsocket -lnsl

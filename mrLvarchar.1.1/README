@@ -1,0 +1,2100 @@
+View the most current version of this information at:
+
+  http://www.informix.com/idn-secure/DataBlade/Library/mrLvarchar.htm
+
+------------------------------------------------------------------------
+               Multirepresentational lvarchar Opaque Type
+
+                               mrLvarchar.1.1
+
+------------------------------------------------------------------------
+
+This project creates the idn_mrLvarchar opaque type, which stores character
+data up to 2 gigabytes. It is a multirepresentational (multirep) type,
+which means that small values get stored in-row and large values get stored
+in a smart blob.
+
+Contents
+
+   * Software Requirements
+
+   * Getting Started
+        o Download the Distribution
+        o Build the DataBlade module
+        o Install the DataBlade module
+        o Create the regexp VPCLASS
+        o Register the DataBlade module in a database
+        o Troubleshooting Problems
+
+   * History of Changes
+        o mrLvarchar.1.0
+        o mrLvarchar.1.1
+
+   * User-Defined Type (UDT)
+        o Description
+        o Format
+        o Features
+        o Restrictions
+        o Implementation
+        o Example
+
+   * User-Defined Routines (UDRs)
+
+           End-User Routines:
+           Clip               Creates a varchar(255) from the first 255
+                              bytes of an existing idn_mrLvarchar object.
+           Concat             Creates a new idn_mrLvarchar object from two
+                              existing idn_mrLvarchar objects.
+           ConcatAll          Creates a new idn_mrLvarchar object from a
+                              set of existing idn_mrLvarchar objects
+                              (aggregate).
+           Equal              Compares two idn_mrLvarchar objects and
+                              returns true if they are identical.
+           Instr              Searches for a literal value in a string,
+                              and returns the position where it was found.
+           Instrb             Provides same functionality as Instr but
+                              optimized for single-byte character sets.
+           Length             Returns the size in bytes of an
+                              idn_mrLvarchar UDT object (includes length
+                              of the data in bytes + 8 bytes of UDT header
+                              information).
+           Lower              Converts all characters in the input
+                              idn_mrLvarchar to lowercase.
+           NotEqual           Compares two idn_mrLvarchar objects and
+                              returns true if they are not identical.
+           Regexp_Match       Returns TRUE if a source string matches the
+                              regular expression search argument.
+           Regexp_Replace     Matches a regular expression in a string and
+                              replace it with something else.
+           Snip               Creates a new idn_mrLvarchar object from a
+                              subset of the input idn_mrLvarchar object.
+           Snipb              Provides same functionality as Snip but
+                              optimized for single-byte character sets.
+           Upper              Converts all characters in the input
+                              idn_mrLvarchar to uppercase.
+
+           DBA and DataBlade Developer Routines:
+           IsLarge            Returns TRUE if the value is too large to be
+                              stored in-row.
+           IsSmall            Returns TRUE if the value is small enough to
+                              be stored in-row.
+           mrLvarcharRelease  Returns the DataBlade version and build
+                              date.
+           mrLvarcharTemp     Controls storage for intermediate
+                              idn_mrLvarchar objects.
+           Refcount           Retrieves the refcount for an idn_mrLvarchar
+                              object. Returns NULL if the value is not
+                              stored in a smart blob.
+           Sbspace            Outputs the name of the smart blob space in
+                              which the idn_mrLvarchar is stored. Returns
+                              NULL if the value is not stored in a smart
+                              blob.
+           TraceSet_mrLvarcharEnables tracing for idn_mrLvarchar UDT
+                              routines.
+
+------------------------------------------------------------------------
+
+Software Requirements
+
+To build and run mrLvarchar.1.1, you need a C compiler to build the shared
+object and Informix Dynamic Server, release 9.x.
+
+mrLvarchar.1.1 was tested with the software releases listed below:
+
+     SUN:
+
+        * Solaris 2.7
+        * IDS 9.21.UC3
+        * SUNpro C Compiler
+
+     Windows 2000:
+
+        * Windows 2000, Service Pack 1
+        * IDS 9.21.TC1
+        * Microsoft Visual C++ 6.0
+
+------------------------------------------------------------------------
+
+Getting Started
+
+Wait! Are you upgrading from an earlier release of the mrLvarchar bladelet?
+If so, please check the mrLvarchar.1.1 section for change notes.
+
+Download the Distribution
+
+Download the mrLvarchar.1.1.tar.Z compressed tar archive.
+
+Uncompress it:
+
+uncompress mrLvarchar.1.1.tar
+
+Extract the tar archive:
+
+tar xvf mrLvarchar.1.1.tar
+
+On Windows 2000 use WinZip, MKS Toolkit, or any other utility that can
+extract compressed UNIX tar files.
+
+The distribution is extracted into a directory hierarchy under
+mrLvarchar.1.1. The directory contents are summarized in the table below.
+
+ README          This file.
+
+ demo/           Sample SQL statements.
+
+ functest/       Functional tests for the opaque type.
+
+ scripts/        SQL registration scripts for BladeManager.
+
+ src/            Source code.
+
+ mrLvarchar.ibs  BladeSmith project generated with BladeSmith version
+                 4.00.TC2.
+
+Build the DataBlade module
+
+This distribution includes the DataBlade module built for Solaris 2.5.1 and
+for Windows 2000 on IDS 9.21:
+
+   * The Solaris shared object is in the src/solaris-sparc subdirectory.
+   * The Windows 2000 dynamic link library (DLL) is in the src/Win2K
+     subdirectory.
+
+If you are on Solaris or Windows 2000 you do not need to build the
+DataBlade module. You can proceed to the "Install the DataBlade module"
+step below.
+
+If you are not on Solaris or Windows 2000, or if you modify the source
+code, then you must compile the DataBlade for your platform. If you do not
+know how to use a C compiler, then you should probably get a consultant to
+help you do this. If you are familiar with compiling, follow the
+instructions below, making any required modifications for your platform.
+
+UNIX
+
+     Set the TARGET variable to the platform-specific include file for your
+     platform, which you will find in $INFORMIXDIR/incl/dbdk. The following
+     sample usage is for the C-Shell on Solaris:
+
+
+     setenv TARGET $INFORMIXDIR/incl/dbdk/makeinc.solaris
+
+
+     Next, build the DataBlade module. The mrLvarchar project comes with a
+     Solaris SUNWspro makefile called mrLvarcharU.mak, and a GNU makefile
+     called sol-gcc.mak that has only been verified for Solaris. Both are
+     in the src subdirectory:
+
+
+     SUNWspro : make -f mrLvarcharU.mak
+     GNU (gcc): make -f sol-gcc.mak
+
+     Disregard warnings that mi_*, ifx_*, and gl_* symbols could not be
+     resolved. The IDS server resolves these symbols at runtime.
+
+     Detailed instructions for building a UNIX shared object library are
+     included in the DataBlade Developer's Kit User's Guide.
+
+Windows 2000
+     Microsoft DevStudio 6.0
+
+     src/mrLvarchar.mak was generated from the Microsoft DevStudio project,
+     and builds the DataBlade DLL at the DOS prompt. You can build a debug
+     or release version (debug is the default):
+
+     nmake /f mrLvarchar.mak CFG="mrLvarchar - Win32 Debug"
+     nmake /f mrLvarchar.mak CFG="mrLvarchar - Win32 Release"
+
+     Below is sample build output for DevStudio 6.0:
+
+     $ nmake /f mrLvarchar.mak CFG="mrLvarchar - Win32 DataBlade Debug"
+
+     Microsoft (R) Program Maintenance Utility   Version 6.00.8168.0
+     Copyright (C) Microsoft Corp 1988-1998. All rights reserved.
+
+     Warning: cannot find "mrLvarchar.dep"
+             if not exist ".\Debug/" mkdir ".\Debug"
+             cl.exe /nologo /MTd /W3 /Gm /GX /ZI /Od /I "D:\INFORMIX\incl\public" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "MRLVARCHAR_EXPORTS" /D "DK_SERVER" /D "MI_SERVBUILD" /D "NT" /D "GL_NT_STATIC" /D "NT_MI_SAPI" /Fp ".\Debug\mrLvarchar.pch" /YX /Fo".\Debug\\" /Fd".\Debug\\" /FD /GZ /c .\c\mrLvarchar.c mrLvarchar.c
+             cl.exe /nologo /MTd /W3 /Gm /GX /ZI /Od /I "D:\INFORMIX\incl\public" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "MRLVARCHAR_EXPORTS" /D "DK_SERVER" /D "MI_SERVBUILD" /D "NT" /D "GL_NT_STATIC" /D "NT_MI_SAPI" /Fp".\Debug\mrLvarchar.pch" /YX /Fo".\Debug\\" /Fd".\Debug\\" /FD /GZ /c .\c\udr.c udr.c
+             cl.exe /nologo /MTd /W3 /Gm /GX /ZI /Od /I "D:\INFORMIX\incl\public" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "MRLVARCHAR_EXPORTS " /D "DK_SERVER" /D "MI_SERVBUILD" /D "NT" /D "GL_NT_STATIC" /D "NT_MI_SAPI" /Fp".\Debug\mrLvarchar.pch" /YX /Fo".\Debug\\" /Fd".\Debug\\" /FD /GZ /c .\c\util.c util.c
+             link.exe @C:\TEMP\nma00310.
+        Creating library .\Debug\mrLvarchar.lib and object .\Debug\mrLvarchar.exp
+             tempfile.bat
+     A subdirectory or file .\Win2K already exists.
+             1 file(s) copied.
+
+     The resulting DLL gets output to Debug\mrLvarchar.bld (remember this
+     location later when you need to install the DLL).
+
+     You can also load mrLvarchar.1.1 source code into Microsoft DevStudio
+     by following the instructions in the Building a DataBlade DLL with
+     Microsoft DevStudio tech note. It explains how to create a new project
+     and add the *.c. *.h, and *.def files to that project.
+
+     Note: BladeSmith was not used to manage mrLvarchar.1.1 source code. So
+     do not try to load the mrLvarchar.1.1 source code into DevStudio by
+     clicking on the Bladesmith MSDev button.
+
+Install the DataBlade module
+
+Login as user informix, change to the mrLvarchar.1.1 directory in which the
+distribution has been extracted, and follow the steps outlined below for
+your platform.
+
+SUN Solaris
+     Note: if you compiled the DataBlade on another UNIX platform, you
+     won't find mrLvarchar.bld in a subdirectory called solaris-sparc.
+     Instead, the DataBlade object will be in a subdirectory named for that
+     platform.
+
+     mkdir $INFORMIXDIR/extend/mrLvarchar.1.1
+     cp ./scripts/* $INFORMIXDIR/extend/mrLvarchar.1.1
+     cp ./src/solaris-sparc/mrLvarchar.bld $INFORMIXDIR/extend/mrLvarchar.1.1
+
+Windows 2000
+
+     mkdir %INFORMIXDIR%\extend\mrLvarchar.1.1
+     cp .\scripts\* %INFORMIXDIR%\extend\mrLvarchar.1.1
+     cp .\src\Win2K\mrLvarchar.bld %INFORMIXDIR%\extend\mrLvarchar.1.1
+     attrib +R %INFORMIXDIR%\extend\mrLvarchar.1.1\mrLvarchar.bld
+
+Create the regexp VPCLASS
+
+Two functions, Regexp_Match and Regexp_Replace, are integrated from the
+regexp.1.0 project. The code they execute uses global variables that get
+updated. To make this code safe for the multi-threaded IDS environment, the
+Regexp SQL routines run in a user-defined virtual processor class called
+"regexp". To create this VPCLASS, put the following entry in your ONCONFIG
+file:
+
+VPCLASS   regexp,noyield  # Regexp bladelet uses this user-defined vp
+
+The VPCLASS must be noyield because global variables in the source code get
+updated.
+
+You can improve concurrency for multiple users on UNIX machines by creating
+more than one VPCLASS, like this:
+
+VPCLASS   regexp,noyield,num=3
+
+You can also dynamically add a virtual processor while the IDS server is
+up, like this:
+
+onmode -p +1 regexp
+
+However, you must not create more than 1 regexp VPCLASS on NT or Windows
+2000. Since each virtual processor runs as a thread, multiple virtual
+processors of the same regexp VPCLASS would share the same global
+variables. For more information about virtual processors and restrictions
+see the IDN tech note on Data Safety Using Informix Virtual Processors.
+
+If the VPCLASS has not been created, the SQL routines will fail and the
+online.log file will have errors that look like this:
+
+13:21:44  (-9799): ERROR: Routine execution VP switch failed -- new VP <regexp>
+
+Register the DataBlade module in a database
+
+A database has to already exist before you can register a DataBlade module
+in it. This example assumes you created a database named demodb.
+
+At the UNIX or DOS prompt, use the blademgr program to register the
+DataBlade module:
+
+blademgr
+shm> register mrLvarchar.1.1 demodb
+
+You can also run the BladeManager GUI from Windows.
+
+Troubleshooting Problems
+
+DataBlade Compile
+
+Windows 2000 and NT require all symbols to be resolved at compile/build
+time. So if a symbol is unresolved, it is a fatal error that must be
+corrected before you attempt to install and register the DataBlade module.
+DataBlade modules on Windows 2000 and NT link a library called sapi.lib
+that resolves Informix server symbols.
+
+On most UNIX platforms, symbols resolved by the Informix server are not
+resolved at compile/build time, so you might see compilation errors or
+warnings. The UNIX makefile executes a filtersym.sh script to try to
+eliminate warnings for symbols that get resolved at runtime, but this list
+is incomplete. So, if the compile and load works, go ahead and install the
+DataBlade and run the functional tests in the functest subdirectory to
+verify that everything is OK.
+
+The idn-datablades@informix.com group would like to be able to verify a
+DataBlade module on each and every platform, but unfortunately does not
+have resources to do so. If you need to compile this DataBlade for a
+different platform and have not done so before, consider getting help from
+a consultant who is experienced with that platform.
+
+DataBlade Registration
+
+If DataBlade registration fails, check the BladeManager log files for
+details.
+
+The following error means that BladeManager cannot find the software under
+$INFORMIXDIR/extend:
+
+blademgr: ERROR: DataBlade module mrLvarchar.1.1 not on server.
+
+Go back and doublecheck the section on "Install the DataBlade module".
+
+If BladeManager still can't find the DataBlade distribution, stop and
+restart the server.
+
+If BladeManager hangs, try registering one of the DataBlade modules that
+comes with the server -- you will find them in $INFORMIXDIR/extend. If
+BladeManager still hangs, you need to contact Informix tech support.
+
+Assistance Resolving Problems
+
+Do not call Informix tech support regarding a problem with or question
+about the mrLvarchar DataBlade module. Only call Informix tech support for
+problems with DataBlade modules that come with the server or are purchased
+from Informix.
+
+For questions regarding this DataBlade module, post to the DataBlade
+Developers Corner Forum or send email to idn-datablades@informix.com.
+
+------------------------------------------------------------------------
+
+History of Changes
+
+mrLvarchar.1.0
+
+The first release of the bladelet, mrLvarchar.1.0, created the opaque type
+and set the multirep threshold to 1024.
+
+It also provided the following SQL routines:
+
+      End-User Routines  DBA / DataBlade Routines
+      Clip               IsLarge
+      Concat             IsSmall
+      ConcatAll          mrLvarcharRelease
+      Equal              mrLvarcharTemp
+      Length             Refcount
+      NotEqual           Sbspace
+                         TraceSet_mrLvarchar
+
+mrLvarchar.1.1
+
+This release of the bladelet:
+
+   * Changes the length of data stored in-row
+   * Adds more SQL functions
+
+In-Row Length
+
+The multirep threshold changes from 1024 to 2048 to correspond to the
+minimum smart blob page size. (Originally, it was easier to do threshold
+tests if it was small and different from the lvarchar limit, but a 1K
+doesn't make sense for real use.)
+
+New SQL Functions
+
+The following SQL routines also get added:
+
+      End-User Routines
+      Instr         Searches for a literal value in a string, and returns
+                    the position where it was found.
+      Instrb        Provides same functionality as Instr, but optimized
+                    for single-byte character sets.
+      Lower         Converts all characters in the input string to
+                    lowercase.
+      Regexp_Match  Return TRUE if a source string matches the regular
+                    expression.
+      Regexp_ReplaceMatch a regular expression in a string and replace it
+                    with something else.
+      Snip          Return a subset of the input string.
+      Snipb         Provides same functionality as Snip, but optimized for
+                    single-byte character sets.
+      Upper         Converts all characters in the input string to
+                    uppercase.
+
+The Regexp_Match and Regexp_Replace functions are integrated from the
+regexp.1.0 project and require a user-defined VPCLASS.
+
+The Instr and Instrb functions are integrated from the SqlLib project.
+
+------------------------------------------------------------------------
+
+                          User-Defined Type (UDT)
+
+------------------------------------------------------------------------
+
+idn_mrLvarchar
+
+Description
+
+The idn_mrLvarchar user-defined type (UDT) stores character data up to 2
+gigabytes. It is like the built-in lvarchar SQL type, but without the 2K
+column limit.
+
+idn_mrLvarchar is implemented as a multirep, which means that text shorter
+than 2K is stored in-row and text longer than 2K is stored in a smart blob.
+(Ok, 8 bytes of housekeeping information gets maintained in the UDT value.
+Specifically, a value <= 2040 bytes is stored in-row. Anything larger gets
+stored in a smart blob.) For an introduction to multirep UDTs, see the IDN
+Multirepresentational Opaque Types tech note.
+
+The mrLvarchar.1.1 project includes source code for the idn_mrLvarchar UDT
+and has several goals:
+
+   * Provide a useful multirep text type that is not subject to the
+     lvarchar 2k limit.
+   * Provide sample multirep code for DataBlade developers that addresses
+     the memory caching issues mentioned in the Multirepresentational
+     Opaque Types tech note.
+
+Format
+
+The external format for idn_mrLvarchar is a quoted string. Sample
+idn_mrLvarchar values include:
+
+'here is my mrLvarchar'
+'the size of an mrLvarchar is constrained only by storage limits'
+
+Features
+
+The idn_mrLvarchar UDT supports the following features:
+
+   * Create a table that contains an idn_mrLvarchar column.
+
+   * Perform standard I/O operations:
+
+        o Insert values in ascii or binary format.
+        o Bulk load or unload data using the DB-Access LOAD and UNLOAD
+          commands.
+        o Transport data between heterogenous architectures.
+
+   * Search for values:
+
+        o Equal() / NotEqual(), and the corresponding = and <> operators,
+          perform exact match searches.
+
+        o Instr() / Instrb() find the position of a literal string within a
+          string.
+
+        o Regexp_Match() performs complex searches using regular
+          expressions.
+
+   * Create a new object by modifying an existing object:
+
+        o Concat(), and the corresponding || operator, creates a new
+          idn_mrLvarchar object by concatenating two idn_mrLvarchar
+          objects.
+
+        o Clip() extracts the first 255 characters of an idn_mrLvarchar and
+          returns it as an lvarchar(255), which can be used for a b-tree
+          functional index.
+
+        o Lower() converts all characters in an idn_mrLvarchar to
+          lowercase.
+
+        o Upper() converts all characters in an idn_mrLvarchar to
+          uppercase.
+
+        o Regexp_Replace() performs complex search and replace operations
+          using regular expressions.
+
+   * Monitor the size and location of idn_mrLvarchar objects:
+
+        o Length() returns the size of a specific idn_mrLvarchar object.
+
+        o IsLarge() returns TRUE if a idn_mrLvarchar object is stored in a
+          smart blob.
+
+        o IsSmall() returns TRUE if a idn_mrLvarchar object is small enough
+          to be stored in-row.
+
+        o Sbspace() returns the name of the smart blob space in which a
+          large value is stored.
+
+   * Advanced routines that let the DataBlade developer control temporary
+     storage for intermediate idn_mrLvarchar objects.
+
+Restrictions
+
+The idn_mrLvarchar UDT does not support the features described in this
+section:
+
+   * The current release does not support all lvarchar operations on an
+     idn_mrLvarchar object. A future release may support additional
+     string-manipulation functions, such as Trim(), Lpad(), and Rpad().
+
+     The bladelet author believes that Regexp_Replace() can perform the
+     Trim(), Lpad(), and Rpad() operations, but is open to feedback on
+     where it does not.
+
+   * The current release does not implement complete support for GLS.
+
+   * idn_mrLvarchar cannot use the server's built-in hash function because
+     large values are stored out-of-row. That means that it cannot be used
+     for the following:
+
+        o hash joins
+        o IN clauses
+        o group by clauses
+        o count distinct
+
+     For information about hashing, see the Can Your Opaque Type Use
+     Built-in Hashing? technical note.
+
+   * The server does not support creating a functional index on a value
+     that stores large data out-of-row in a smart blob or in memory, so it
+     is not possible to create a functional index on the entire
+     idn_mrLvarchar value. You can, however, create a functional index on
+     the first 255 bytes by using the Clip() UDR.
+
+Implementation
+
+idn_mrLvarchar is implemented as an opaque type, which means that it is a
+black box to the IDS server. Opaque type support UDRs supplied by the
+mrLvarchar DataBlade module provide the I/O services that the server
+requires, such as text input/output and binary send/receive for transport
+across heterogenous architectures. When the server needs to perform an I/O
+task, it blindly executes the UDR registered to perform that task.
+
+Furthermore, idn_mrLvarchar is a multirep, which means that small values
+are stored in-row and large values are stored in a smart blob. The actual
+storage is transparent to the end user.
+
+As distributed, the maximum in-row length (maxlen) for a idn_mrLvarchar is
+2048 bytes, which includes 8 bytes of header information, so the multirep
+threshold for a value is 2040 bytes. DataBlade developers are welcome to
+recompile with a different threshold, just remember to also modify the
+maxlen for the opaque type. It makes the most sense to set maxlen to 2048,
+which corresponds to the minimum smart blob page size.
+
+Internally, an idn_mrLvarchar is stored in the C structure below:
+
+typedef struct
+{
+   mi_integer     storage;  /* 4 bytes: how this object is stored */
+   mi_integer     size;     /* 4 bytes: length of the text value  */
+}
+mrLvarcharHdr;
+
+typedef struct
+{
+    mrLvarcharHdr hdr;
+    union
+    {
+       MI_LO_HANDLE lo;     /* LO handle, if smart blob. */
+       mi_char data[4];     /* Start of data, if in-row. */
+       void *mem;           /* Pointer to temporary PER_* buffer. */
+    }u;
+}
+mrLvarchar;
+
+#define MAXLEN      2048
+#define MR_THRESH   (MAXLEN - sizeof(mrLvarcharHdr))
+
+When a value is inserted into a table, it gets stored either in-row or in a
+smart blob. However, not every UDT object gets written to a table. We call
+those "intermediate" or "temporary" objects.
+
+By default, large intermediate objects are stored in a smart blob. The
+mrLvarcharTemp() routine lets you set the intermediate storage to a
+temporary in-memory buffer. That in-memory buffer gets automatically freed
+when its memory duration expires, so the higher the duration, the more
+stable the memory for certain queries.
+
+Internally, an idn_mrLvarchar object is never modified. Instead a new
+object is always created. This lets us create all of the UDT support
+functions as not variant, an issue when smart blobs store UDT data.
+
+Example
+
+Create an Aesop table with a column of the idn_mrLvarchar type for storing
+the fables. You can fragment the fable column among several smart blob
+spaces, if you choose. (But since mrLvarchar.1.0 1024 threshold was changed
+to 2048 in mrLvarchar.1.1, the sample data only has a couple large fables.)
+
+create table aesop
+(id     int,
+ title  lvarchar,
+ fable  idn_mrLvarchar
+)
+put story in (sbspace, sbspace2, sbspace3);
+
+Data containing fables is in the demo/aesop11.dat file in the mrLvrchar.1.1
+distribution. It is modified into Informix load format from Aesop's Fables,
+translated by George Fyler Townsend, which you can download from Project
+Gutenberg (http://promo.net/pg).
+
+Use DB-Access to insert the load file into the table.
+
+load from aesop11.dat insert into aesop;
+312 row(s) loaded.
+
+Select the first five rows back, sorting results on the idn_mrLvarchar
+column.
+
+select id, fable
+from   aesop
+where  id <= 5
+order by fable;
+
+id     5
+fable  A LION, fatigued by the heat of a summer's day, fell fast asleep in his
+       den.  A Mouse ran over his mane and ears and woke him from his slumbers.
+         He rose up and shook himself in great wrath, and searched every corner
+        of his den to find the Mouse.  A Fox seeing him said:  "A fine Lion you
+        are, to be frightened of a Mouse." "'Tis not the Mouse I fear," said th
+       e Lion; "I resent his familiarity and ill-breeding."  Little liberties a
+       re great offenses.
+
+id     3
+fable  A PEDDLER drove his Ass to the seashore to buy salt.  His road home lay
+       across a stream into which his Ass, making a false step, fell by acciden
+       t and rose up again with his load considerably lighter, as the water mel
+       ted the sack.  The Peddler retraced his steps and refilled his panniers
+       with a larger quantity of salt than before.  When he came again to the s
+       tream, the Ass fell down on purpose in the same spot, and, regaining his
+        feet with the weight of his load much diminished, brayed triumphantly a
+       s if he had obtained what he desired.  The Peddler saw through his trick
+        and drove him for the third time to the coast, where he bought a cargo
+       of sponges instead of salt.  The Ass, again playing the fool, fell down
+       on purpose when he reached the stream, but the sponges became swollen wi
+       th water, greatly increasing his load. And thus his trick recoiled on hi
+       m, for he now carried on his back a double burden.
+
+id     2
+fable  A SICK STAG lay down in a quiet corner of its pasture-ground. His compan
+       ions came in great numbers to inquire after his health, and each one hel
+       ped himself to a share of the food which had been placed for his use; so
+        that he died, not from his sickness, but from the failure of the means
+       of living.  Evil companions bring more hurt than profit.
+
+id     1
+fable  SOME BOYS, playing near a pond, saw a number of Frogs in the water and b
+       egan to pelt them with stones.  They killed several of them, when one of
+        the Frogs, lifting his head out of the water, cried out:  "Pray stop, m
+       y boys:  what is sport to you, is death to us."
+
+id     4
+fable  THE OXEN once upon a time sought to destroy the Butchers, who practiced
+       a trade destructive to their race.  They assembled on a certain day to c
+       arry out their purpose, and sharpened their horns for the contest.  But
+       one of them who was exceedingly old (for many a field had he plowed) thu
+       s spoke:  "These Butchers, it is true, slaughter us, but they do so with
+        skillful hands, and with no unnecessary pain.  If we get rid of them, w
+       e shall fall into the hands of unskillful operators, and thus suffer a d
+       ouble death:  for you may be assured, that though all the Butchers shoul
+       d perish, yet will men never want beef."  Do not be in a hurry to change
+        one evil for another.
+
+5 row(s) retrieved.
+
+You can find out the minimum, maximum, and average sizes of the fables.
+(Lengths reported include 8 bytes of UDT header information.)
+
+> select min(length(fable)) min_length,
+         avg(length(fable)) avg_length,
+         max(length(fable)) max_length
+  from   aesop;
+
+   min_length       avg_length  max_length
+
+          192 587.826923076923        2199
+
+  1 row(s) retrieved.
+
+Any value > 2048 bytes, including the 8 byte UDT header, will be stored as
+a smart blob. The IsLarge() routine indicates if a value is stored in a
+smart blob, and the Sbspace() routine reports the smart blob in which it is
+stored. (If you execute Sbspace() on a small, in-row value, it returns
+NULL.)
+
+> select id, title,
+         Length(fable) length,
+         Sbspace(fable) sbspace
+  from   aesop
+  where  IsLarge(fable);
+
+  id       276
+  title    The Buffoon and the Countryman
+  length   2199
+  sbspace  sbspace
+
+  id       283
+  title    The Miller, His Son, and Their Ass
+  length   2089
+  sbspace  sbspace2
+
+  2 row(s) retrieved.
+
+Concatenate a fable with another value:
+
+select 'A fable by Aesop: ' || fable
+from   aesop
+where  id=1;
+
+(expression)  A fable by Aesop: SOME BOYS, playing near a pond, saw a number of
+               Frogs in the water and began to pelt them with stones.  They kil
+              led several of them, when one of the Frogs, lifting his head out
+              of the water, cried out:  "Pray stop, my boys:  what is sport to
+              you, is death to us."
+
+1 row(s) retrieved.
+
+Clip the first 255 characters of each record:
+
+select id, clip(fable)
+from   aesop
+where  id between 20 and 25;
+
+id            20
+(expression)  A VINE was luxuriant in the time of vintage with leaves and grape
+              s.  A Goat, passing by, nibbled its young tendrils and its leaves
+              .  The Vine addressed him and said:  "Why do you thus injure me w
+              ithout a cause, and crop my leaves? Is there no young grass
+
+id            21
+(expression)  JUPITER ISSUED a proclamation to all the beasts of the forest and
+               promised a royal reward to the one whose offspring should be dee
+              med the handsomest.  The Monkey came with the rest and presented,
+               with all a mother's tenderness, a flat-nosed, hairless, ill
+
+id            22
+(expression)  A WIDOW who was fond of cleaning had two little maidens to wait o
+              n her.  She was in the habit of waking them early in the morning,
+               at cockcrow.  The maidens, aggravated by such excessive labor, r
+              esolved to kill the cock who roused their mistress so early.
+
+id            23
+(expression)  A SHEPHERD-BOY, who watched a flock of sheep near a village, brou
+              ght out the villagers three or four times by crying out, "Wolf! W
+              olf!"  and when his neighbors came to help him, laughed at them f
+              or their pains.  The Wolf, however, did truly come at last.
+
+id            24
+(expression)  A CAT, hearing that the Birds in a certain aviary were ailing dre
+              ssed himself up as a physician, and, taking his cane and a bag of
+               instruments becoming his profession, went to call on them.  He k
+              nocked at the door and inquired of the inmates how they all
+
+id            25
+(expression)  A KID standing on the roof of a house, out of harm's way, saw a W
+              olf passing by and immediately began to taunt and revile him. The
+               Wolf, looking up, said, "Sirrah! I hear thee:  yet it is not tho
+              u who mockest me, but the roof on which thou art standing."
+
+6 row(s) retrieved.
+
+The next section describes the UDRs that work with the idn_mrLvarchar type.
+
+
+------------------------------------------------------------------------
+
+                  User-Defined Routines (UDRs): End-User
+
+------------------------------------------------------------------------
+
+Clip
+
+Description
+
+Creates a varchar(255) from the first 255 bytes of an existing
+idn_mrLvarchar object. Can be used for a functional b-tree index.
+
+Syntax
+
+clip(idn_mrLvarchar) returns varchar(255)
+
+Example
+
+This example assumes that the records in the UDT Example section above are
+loaded. The next query will return the first 255 characters of each record:
+
+select id, clip(fable)
+from   aesop
+where  id between 20 and 25;
+
+id            20
+(expression)  A VINE was luxuriant in the time of vintage with leaves and grape
+              s.  A Goat, passing by, nibbled its young tendrils and its leaves
+              .  The Vine addressed him and said:  "Why do you thus injure me w
+              ithout a cause, and crop my leaves? Is there no young grass
+
+id            21
+(expression)  JUPITER ISSUED a proclamation to all the beasts of the forest and
+               promised a royal reward to the one whose offspring should be dee
+              med the handsomest.  The Monkey came with the rest and presented,
+               with all a mother's tenderness, a flat-nosed, hairless, ill
+
+id            22
+(expression)  A WIDOW who was fond of cleaning had two little maidens to wait o
+              n her.  She was in the habit of waking them early in the morning,
+               at cockcrow.  The maidens, aggravated by such excessive labor, r
+              esolved to kill the cock who roused their mistress so early.
+
+id            23
+(expression)  A SHEPHERD-BOY, who watched a flock of sheep near a village, brou
+              ght out the villagers three or four times by crying out, "Wolf! W
+              olf!"  and when his neighbors came to help him, laughed at them f
+              or their pains.  The Wolf, however, did truly come at last.
+
+id            24
+(expression)  A CAT, hearing that the Birds in a certain aviary were ailing dre
+              ssed himself up as a physician, and, taking his cane and a bag of
+               instruments becoming his profession, went to call on them.  He k
+              nocked at the door and inquired of the inmates how they all
+
+id            25
+(expression)  A KID standing on the roof of a house, out of harm's way, saw a W
+              olf passing by and immediately began to taunt and revile him. The
+               Wolf, looking up, said, "Sirrah! I hear thee:  yet it is not tho
+              u who mockest me, but the roof on which thou art standing."
+
+6 row(s) retrieved.
+
+------------------------------------------------------------------------
+
+Concat
+
+Description
+
+Creates a new idn_mrLvarchar object from two existing idn_mrLvarchar
+objects.
+
+Syntax
+
+Concat(idn_mrLvarchar, idn_mrLvarchar) returns idn_mrLvarchar
+
+Example
+
+This example assumes that the records in the UDT Example section above are
+loaded. The next query concatenates a value with another value.
+
+select 'A fable by Aesop: ' || fable
+from   aesop
+where  id=1;
+
+(expression)  A fable by Aesop: SOME BOYS, playing near a pond, saw a number of
+               Frogs in the water and began to pelt them with stones.  They kil
+              led several of them, when one of the Frogs, lifting his head out
+              of the water, cried out:  "Pray stop, my boys:  what is sport to
+              you, is death to us."
+
+1 row(s) retrieved.
+
+------------------------------------------------------------------------
+
+ConcatAll
+
+Description
+
+Aggregate that creates a new idn_mrLvarchar object from a set of existing
+idn_mrLvarchar objects.
+
+Syntax
+
+ConcatAll(idn_mrLvarchar) returns idn_mrLvarchar
+
+Example
+
+This example assumes the following table and data:
+
+create table test_mr (id int, mrcol idn_mrLvarchar);
+
+insert into test_mr values (1, "one");
+insert into test_mr values (2, "two");
+insert into test_mr values (3, "three");
+insert into test_mr values (4, "four");
+insert into test_mr values (5, "five");
+
+ConcatAll() lets you concatenate many idn_mrLvarchar objects into a single
+idn_mrLvarchar result:
+
+select ConcatAll(mrcol) concat_result
+from   test_mr;
+
+concat_result  onetwothreefourfive
+
+1 row(s) retrieved.
+
+------------------------------------------------------------------------
+
+Equal
+
+Description
+
+Compares two idn_mrLvarchar objects and returns true if they are identical.
+
+Syntax
+
+equal(idn_mrLvarchar, idn_mrLvarchar) returns boolean
+
+Example
+
+This example assumes that the records in the UDT Example section above are
+loaded. The next query returns the story that matches the exact text:
+
+select id from aesop
+where story =
+ 'A TRAVELER hired an Ass to convey him to a distant place.  The day being intensely hot, and the sun shining in its strength, the Traveler stopped to rest, and sought shelter from the heat under the Shadow of the Ass.  As this afforded only protection for one, and as the Traveler and the owner of the Ass both claimed it, a violent dispute arose between them as to which of them had the right to the Shadow.  The owner maintained that he had let the Ass only, and not his Shadow.  The Traveler asserted that he had, with the hire of the Ass, hired his Shadow also.  The quarrel proceeded from words to blows, and while the men fought, the Ass galloped off.  In quarreling about the shadow we often lose the substance.'
+;
+
+         id
+
+          125
+
+1 row(s) retrieved.
+
+------------------------------------------------------------------------
+
+Instr
+
+Description
+
+Searches for a value in the string stored in the idn_mrLvarchar object.
+
+Instr() handles multi-byte character sets, but can also be used for
+single-byte character sets. Instrb() provides the same functionality and is
+optimized for fixed, single byte character sets.
+
+Syntax
+
+Instr (idn_mrLvarchar, lvarchar) returns integer Instr (idn_mrLvarchar,
+lvarchar, integer) returns integer Instr (idn_mrLvarchar, lvarchar,
+integer, integer) returns integer
+
+Arguments:
+
+      1. idn_mrLvarchar  String to search.
+      2. lvarchar        Value to search for in the string. The value can
+                         be composed of one or more characters.
+      3. integer         Optional starting point.
+                         The default starting point is 1, the first
+                         character in the string.
+                         If the starting point is positive, the start
+                         position is the nth character from the beginning
+                         of the string, and the search moves from left to
+                         right (forward) through the string.
+                         If the starting point is negative, the start
+                         position is the nth character from the end of the
+                         string, and the search moves from right to left
+                         (backwards) through the string.
+                         Whether the starting point is positive or
+                         negative, the result is the number of characters
+                         from the beginning of the string.
+      4. integer         Optional occurrence.
+                         The default occurrence is 1, the first
+                         occurrence.
+                         The occurrence must be positive.
+
+Example
+
+This query finds the end of the first sentence for each fable:
+
+select id,
+       instr(fable, '.') first,
+       length(fable)-8 text_length
+from   aesop
+where  id between 275 and 285;
+
+select id,
+                instr(fable, '.') first,
+                length(fable)-8 text_length
+         from   aesop
+         where  id between 275 and 285;
+
+The next query finds the start of the last sentence for each fable:
+
+select id,
+       instr(fable, '. ', -1) last,
+       length(fable)-8 text_length
+from   aesop
+where  id between 275 and 285;
+
+         id        last   text_length
+
+        275          92           283
+        276        2126          2191
+        277         167           313
+        278         401           536
+        279         642           666
+        280         999          1065
+        281         157           418
+        282         123           256
+        283        1894          2081
+        284         325           422
+        285         273           443
+
+11 row(s) retrieved.
+
+The Instr return value can be used as starting point and length values for
+Snip.
+
+------------------------------------------------------------------------
+
+Instrb
+
+Description
+
+Searches for a value in the string stored in the idn_mrLvarchar object.
+
+Provides the same functionality as Instr(), but is optimized for fixed,
+single byte character sets.
+
+Syntax
+
+Instrb (idn_mrLvarchar, lvarchar) returns integer Instrb (idn_mrLvarchar,
+lvarchar, integer) returns integer Instrb (idn_mrLvarchar, lvarchar,
+integer, integer) returns integer
+
+Arguments:
+
+      1. idn_mrLvarchar  String to search.
+      2. lvarchar        Value to search for in the string. The value can
+                         be composed of one or more characters.
+      3. integer         Optional starting point.
+                         The default starting point is 1, the first
+                         character in the string.
+                         If the starting point is positive, the start
+                         position is the nth character from the beginning
+                         of the string, and the search moves from left to
+                         right (forward) through the string.
+                         If the starting point is negative, the start
+                         position is the nth character from the end of the
+                         string, and the search moves from right to left
+                         (backwards) through the string.
+                         Whether the starting point is positive or
+                         negative, the result is the number of characters
+                         from the beginning of the string.
+      4. integer         Optional occurrence.
+                         The default occurrence is 1, the first
+                         occurrence.
+                         The occurrence must be positive.
+
+Example
+
+This query finds the location of the word tortoise in the records that
+contain it:
+
+select id,
+       title,
+       instrb(lower(fable), 'tortoise') location
+from   aesop
+where  instrb(lower(fable), 'tortoise') > 0;
+
+------------------------------------------------------------------------
+
+Length
+
+Description
+
+Returns the size in bytes of an idn_mrLvarchar object, including 8 bytes of
+header information for the opaque type.
+
+Syntax
+
+Length(idn_mrLvarchar) returns int
+
+Example
+
+This example assumes that the records in the UDT Example section above are
+loaded. The next query outputs the size of each fable selected. The size
+reported includes 8 bytes of UDT header information.
+
+> select id, length(fable) length from aesop
+  where id between 275 and 285;
+
+         id      length
+
+        275         291
+        276        2199
+        277         321
+        278         544
+        279         674
+        280        1073
+        281         426
+        282         264
+        283        2089
+        284         430
+        285         451
+
+11 row(s) retrieved.
+
+This next query outputs the minimum, maximum, and average length of the
+fables:
+
+select min(length(fable)) min_length,
+       avg(length(fable)) avg_length,
+       max(length(fable)) max_length
+from   aesop;
+
+ min_length       avg_length  max_length
+
+        192 587.826923076923        2199
+
+1 row(s) retrieved.
+
+------------------------------------------------------------------------
+
+Lower
+
+Description
+
+Creates a new idn_mrLvarchar object that converts each character in the
+source idn_mrLvarchar to lowercase.
+
+Syntax
+
+Lower(idn_mrLvarchar) returns idn_mrLvarchar
+
+Example
+
+This example assumes that the records in the UDT Example section above are
+loaded.
+
+> select id,
+       Lower(fable) fable
+from   aesop
+where  id=64;
+
+id         64
+fable      a wolf, passing by, saw some shepherds in a hut eating a haunch o
+           f mutton for their dinner.  approaching them, he said, "what a cl
+           amor you would raise if i were to do as you are doing!"
+
+1 row(s) retrieved.
+
+You can invoke Lower with EXECUTE FUNCTION, like this:
+
+> execute function lower (
+'The Swallow and the Crow: THE SWALLOW and the Crow had a contention about their plumage. The Crow put an end to the dispute by saying, "Your feathers are all very well in the spring, but mine protect me against the winter."  (Moral: Fair weather friends are not worth much.)');
+);
+
+(expression)  the swallow and the crow: the swallow and the crow had a contenti
+              on about their plumage. the crow put an end to the dispute by say
+              ing, "your feathers are all very well in the spring, but mine pro
+              tect me against the winter."  (moral: fair weather friends are no
+              t worth much.)
+1 row(s) retrieved.
+
+However, if the value is small, most likely the built-in Lower function
+will be invoked instead of the mrLvarchar function because the server will
+recognize the text constant as a varchar and resolve the built-in function.
+To force execution of the mrLvarchar function, explicitly cast the text
+constant to the idn_mrLvarchar type, like this:
+
+> execute function lower
+  ('Moral: Fair weather friends are not worth much.'::idn_mrLvarchar);
+
+(expression)  moral: fair weather friends are not worth much.
+
+1 row(s) retrieved.
+
+------------------------------------------------------------------------
+
+NotEqual
+
+Description
+
+Compares two idn_mrLvarchar objects and returns true if they are not
+identical.
+
+Syntax
+
+NotEqual(idn_mrLvarchar, idn_mrLvarchar) returns boolean
+
+Example
+
+This example assumes that the records in the UDT Example section above are
+loaded. The next query returns all stories that do not match the exact
+text:
+
+select id from aesop
+where story <>
+ 'A TRAVELER hired an Ass to convey him to a distant place.  The day being intensely hot, and the sun shining in its strength, the Traveler stopped to rest, and sought shelter from the heat under the Shadow of the Ass.  As this afforded only protection for one, and as the Traveler and the owner of the Ass both claimed it, a violent dispute arose between them as to which of them had the right to the Shadow.  The owner maintained that he had let the Ass only, and not his Shadow.  The Traveler asserted that he had, with the hire of the Ass, hired his Shadow also.  The quarrel proceeded from words to blows, and while the men fought, the Ass galloped off.  In quarreling about the shadow we often lose the substance.'
+;
+
+         id
+
+          1
+          2
+          3
+          4
+        ...
+        126
+        127
+        128
+        ...
+
+311 row(s) retrieved.
+
+
+------------------------------------------------------------------------
+
+Regexp_Match
+
+Description
+
+Returns TRUE if the source idn_mrLvarchar object matches the regular
+expression; otherwise, returns FALSE. For details on regular expression
+syntax, see the Manipulating Data with Regular Expressions technical note
+and project.
+
+Syntax
+
+Regexp_Match(idn_mrLvarchar, lvarchar) returns boolean
+
+Arguments:
+
+      1. idn_mrLvarchar  The source string to be searched.
+      2. lvarchar        Regular expression.
+
+Example
+
+Many Aesop's fables have the first character of a word in uppercase, or
+even the entire word, which means that searches must be case insensitive.
+The next query uses Lowerver to convert the entire source string to
+lowercase, then counts the number of fables that feature some kind of bird:
+
+select count(*)
+from   aesop
+where  Regexp_Match(lower(fable),
+                    'bird|eagle|swallow|crow|crane|raven|pigeon|hawk|stork');
+
+      (count(*))
+
+              61
+
+1 row(s) retrieved.
+
+The next query, which counts the number of fables that involve a fox (or
+foxes), moves the case-insensitivity into the regular expression itself:
+
+select count(*) from aesop
+where  regexp_match(fable, ' [Ff][Oo][Xx]([Ee][Ss])?');
+
+      (count(*))
+
+              39
+
+1 row(s) retrieved.
+
+------------------------------------------------------------------------
+
+Regexp_Replace
+
+Description
+
+Searches for a pattern in an idn_mrLvarchar object, and replaces it with
+something else, returning a new idn_mrLvarchar object. For details on
+regular expression syntax, see the Manipulating Data with Regular
+Expressions technical note and project.
+
+Syntax
+
+Regexp_Replace(idn_mrLvarchar, lvarchar, lvarchar) returns idn_mrLvarchar
+Regexp_Replace(idn_mrLvarchar, lvarchar, lvarchar, integer) returns
+idn_mrLvarchar
+
+Arguments:
+
+      1. idn_mrLvarchar  The source string to be searched.
+      2. lvarchar        Regular expression.
+      3. lvarchar        The replacement text. Can reference entire
+                         matched text with & or can reference a group
+                         within the matched text with \1 ... \9.
+      4. integer         Optional number of occurrences to replace.
+
+Example
+
+This query looks for fables that involve a tortoise, then highlights the
+word with asterisks:
+
+select regexp_replace(fable, '[Tt][Oo][Rr][Tt][Oo][Ii][Ss][Ee]', '***&***')
+from   aesop where  regexp_match(lower(fable), 'tortoise');
+
+(expression)  A HARE one day ridiculed the short feet and slow pace of the ***T
+              ortoise***, who replied, laughing:  "Though you be swift as the w
+              ind, I will beat you in a race."  The Hare, believing her asserti
+              on to be simply impossible, assented to the proposal; and they ag
+              reed that the Fox should choose the course and fix the goal.  On
+              the day appointed for the race the two started together.  The ***
+              Tortoise*** never for a moment stopped, but went on with a slow b
+              ut steady pace straight to the end of the course. The Hare, lying
+               down by the wayside, fell fast asleep.  At last waking up, and m
+              oving as fast as he could, he saw the ***Tortoise*** had reached
+              the goal, and was comfortably dozing after her fatigue.  Slow but
+               steady wins the race.
+
+(expression)  A ***TORTOISE***, lazily basking in the sun, complained to the se
+              a-birds of her hard fate, that no one would teach her to fly. An
+              Eagle, hovering near, heard her lamentation and demanded what rew
+              ard she would give him if he would take her aloft and float her i
+              n the air.  "I will give you," she said, "all the riches of the R
+              ed Sea."  "I will teach you to fly then," said the Eagle; and tak
+              ing her up in his talons he carried her almost to the clouds sudd
+              enly he let her go, and she fell on a lofty mountain, dashing her
+               shell to pieces.  The ***Tortoise*** exclaimed in the moment of
+              death:  "I have deserved my present fate; for what had I to do wi
+              th wings and clouds, who can with difficulty move about on the ea
+              rth?'  If men had all they wished, they would be often ruined.
+
+2 row(s) retrieved.
+
+You can also limit the number of replaces with the optional integer
+argument:
+
+select regexp_replace(fable, '[Tt][Oo][Rr][Tt][Oo][Ii][Ss][Ee]', '***&***', 1)
+from   aesop where  regexp_match(lower(fable), 'tortoise');
+
+(expression)  A HARE one day ridiculed the short feet and slow pace of the ***T
+              ortoise***, who replied, laughing:  "Though you be swift as the w
+              ind, I will beat you in a race."  The Hare, believing her asserti
+              on to be simply impossible, assented to the proposal; and they ag
+              reed that the Fox should choose the course and fix the goal.  On
+              the day appointed for the race the two started together.  The Tor
+              toise never for a moment stopped, but went on with a slow but ste
+              ady pace straight to the end of the course. The Hare, lying down
+              by the wayside, fell fast asleep.  At last waking up, and moving
+              as fast as he could, he saw the Tortoise had reached the goal, an
+              d was comfortably dozing after her fatigue.  Slow but steady wins
+               the race.
+
+(expression)  A ***TORTOISE***, lazily basking in the sun, complained to the se
+              a-birds of her hard fate, that no one would teach her to fly. An
+              Eagle, hovering near, heard her lamentation and demanded what rew
+              ard she would give him if he would take her aloft and float her i
+              n the air.  "I will give you," she said, "all the riches of the R
+              ed Sea."  "I will teach you to fly then," said the Eagle; and tak
+              ing her up in his talons he carried her almost to the clouds sudd
+              enly he let her go, and she fell on a lofty mountain, dashing her
+               shell to pieces.  The Tortoise exclaimed in the moment of death:
+                "I have deserved my present fate; for what had I to do with win
+              gs and clouds, who can with difficulty move about on the earth?'
+               If men had all they wished, they would be often ruined.
+
+2 row(s) retrieved.
+
+------------------------------------------------------------------------
+
+Snip
+
+Description
+
+Creates a new idn_mrLvarchar object from a subset of an existing
+idn_mrLvarchar object, like the built-in SUBSTR function.
+
+Snip() handles multi-byte character sets, but can also be used for
+single-byte character sets. Snipb() provides optimized functionality for
+fixed, single byte character sets.
+
+Syntax
+
+Snip(idn_mrLvarchar, integer) returns idn_mrLvarchar
+Snip(idn_mrLvarchar, integer, integer) returns idn_mrLvarchar
+
+Arguments:
+
+      1. idn_mrLvarchar  The source string.
+      2. integer         Start position. If negative, counts backward from
+                         last character in the source string.
+      3. integer         Optional length, defaults to entire string.
+
+Example
+
+A start position of one (or zero) returns the entire source string:
+
+> execute function snip('Here is my string', 1);
+
+(expression)  Here is my string
+
+1 row(s) retrieved.
+
+A start position of -1 returns just the last character of the string:
+
+> execute function snip('Here is my string', -1);
+
+(expression)  g
+
+1 row(s) retrieved.
+
+This next query starts with the fourth character and specifies a return
+length of up to 10:
+
+> execute function snip('Here is my string', 4, 10);
+
+(expression)  e is my st
+
+1 row(s) retrieved.
+
+Other UDRs in this bladelet can be used to set the start position and the
+length. For example, this next query looks for any fable that mentions a
+hawk or a pigeon. It uses Instr to find the first period, which identifies
+the end of the first sentence. It passes that index to Snip so that just
+the first sentence gets output:
+
+select id,
+       title,
+       snip(fable,
+            1,                -- start position
+            instr(fable, '.') -- length: finds end of first sentence
+           ) first_sentence
+from   aesop
+where  regexp_match(lower(fable), 'hawk|pigeon');
+
+id              37
+title           The Mouse, the Frog, and the Hawk
+first_sentence  A MOUSE who always lived on the land, by an unlucky chance form
+                ed an intimate acquaintance with a Frog, who lived for the most
+                 part in the water.
+
+id              46
+title           The Hawk, the Kite, and the Pigeons
+first_sentence  THE PIGEONS, terrified by the appearance of a Kite, called upon
+                 the Hawk to defend them.
+
+id              101
+title           The Thirsty Pigeon
+first_sentence  A PIGEON, oppressed by excessive thirst, saw a goblet of water
+                painted on a signboard.
+
+id              211
+title           The Hawk and the Nightingale
+first_sentence  A NIGHTINGALE, sitting aloft upon an oak and singing according
+                to his wont, was seen by a Hawk who, being in need of food, swo
+                oped down and seized him.
+
+id              245
+title           The Sparrow and the Hare
+first_sentence  A HARE pounced upon by an eagle sobbed very much and uttered cr
+                ies like a child.
+
+5 row(s) retrieved.
+
+We can use the same strategy to output just the last sentence. Now Instr is
+used to find the end of the second-to-the-last sentence, and that is used
+for the start position:
+
+select id,
+       title,
+       snip(fable,
+            instr(fable, '. ', -1)+2 -- start: finds start of last sentence
+            ) last_sentence
+from   aesop
+where  regexp_match(lower(fable), 'hawk|pigeon');
+
+id             37
+title          The Mouse, the Frog, and the Hawk
+last_sentence   Harm hatch, harm catch.
+
+id             46
+title          The Hawk, the Kite, and the Pigeons
+last_sentence   Avoid a remedy that is worse than the disease.
+
+id             101
+title          The Thirsty Pigeon
+last_sentence   Zeal should not outrun discretion.
+
+id             211
+title          The Hawk and the Nightingale
+last_sentence   The Hawk, interrupting him, said:  "I should indeed have lost m
+               y senses if I should let go food ready in my hand, for the sake
+               of pursuing birds which are not yet even within sight."
+
+id             245
+title          The Sparrow and the Hare
+last_sentence   The Hare was comforted in her death, and expiring said, "Ah! yo
+               u who so lately, when you supposed yourself safe, exulted over m
+               y calamity, have now reason to deplore a similar misfortune."
+
+5 row(s) retrieved.
+
+------------------------------------------------------------------------
+
+Snipb
+
+Description
+
+Creates a new idn_mrLvarchar object from a subset of an existing
+idn_mrLvarchar object, like the built-in SUBSTR function.
+
+Provides the same functionality as Snip(), but is optimized for fixed,
+single byte character sets, and is intended to be used with Instrb.
+
+Syntax
+
+Snipb(idn_mrLvarchar, integer) returns idn_mrLvarchar
+Snipb(idn_mrLvarchar, integer, integer) returns idn_mrLvarchar
+
+Arguments:
+
+      1. idn_mrLvarchar  The source string.
+      2. integer         Start position in bytes. If negative, counts
+                         backward from last character in the source
+                         string.
+      3. integer         Optional length in bytes, defaults to entire
+                         string.
+
+Example
+
+A start position of one (or zero) returns the entire source string:
+
+> execute function snipb('Here is my string', 1);
+
+(expression)  Here is my string
+
+1 row(s) retrieved.
+
+A start position of -1 returns just the last character of the string:
+
+> execute function snipb('Here is my string', -1);
+
+(expression)  g
+
+1 row(s) retrieved.
+
+This next query starts with the fourth character and specifies a return
+length of up to 10:
+
+> execute function snipb('Here is my string', 4, 10);
+
+(expression)  e is my st
+
+1 row(s) retrieved.
+
+Instrb can be used to set the start position and the length. For example,
+this next query looks for any fable that mentions a hawk or a pigeon. It
+uses Instrb to find the first period, which identifies the end of the first
+sentence. It passes that index to Snipb so that just the first sentence
+gets output:
+
+select id,
+       title,
+       snipb(fable,
+            1,                 -- start position
+            instrb(fable, '.') -- length: finds end of first sentence
+           ) first_sentence
+from   aesop
+where  regexp_match(lower(fable), 'hawk|pigeon');
+
+id              37
+title           The Mouse, the Frog, and the Hawk
+first_sentence  A MOUSE who always lived on the land, by an unlucky chance form
+                ed an intimate acquaintance with a Frog, who lived for the most
+                 part in the water.
+
+id              46
+title           The Hawk, the Kite, and the Pigeons
+first_sentence  THE PIGEONS, terrified by the appearance of a Kite, called upon
+                 the Hawk to defend them.
+
+id              101
+title           The Thirsty Pigeon
+first_sentence  A PIGEON, oppressed by excessive thirst, saw a goblet of water
+                painted on a signboard.
+
+id              211
+title           The Hawk and the Nightingale
+first_sentence  A NIGHTINGALE, sitting aloft upon an oak and singing according
+                to his wont, was seen by a Hawk who, being in need of food, swo
+                oped down and seized him.
+
+id              245
+title           The Sparrow and the Hare
+first_sentence  A HARE pounced upon by an eagle sobbed very much and uttered cr
+                ies like a child.
+
+5 row(s) retrieved.
+
+We can use the same strategy to output just the last sentence. Now Instrb
+is used to find the end of the second-to-the-last sentence, and that is
+used for the start position:
+
+select id,
+       title,
+       snipb(fable,
+            instrb(fable, '. ', -1)+2 -- start: finds start of last sentence
+            ) last_sentence
+from   aesop
+where  regexp_match(lower(fable), 'hawk|pigeon');
+
+id             37
+title          The Mouse, the Frog, and the Hawk
+last_sentence   Harm hatch, harm catch.
+
+id             46
+title          The Hawk, the Kite, and the Pigeons
+last_sentence   Avoid a remedy that is worse than the disease.
+
+id             101
+title          The Thirsty Pigeon
+last_sentence   Zeal should not outrun discretion.
+
+id             211
+title          The Hawk and the Nightingale
+last_sentence   The Hawk, interrupting him, said:  "I should indeed have lost m
+               y senses if I should let go food ready in my hand, for the sake
+               of pursuing birds which are not yet even within sight."
+
+id             245
+title          The Sparrow and the Hare
+last_sentence   The Hare was comforted in her death, and expiring said, "Ah! yo
+               u who so lately, when you supposed yourself safe, exulted over m
+               y calamity, have now reason to deplore a similar misfortune."
+
+5 row(s) retrieved.
+
+------------------------------------------------------------------------
+
+Upper
+
+Description
+
+Creates a new idn_mrLvarchar object that converts each character in the
+source idn_mrLvarchar to uppercase.
+
+Syntax
+
+Upper(idn_mrLvarchar) returns idn_mrLvarchar
+
+Example
+
+This example assumes that the records in the UDT Example section above are
+loaded.
+
+select id,
+       Upper(fable)
+from   aesop
+where  id=158;
+
+id            158
+(expression)  A SHEPHERD PENNING HIS SHEEP IN THE FOLD FOR THE NIGHT WAS ABOUT
+              TO SHUT UP A WOLF WITH THEM, WHEN HIS DOG PERCEIVING THE WOLF SAI
+              D, "MASTER, HOW CAN YOU EXPECT THE SHEEP TO BE SAFE IF YOU ADMIT
+              A WOLF INTO THE FOLD?'
+
+1 row(s) retrieved.
+
+You can invoke Upper with EXECUTE FUNCTION, like this:
+
+> execute function upper (
+'The Swallow and the Crow: THE SWALLOW and the Crow had a contention about their plumage. The Crow put an end to the dispute by saying, "Your feathers are all very well in the spring, but mine protect me against the winter."  (Moral: Fair weather friends are not worth much.)');
+);
+
+(expression)  THE SWALLOW AND THE CROW: THE SWALLOW AND THE CROW HAD A CONTENTI
+              ON ABOUT THEIR PLUMAGE. THE CROW PUT AN END TO THE DISPUTE BY SAY
+              ING, "YOUR FEATHERS ARE ALL VERY WELL IN THE SPRING, BUT MINE PRO
+              TECT ME AGAINST THE WINTER."  (MORAL: FAIR WEATHER FRIENDS ARE NO
+              T WORTH MUCH.)
+
+1 row(s) retrieved.
+
+However, if the value is small, most likely the built-in Upper function
+will be invoked instead of the mrLvarchar function because the server will
+recognize the text constant as a varchar and resolve the built-in function.
+To force execution of the mrLvarchar function, explicitly cast the text
+constant to the idn_mrLvarchar type, like this:
+
+> execute function upper
+  ('Moral: Fair weather friends are not worth much.'::idn_mrLvarchar);
+
+(expression)  MORAL: FAIR WEATHER FRIENDS ARE NOT WORTH MUCH.
+
+1 row(s) retrieved.
+
+------------------------------------------------------------------------
+
+               User-Defined Routines (UDRs): DBA & Developer
+
+------------------------------------------------------------------------
+
+IsLarge
+
+Description
+
+Returns TRUE if the value is too large to be stored in-row so will be
+stored in a smart blob instead.
+
+Syntax
+
+IsLarge(idn_mrLvarchar) returns boolean
+
+Example
+
+This example assumes that the records in the UDT Example section above are
+loaded.
+
+The next query outputs the size of each fable and if it is too large to be
+stored in-row.
+
+> select id,
+         Length(fable) length,
+         IsLarge(fable) islarge
+  from   aesop
+  where  id between 275 and 285;
+
+         id      length islarge
+
+        275         291       f
+        276        2199       t
+        277         321       f
+        278         544       f
+        279         674       f
+        280        1073       f
+        281         426       f
+        282         264       f
+        283        2089       t
+        284         430       f
+        285         451       f
+
+11 row(s) retrieved.
+
+The next query outputs the smart blob space in which large values are
+stored, and only looks at the records with large values:
+
+> select id, title,
+         Length(fable) length,
+         Sbspace(fable) sbspace
+  from   aesop
+  where  IsLarge(fable);
+
+  id       276
+  title    The Buffoon and the Countryman
+  length   2199
+  sbspace  sbspace
+
+  id       283
+  title    The Miller, His Son, and Their Ass
+  length   2089
+  sbspace  sbspace2
+
+  2 row(s) retrieved.
+
+------------------------------------------------------------------------
+
+IsSmall
+
+Description
+
+Returns TRUE if the value is small enough to be stored in-row.
+
+Syntax
+
+IsSmall(idn_mrLvarchar) returns boolean
+
+Example
+
+This example assumes that the records in the UDT Example section above are
+loaded.
+
+The next query outputs the size of each fable and if it is small enough to
+be stored in-row.
+
+> select id,
+         length(fable) length,
+         IsSmall(fable) islarge
+  from   aesop
+  where  id between 275 and 285;
+
+         id      length islarge
+
+        275         291       t
+        276        2199       f
+        277         321       t
+        278         544       t
+        279         674       t
+        280        1073       t
+        281         426       t
+        282         264       t
+        283        2089       f
+        284         430       t
+        285         451       t
+
+11 row(s) retrieved.
+
+------------------------------------------------------------------------
+
+mrLvarcharTemp
+
+Description
+
+By default, large intermediate objects gets stored in a smart blob.
+
+mrLvarcharTemp() lets you control storage of intermediate objects. It
+stores a flag in named memory that says where storage should be allocated
+for large intermediate idn_mrLvarchar objects. This routine has two
+signatures. If you pass a text argument, it sets the storage to the value
+passed in. If you do not pass in an argument, it returns the current
+storage in effect.
+
+The default storage is an unlogged smart blob. Other storage options
+include caching the intermediate object in shared memory that is allocated
+with a variety of memory durations.
+
+Why support intermediate storage options?
+
+Briefly, most 9.2 multirep DataBlade modules store large intermediate
+objects in shared memory with either a PER_COMMAND or PER_STATEMENT memory
+duration. But this memory does not last not long enough for some SQL
+queries, which causes problems. This project allows testing various
+strategies to determine the most stable intermediate storage for a given
+DataBlade module.
+
+A more detailed explanation follows.
+
+The Multirepresentational Opaque Types tech note describes the basic
+multirep strategy:
+
+  1. The UDT's Input routine converts the string representation for the UDT
+     into an intermediate UDT object. It is intermediate because it may or
+     may not actually get saved in a table.
+
+     So the Input routine decides if the value can be stored in-row or not.
+     If not, it needs to store the large value somewhere out-of-row because
+     Input cannot return a value that is larger than the maxlen defined for
+     the UDT. Currently there are two strategies for where to store the
+     intermediate large value:
+
+        o In a separately allocated PER_COMMAND or PER_STATEMENT buffer.
+        o In a smart blob, however Input does not know which smart blob
+          space should be used.
+
+  2. The UDT's Assign routine creates a smart blob in the correct smart
+     blob space and copies the large value into it. It also increments the
+     refcount for the smart blob so it will persist.
+
+For performance reasons, most DataBlade modules currently store
+intermediate large values in a separately allocated buffer. The problem is
+that PER_COMMAND and even PER_STATEMENT memory does not hang around long
+enough for some queries. So this routine lets you set/get the intermediate
+storage. The ideas is to test various strategies to determine the most
+stable intermediate storage.
+
+Syntax
+
+mrLvarcharTemp(lvarchar) returns lvarchar
+mrLvarcharTemp() returns lvarchar
+
+If you pass an argument, intermediate storage gets set to the value passed.
+The allowed options are summarized in the table below, and show how the
+argument corresponds to the flag in the MR_StateType enumeration:
+
+      Argument Value      MR_StateType     Where intermediate object gets
+                                                       stored
+
+      LO_TEMP          MR_TmpLo (default) Smart blob in the default
+                                          sbspace
+
+      LO               MR_Lo              Smart blob in the regular,
+                                          default sbspace
+
+      PER_ROUTINE      MR_Cached_RTN      PER_ROUTINE shared memory
+
+      PER_COMMAND      MR_Cached_CMD      PER_COMMAND shared memory
+
+      PER_STATEMENT    MR_Cached_STM      PER_STATEMENT shared memory
+
+      PER_TRANSACTION  MR_Cached_TRX      PER_TRANSACTION shared memory
+
+      PER_SESSION      MR_Cached_SES      PER_SESSION shared memory
+
+Specifying LO_TEMP results in the smart blob being created with the
+LO_NOLOG option in the default sbspace.
+
+Example
+
+The command below causes intermediate objects to be cached in PER_STATEMENT
+shared memory:
+
+execute function mrLvarcharTemp('PER_STATEMENT');
+
+The next query returns the current storage in effect:
+
+execute function mrLvarcharTemp();
+
+
+------------------------------------------------------------------------
+
+Refcount
+
+Description
+
+Retrieves the refcount for an idn_mrLvarchar object. If the value is not
+stored in a smart blob, returns SQL NULL for "not applicable".
+
+Syntax
+
+Refcount(idn_mrLvarchar) returns int
+
+Example
+
+This example assumes that the records in the UDT Example section above are
+loaded. The next query outputs the refcount for each smart blob and NULL
+for in-row values:
+
+select id, refcount(fable) refcount
+from   aesop
+where  id between 275 and 285;
+
+         id    refcount
+
+        275
+        276           1
+        277
+        278
+        279
+        280
+        281
+        282
+        283           1
+        284
+        285
+
+11 row(s) retrieved.
+
+------------------------------------------------------------------------
+
+mrLvarcharRelease
+
+Description
+
+Returns the DataBlade version and build date.
+
+Syntax
+
+mrLvarcharRelease() returns lvarchar
+
+Example
+
+execute function mrLvarcharRelease();
+
+(expression)  1.1 (Wed May 9 2001)
+
+1 row(s) retrieved.
+
+------------------------------------------------------------------------
+
+Sbspace
+
+Description
+
+Outputs the name of the smart blob space in which the idn_mrLvarchar is
+stored. Returns SQL NULL if the value is stored in-row.
+
+Syntax
+
+Sbspace(idn_mrLvarchar) returns lvarchar
+
+Example
+
+The sbspace() routine reports the smart blob in which it is stored and
+returns NULL if it is an in-row value.
+
+select id,
+       sbspace(fable) sbspace
+from   aesop
+where  id between 275 and 285;
+
+id       275
+sbspace
+
+id       276
+sbspace  sbspace
+
+id       277
+sbspace
+
+id       278
+sbspace
+
+id       279
+sbspace
+
+id       280
+sbspace
+
+id       281
+sbspace
+
+id       282
+sbspace
+
+id       283
+sbspace  sbspace
+
+id       284
+sbspace
+
+id       285
+sbspace
+
+11 row(s) retrieved.
+
+------------------------------------------------------------------------
+
+TraceSet_mrLvarchar
+
+Description
+
+TraceSet_mrLvarchar() enables the output of debug messages. Currently only
+UDR entry and exit debug messages are coded.
+
+Syntax
+
+TraceSet_mrLvarchar(lvarchar, int)
+
+The lvarchar argument is the full pathname of the file to which you want
+the debug messages output.
+
+The int argument is the level to which you want to set the trace class.
+Setting it to at least one of the values below results in the described
+behavior:
+
+   * 20: outputs UDR entry and exit messages
+   * 30: additionally turns on smart blob verification
+
+Example
+
+You must set the GLS LOCALE environment variables to en_us.8859-1 for
+messages to actually get output. The following example is for the UNIX
+C-Shell:
+
+setenv DB_LOCALE en_us.8859-1
+setenv SERVER_LOCALE en_us.8859-1
+setenv CLIENT_LOCALE en_us.8859-1
+
+The next command sets the idn_mrLvarchar trace class level to 20 and
+specifies the output file for debug messages:
+
+execute procedure TraceSet_mrLvarchar("/tmp/mrLvarchar.log", 20);
+
+After executing this procedure, you should see output like the following in
+/tmp/mrLvarchar.log:
+
+============================================================
+
+Tracing session: 18 on 07/09/1999
+
+17:03:10  Successfully exiting TraceSet_mrLvarchar (support.c).
+
+The current version of the idn_mrLvarchar DataBlade module outputs UDR
+entry and exit debug messages. For example, given the following SQL
+statement:
+
+insert into test_mr values (5, "five");
+
+You will see output that looks like this:
+
+14:59:28  idn_mrLvarcharInput: function entry.
+14:59:28  idn_mrLvarcharInput: actual text length=5, storage=0
+14:59:28  idn_mrLvarcharInput: function exit.
+
+------------------------------------------------------------------------
+
+Last modified on Tuesday, 08-May-01 14:45:24. Please send your comments or
+questions concerning this page to idn-datablades@informix.com.
+
+------------------------------------------------------------------------
+
+Copyright(c) 2000-2001 Informix Corporation

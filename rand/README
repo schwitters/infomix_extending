@@ -1,0 +1,145 @@
+
+ BladeLet:  Rand
+
+ Introduction:
+ ~~~~~~~~~~~~
+
+   This BladeLet implements several Random number generation UDRs. The
+  idea is to be able to generate random numbers that follow several
+  different distributions; Uniform, Binomial and Normal (or Gaussian.)
+  These are particularly useful generating large data sets for testing,
+  and for certain simple kinds of sampling.
+
+ Overview:
+ 
+   The Blade consists of a number of UDRs (user-defined routines) that are
+ designed to return sequences of random variables that comply with
+ one or another distribution function. The most common such distribution
+ is simply Uniform, which means the random function returns values in 
+ a range, all outcomes equally probable. Another set of UDRs deal with
+ Binomial distributions (sequences of trials of fixed probability and
+ boolean result) and Normal (or Gaussian) distributions (distribution 
+ around a mean of known variance).
+
+  For an overview of the mathematics behind this I recommend an introduction
+ to statistical theory. For an overview of the algorithms used in this 
+ bladelet I would go to the source[1]. This blade uses its own random 
+ number generation algorithms and is therefore platform neutral. 
+ The following sections explain each of the blade UDRs in turn, and 
+ demonstrates their usage.
+
+  Functions:
+
+   Note: All of the examples below illustrate how to use the function
+  in queries involving a table called 'Numbers', which contains a list
+  of all integers between 0 and 100000. The
+
+  Rand() RETURNING REAL
+
+   This function returns a random value between 0 and 1.0. It uses the
+  current time for a random seed, so that if you use it twice in 
+  a given query, or in different queries that run in rapid
+  succession, the sequence of values it returns will be the same. In
+  fact, this can be desirable behavior. The series of values it
+  returns comply with UNIFORM RANDOM properties. 
+
+   Usage:
+
+     SELECT COUNT(*)                -- This query will return
+       FROM Customers C             -- a count that is about
+      WHERE Rand() < 0.5;           -- half of the rows in the table.
+
+  Rand( INTEGER ) RETURNING INTEGER
+
+   This function returns a random value in the range 0 to one less than the
+  argument passed in.
+
+  SeededRand( INTEGER ) RETURNING REAL     
+
+   This variation on the Rand() function allows you to set the seed.
+  If you use this function twice in the same query, but use different
+  seed values, then each function will return a different series of
+  values. This function is useful in circumstances where you are flinging
+  the same query at the ORDBMS in very rapid succession, because the
+  'default' seed value used by the other functions is the current time to
+  second. 
+
+  SeededRand( INTEGER, INTEGER ) RETURNING INTEGER
+
+
+  SELECT *                               -- This query returns a random
+    FROM Customers C                     -- customer, assuming that the
+   WHERE C.Id = SeededRand(101, 10000);  -- range of Ids is 0 to 10000.
+                                         -- The trick is that if you substitute
+  SELECT *                               -- the Rand(10000) function you will
+    FROM Customers C                     -- get one Customer for each second.
+   WHERE C.Id = SeededRand(102, 10000);  -- The example here overcomes this.
+
+  Binomial ( INTEGER, REAL ) RETURNS INTEGER
+
+   This function returns a series of integer values that follow a
+  BINOMIAL DISTRIBUTION. To understand what this means, consider
+  tossing a coin ten times and counting the number of heads you
+  get. If you repeat this experiement many times, and count up
+  the number of times you get each number of heads (0 through 10)
+  then the number of numbers will follow a BINOMIAL DISTRIBUTION.
+  In this function, the first argument corresponds to the number 
+  of trials (10) and the second to the probability of 'success'
+  (.5 in our case: the chance of getting heads).
+
+   SeededBinomial( INTEGER, REAL, INTEGER )
+
+   This function is the same as the binomial, only like the 
+  SeededRand() function is takes a seed value, allowing you to
+  generate two different sequences of results in the one query.
+
+   The best way to use this is when you are generating data for 
+  testing. For example, I use Binomials when generating spatial
+  data for testing. You can also **kind of** use Binomial distributions
+  with small success probability and resonably large samples to
+  approximate a ZipF distribution, and other queuing stuff.
+
+   INSERT INTO Customers 
+   SELECT .
+          sp2Pnt( X(T.Location) + (Binomial(0.333, 1000) / 100.0),
+                  Y(T.Location) + (Binomial(0.333, 1000) / 100.0)
+                )
+          .
+     FROM Towns T;
+
+   This example illustrates how to get a binomial distribution around
+  the location of the Town center. 
+
+   Binomial distributions are useful for generating skewed
+  data sets. For example, consider the distribution you achieve
+  with 100 trials, and a probability of 0.3. As with the Rand()
+  UDR, by default Biomial() uses the current time (to second).
+
+   Normal() RETURNING REAL
+
+   This function uses the current time as a seed value, and returns
+  a series of values that correspond to a NORMAL or GAUSSIAN
+  distribution. i.e. the distribution has a mean of 0.0 and a
+  variance of 1.0. In theory the resulting values range from
+  large negative to very large positive. 
+
+   SeededNormal( INTEGER ) RETURNING REAL
+
+   Same as Normal only for user-specified seed value.
+
+   SeededNormal( REAL, REAL, INTEGER ) RETURNING REAL
+
+   This function returns values with a mean of the first arguments, and
+  a variance of the second argument. The third integer argument is
+  the seed.
+
+  Usage:
+
+      INSERT INTO OtherTable SELECT Normal( 100, 10 ) FROM Students;
+
+
+ [1] Press, William H., Teukolsky, Saul A., Vetterling, William T.,
+     and Flannery, Brian P. _Numerical_Recipes_in_C_:_The_Art_of_
+     Scientific_Computing_Second_Edition_ Cambridge University Press,
+     New York. 1992.
+

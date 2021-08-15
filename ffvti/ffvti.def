@@ -1,0 +1,8 @@
+EXPORTS
+   ff_open
+   ff_beginscan
+   ff_getnext
+   ff_endscan
+   ff_close
+   ff_drop
+   set_tracing

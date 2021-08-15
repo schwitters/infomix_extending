@@ -1,0 +1,19 @@
+;
+; The following symbols are exported for
+; the idn_sampler DataBlade module.
+;
+DESCRIPTION 'This is the idn_sampler DataBlade module.'
+
+EXPORTS
+	IDN_SetNow
+	IDN_FuncExec
+	IDN_Now
+	IDN_Debug
+	IDN_LogMsg
+	IDN_GetAnyLevel
+	IDN_SessionId
+	IDN_SetAnyLevel
+	IDN_Debug_GetLevel
+	IDN_EasyTrace
+	IDN_EOT_Reg
+	IDN_FuncCache

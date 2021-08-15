@@ -1,0 +1,15 @@
+Files
+-----
+     README     This file.
+     demo.sql   A sample SQL script that exercises the functions in
+		idn_sampler. Execute like this:
+
+			dbaccess -e <your_db> demo >& demo.log
+
+		This also produces a tracefile in /tmp named
+
+			<sessionid>.trc
+
+     demo.91 	Sample output for 9.14.UC6 server.
+     demo.92 	Sample output for beta 9.2 server.
+     demo.trc	Sample tracefile output.

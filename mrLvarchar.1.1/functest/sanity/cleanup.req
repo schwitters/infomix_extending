@@ -1,0 +1,26 @@
+
+Database selected.
+
+-- ---------------------------------------------------------------
+-- 
+-- Module          : Functional Test for idn_mrLvarchar UDT
+-- Filename        : cleanup.sql
+-- PURPOSE
+--    Removes test table
+-- 
+-- ---------------------------------------------------------------
+
+drop table test_mr;
+  206: The specified table (test_mr) is not in the database.
+
+  111: ISAM error:  no record found.
+Error in line 10
+Near character position 18
+
+
+-- ---------------------------------------------------------------
+-- EOF                                                            
+-- ---------------------------------------------------------------
+
+Database closed.
+

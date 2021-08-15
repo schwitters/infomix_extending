@@ -1,0 +1,50 @@
+Description
+-----------
+Sample esql/c programs for working with the idn_mrLvarchar type.
+
+This assumes that the table and data have been loaded from
+the ../data directory.
+
+Files
+-----
+   README        This file.
+   Makefile      Makefile that builds the programs.
+   aesop.ec      Shows how to fetch an idn_mrLvarchar values.
+                 Given a regular expression, returns all fables 
+                 that match the regular expression.
+
+                 To build:
+
+                    esql -g -o aesop aesop.ec
+
+                 or:
+
+                    make aesop
+
+                 Sample usage that finds all fables that mention a crow
+                 or raven (should return 23 rows):
+
+                    aesop <database> "crow|raven"
+
+   equal.ec      Shows how to bind an idn_mrLvarchar value as a host
+                 variable in the WHERE clause.
+
+                 To build:
+
+                    esql -g -o equal equal.ec
+
+                 or:
+  
+                    make equal
+
+                 Sample usage (hard codes the fable it is looking for):
+
+                    equal <database> 
+
+                 Expected output:
+
+                    Title=The Mouse, the Frog, and the Hawk
+                    Found 1 titles that match the fable.
+                    Test Complete
+
+   exp_chk.ec    Code included by equal.ec and aesop.ec.

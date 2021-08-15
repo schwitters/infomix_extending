@@ -1,0 +1,48 @@
+Description
+-----------
+Sample JDBC program that works with the idn_mrLvarchar type.
+Aesop is a regular expression command line interpreter that 
+executes queries and displays results (no GUI involved).
+
+
+Files
+-----
+   README                     This file.
+
+   Aesop.java                 The main application
+   Aesop.class     
+
+   IdnMrLvarchar.java         SQLData interface for the idn_mrLvarchar
+   IdnMrLvarchar.class        opaque type. The Aesop class uses this.
+
+
+
+Instructions
+-------------
+First, create and load the aesop table from the ../data directory.
+
+Usage:
+
+    java Aesop 'jdbc:informix-sqli://localhost:1526/your_db:\
+           informixserver=ol_pc76 3dl;user=your_user;password=your_pwd'
+
+Once it starts up, you see the following output and get a new prompt:
+
+    Informix JDBC driver loaded.
+    Database connection established.
+    Enter 'help' (without quotes) to get started.
+    your_db>
+
+'help' outputs skeletal information:
+
+    your_db> help
+
+    Enter a regular expression (without quotes) to find a fable that matches.
+    For example, this application searches for 'Crow', 'crow', 'Raven', or
+    'raven' with the following regular expression:
+    
+        [Cc]row|[Rr]aven
+
+    Enter 'quit' to exit this application.
+
+'quit' exits the application.

@@ -1,0 +1,453 @@
+
+Database selected.
+
+-- --------------------------------------------------------------------------
+-- 
+-- Module          : Functional Test for upper(idn_mrLvarchar)
+-- Filename        : upper.sql
+-- Description     : Tests additional string functions introduced in 1.1
+-- 
+-- Tests:
+-- 
+--    1. Small values
+--    2. Big values
+--    3. Dynamically generated small and big values
+--
+-- If enabled, additional trace info gets output to /tmp/mrLvarchar_upper.trc.
+-- --------------------------------------------------------------------------
+
+--
+-- Turn tracing on.
+--
+execute procedure TraceSet_mrLvarchar ("/tmp/mrLvarchar_upper.trc", 20);
+Routine executed.
+
+
+
+--
+-- Set explain on.
+--
+
+set explain on;
+Explain set.
+
+
+
+--
+-- 1. Small values
+--
+
+--
+-- This value is small enough for the built-in upper() function to be
+-- invoked.
+--
+execute function upper (
+'The Swallow and the Crow: THE SWALLOW and the Crow had a contention about their plumage. The Crow put an end to the dispute by saying, "Your feathers are all very well in the spring, but mine protect me against the winter."  (Moral: Fair weather friends are not worth much.)');
+
+
+(expression)  THE SWALLOW AND THE CROW: THE SWALLOW AND THE CROW HAD A CONTENTI
+              ON ABOUT THEIR PLUMAGE. THE CROW PUT AN END TO THE DISPUTE BY SAY
+              ING, "YOUR FEATHERS ARE ALL VERY WELL IN THE SPRING, BUT MINE PRO
+              TECT ME AGAINST THE WINTER."  (MORAL: FAIR WEATHER FRIENDS ARE NO
+              T WORTH MUCH.) 
+
+1 row(s) retrieved.
+
+
+
+--
+-- Now invoke the idn_mrLvarchar routine.
+--
+execute function upper (
+'The Swallow and the Crow: THE SWALLOW and the Crow had a contention about their plumage. The Crow put an end to the dispute by saying, "Your feathers are all very well in the spring, but mine protect me against the winter."  (Moral: Fair weather friends are not worth much.)'::idn_mrLvarchar);
+
+
+(expression)  THE SWALLOW AND THE CROW: THE SWALLOW AND THE CROW HAD A CONTENTI
+              ON ABOUT THEIR PLUMAGE. THE CROW PUT AN END TO THE DISPUTE BY SAY
+              ING, "YOUR FEATHERS ARE ALL VERY WELL IN THE SPRING, BUT MINE PRO
+              TECT ME AGAINST THE WINTER."  (MORAL: FAIR WEATHER FRIENDS ARE NO
+              T WORTH MUCH.) 
+
+1 row(s) retrieved.
+
+
+
+ 
+select id, 
+       mrcol, 
+       upper(mrcol) value_uppercased
+from   test_mr
+where  id <= 5
+order by id;
+
+
+id                1
+mrcol             One: Here is one small value 
+value_uppercased  ONE: HERE IS ONE SMALL VALUE 
+
+id                2
+mrcol             Two: Here is the second small value 
+value_uppercased  TWO: HERE IS THE SECOND SMALL VALUE 
+
+id                3
+mrcol             Three: Here is the third small value 
+value_uppercased  THREE: HERE IS THE THIRD SMALL VALUE 
+
+id                4
+mrcol             Four: Here is the fourth small value 
+value_uppercased  FOUR: HERE IS THE FOURTH SMALL VALUE 
+
+id                5
+mrcol             Five: Here is the fifth small value 
+value_uppercased  FIVE: HERE IS THE FIFTH SMALL VALUE 
+
+5 row(s) retrieved.
+
+
+
+--
+-- 2. Big values
+--
+
+execute function upper(
+'A fable by Aesop: The Buffoon and the Countryman : A RICH NOBLEMAN once opened the theaters without charge to the people, and gave a public notice that he would handsomely reward any person who invented a new amusement for the occasion. Various public performers contended for the prize.  Among them came a Buffoon well known among the populace for his jokes, and said that he had a kind of entertainment which had never been brought out on any stage before.  This report being spread about made a great stir, and the theater was crowded in every part. The Buffoon appeared alone upon the platform, without any apparatus or confederates, and the very sense of expectation caused an intense silence.  He suddenly bent his head towards his bosom and imitated the squeaking of a little pig so admirably with his voice that the audience declared he had a porker under his cloak, and demanded that it should be shaken out.  When that was done and nothing was found, they cheered the actor, and loaded him with the loudest applause.  A Countryman in the crowd, observing all that has passed, said, "So help me, Hercules, he shall not beat me at that trick!"  and at once proclaimed that he would do the same thing on the next day, though in a much more natural way.  On the morrow a still larger crowd assembled in the theater, but now partiality for their favorite actor very generally prevailed, and the audience came rather to ridicule the Countryman than to see the spectacle.  Both of the performers appeared on the stage.  The Buffoon grunted and squeaked away first, and obtained, as on the preceding day, the applause and cheers of the spectators.  Next the Countryman commenced, and pretending that he concealed a little pig beneath his clothes (which in truth he did, but not suspected by the audience ) contrived to take hold of and to pull his ear causing the pig to squeak.  The Crowd, however, cried out with one consent that the Buffoon had given a far more exact imitation, and clamored for the Countryman to be kicked out of the theater.  On this the rustic produced the little pig from his cloak and showed by the most positive proof the greatness of their mistake.  "Look here," he said, "this shows what sort of judges you are."'::idn_mrLvarchar);
+
+
+(expression)  A FABLE BY AESOP: THE BUFFOON AND THE COUNTRYMAN : A RICH NOBLEMA
+              N ONCE OPENED THE THEATERS WITHOUT CHARGE TO THE PEOPLE, AND GAVE
+               A PUBLIC NOTICE THAT HE WOULD HANDSOMELY REWARD ANY PERSON WHO I
+              NVENTED A NEW AMUSEMENT FOR THE OCCASION. VARIOUS PUBLIC PERFORME
+              RS CONTENDED FOR THE PRIZE.  AMONG THEM CAME A BUFFOON WELL KNOWN
+               AMONG THE POPULACE FOR HIS JOKES, AND SAID THAT HE HAD A KIND OF
+               ENTERTAINMENT WHICH HAD NEVER BEEN BROUGHT OUT ON ANY STAGE BEFO
+              RE.  THIS REPORT BEING SPREAD ABOUT MADE A GREAT STIR, AND THE TH
+              EATER WAS CROWDED IN EVERY PART. THE BUFFOON APPEARED ALONE UPON 
+              THE PLATFORM, WITHOUT ANY APPARATUS OR CONFEDERATES, AND THE VERY
+               SENSE OF EXPECTATION CAUSED AN INTENSE SILENCE.  HE SUDDENLY BEN
+              T HIS HEAD TOWARDS HIS BOSOM AND IMITATED THE SQUEAKING OF A LITT
+              LE PIG SO ADMIRABLY WITH HIS VOICE THAT THE AUDIENCE DECLARED HE 
+              HAD A PORKER UNDER HIS CLOAK, AND DEMANDED THAT IT SHOULD BE SHAK
+              EN OUT.  WHEN THAT WAS DONE AND NOTHING WAS FOUND, THEY CHEERED T
+              HE ACTOR, AND LOADED HIM WITH THE LOUDEST APPLAUSE.  A COUNTRYMAN
+               IN THE CROWD, OBSERVING ALL THAT HAS PASSED, SAID, "SO HELP ME, 
+              HERCULES, HE SHALL NOT BEAT ME AT THAT TRICK!"  AND AT ONCE PROCL
+              AIMED THAT HE WOULD DO THE SAME THING ON THE NEXT DAY, THOUGH IN 
+              A MUCH MORE NATURAL WAY.  ON THE MORROW A STILL LARGER CROWD ASSE
+              MBLED IN THE THEATER, BUT NOW PARTIALITY FOR THEIR FAVORITE ACTOR
+               VERY GENERALLY PREVAILED, AND THE AUDIENCE CAME RATHER TO RIDICU
+              LE THE COUNTRYMAN THAN TO SEE THE SPECTACLE.  BOTH OF THE PERFORM
+              ERS APPEARED ON THE STAGE.  THE BUFFOON GRUNTED AND SQUEAKED AWAY
+               FIRST, AND OBTAINED, AS ON THE PRECEDING DAY, THE APPLAUSE AND C
+              HEERS OF THE SPECTATORS.  NEXT THE COUNTRYMAN COMMENCED, AND PRET
+              ENDING THAT HE CONCEALED A LITTLE PIG BENEATH HIS CLOTHES (WHICH 
+              IN TRUTH HE DID, BUT NOT SUSPECTED BY THE AUDIENCE ) CONTRIVED TO
+               TAKE HOLD OF AND TO PULL HIS EAR CAUSING THE PIG TO SQUEAK.  THE
+               CROWD, HOWEVER, CRIED OUT WITH ONE CONSENT THAT THE BUFFOON HAD 
+              GIVEN A FAR MORE EXACT IMITATION, AND CLAMORED FOR THE COUNTRYMAN
+               TO BE KICKED OUT OF THE THEATER.  ON THIS THE RUSTIC PRODUCED TH
+              E LITTLE PIG FROM HIS CLOAK AND SHOWED BY THE MOST POSITIVE PROOF
+               THE GREATNESS OF THEIR MISTAKE.  "LOOK HERE," HE SAID, "THIS SHO
+              WS WHAT SORT OF JUDGES YOU ARE." 
+
+1 row(s) retrieved.
+
+
+
+select id, 
+       upper(mrcol) value_uppercased
+from   test_mr
+where  id > 5
+order by id;
+
+
+id                9
+value_uppercased  A FABLE BY AESOP: THE BUFFOON AND THE COUNTRYMAN : A RICH NOB
+                  LEMAN ONCE OPENED THE THEATERS WITHOUT CHARGE TO THE PEOPLE, 
+                  AND GAVE A PUBLIC NOTICE THAT HE WOULD HANDSOMELY REWARD ANY 
+                  PERSON WHO INVENTED A NEW AMUSEMENT FOR THE OCCASION. VARIOUS
+                   PUBLIC PERFORMERS CONTENDED FOR THE PRIZE.  AMONG THEM CAME 
+                  A BUFFOON WELL KNOWN AMONG THE POPULACE FOR HIS JOKES, AND SA
+                  ID THAT HE HAD A KIND OF ENTERTAINMENT WHICH HAD NEVER BEEN B
+                  ROUGHT OUT ON ANY STAGE BEFORE.  THIS REPORT BEING SPREAD ABO
+                  UT MADE A GREAT STIR, AND THE THEATER WAS CROWDED IN EVERY PA
+                  RT. THE BUFFOON APPEARED ALONE UPON THE PLATFORM, WITHOUT ANY
+                   APPARATUS OR CONFEDERATES, AND THE VERY SENSE OF EXPECTATION
+                   CAUSED AN INTENSE SILENCE.  HE SUDDENLY BENT HIS HEAD TOWARD
+                  S HIS BOSOM AND IMITATED THE SQUEAKING OF A LITTLE PIG SO ADM
+                  IRABLY WITH HIS VOICE THAT THE AUDIENCE DECLARED HE HAD A POR
+                  KER UNDER HIS CLOAK, AND DEMANDED THAT IT SHOULD BE SHAKEN OU
+                  T.  WHEN THAT WAS DONE AND NOTHING WAS FOUND, THEY CHEERED TH
+                  E ACTOR, AND LOADED HIM WITH THE LOUDEST APPLAUSE.  A COUNTRY
+                  MAN IN THE CROWD, OBSERVING ALL THAT HAS PASSED, SAID, "SO HE
+                  LP ME, HERCULES, HE SHALL NOT BEAT ME AT THAT TRICK!"  AND AT
+                   ONCE PROCLAIMED THAT HE WOULD DO THE SAME THING ON THE NEXT 
+                  DAY, THOUGH IN A MUCH MORE NATURAL WAY.  ON THE MORROW A STIL
+                  L LARGER CROWD ASSEMBLED IN THE THEATER, BUT NOW PARTIALITY F
+                  OR THEIR FAVORITE ACTOR VERY GENERALLY PREVAILED, AND THE AUD
+                  IENCE CAME RATHER TO RIDICULE THE COUNTRYMAN THAN TO SEE THE 
+                  SPECTACLE.  BOTH OF THE PERFORMERS APPEARED ON THE STAGE.  TH
+                  E BUFFOON GRUNTED AND SQUEAKED AWAY FIRST, AND OBTAINED, AS O
+                  N THE PRECEDING DAY, THE APPLAUSE AND CHEERS OF THE SPECTATOR
+                  S.  NEXT THE COUNTRYMAN COMMENCED, AND PRETENDING THAT HE CON
+                  CEALED A LITTLE PIG BENEATH HIS CLOTHES (WHICH IN TRUTH HE DI
+                  D, BUT NOT SUSPECTED BY THE AUDIENCE ) CONTRIVED TO TAKE HOLD
+                   OF AND TO PULL HIS EAR CAUSING THE PIG TO SQUEAK.  THE CROWD
+                  , HOWEVER, CRIED OUT WITH ONE CONSENT THAT THE BUFFOON HAD GI
+                  VEN A FAR MORE EXACT IMITATION, AND CLAMORED FOR THE COUNTRYM
+                  AN TO BE KICKED OUT OF THE THEATER.  ON THIS THE RUSTIC PRODU
+                  CED THE LITTLE PIG FROM HIS CLOAK AND SHOWED BY THE MOST POSI
+                  TIVE PROOF THE GREATNESS OF THEIR MISTAKE.  "LOOK HERE," HE S
+                  AID, "THIS SHOWS WHAT SORT OF JUDGES YOU ARE." 
+
+id                10
+value_uppercased  A FABLE BY AESOP: THE MILLER, HIS SON, AND THEIR ASS: A MILLE
+                  R AND HIS SON WERE DRIVING THEIR ASS TO A NEIGHBORING FAIR TO
+                   SELL HIM.  THEY HAD NOT GONE FAR WHEN THEY MET WITH A TROOP 
+                  OF WOMEN COLLECTED ROUND A WELL, TALKING AND LAUGHING.  "LOOK
+                   THERE," CRIED ONE OF THEM, "DID YOU EVER SEE SUCH FELLOWS, T
+                  O BE TRUDGING ALONG THE ROAD ON FOOT WHEN THEY MIGHT RIDE?'  
+                  THE OLD MAN HEARING THIS, QUICKLY MADE HIS SON MOUNT THE ASS,
+                   AND CONTINUED TO WALK ALONG MERRILY BY HIS SIDE.  PRESENTLY 
+                  THEY CAME UP TO A GROUP OF OLD MEN IN EARNEST DEBATE.  "THERE
+                  ," SAID ONE OF THEM, "IT PROVES WHAT I WAS A-SAYING.  WHAT RE
+                  SPECT IS SHOWN TO OLD AGE IN THESE DAYS? DO YOU SEE THAT IDLE
+                   LAD RIDING WHILE HIS OLD FATHER HAS TO WALK? GET DOWN, YOU Y
+                  OUNG SCAPEGRACE, AND LET THE OLD MAN REST HIS WEARY LIMBS."  
+                  UPON THIS THE OLD MAN MADE HIS SON DISMOUNT, AND GOT UP HIMSE
+                  LF.  IN THIS MANNER THEY HAD NOT PROCEEDED FAR WHEN THEY MET 
+                  A COMPANY OF WOMEN AND CHILDREN: "WHY, YOU LAZY OLD FELLOW," 
+                  CRIED SEVERAL TONGUES AT ONCE, "HOW CAN YOU RIDE UPON THE BEA
+                  ST, WHILE THAT POOR LITTLE LAD THERE CAN HARDLY KEEP PACE BY 
+                  THE SIDE OF YOU?'  THE GOOD-NATURED MILLER IMMEDIATELY TOOK U
+                  P HIS SON BEHIND HIM.  THEY HAD NOW ALMOST REACHED THE TOWN. 
+                     "PRAY, HONEST FRIEND," SAID A CITIZEN, "IS THAT ASS YOUR O
+                  WN?'  "YES," REPLIED THE OLD MAN.  "O, ONE WOULD NOT HAVE THO
+                  UGHT SO," SAID THE OTHER, "BY THE WAY YOU LOAD HIM. WHY, YOU 
+                  TWO FELLOWS ARE BETTER ABLE TO CARRY THE POOR BEAST THAN HE Y
+                  OU."  "ANYTHING TO PLEASE YOU," SAID THE OLD MAN; "WE CAN BUT
+                   TRY."  SO, ALIGHTING WITH HIS SON, THEY TIED THE LEGS OF THE
+                   ASS TOGETHER AND WITH THE HELP OF A POLE ENDEAVORED TO CARRY
+                   HIM ON THEIR SHOULDERS OVER A BRIDGE NEAR THE ENTRANCE TO TH
+                  E TOWN. THIS ENTERTAINING SIGHT BROUGHT THE PEOPLE IN CROWDS 
+                  TO LAUGH AT IT, TILL THE ASS, NOT LIKING THE NOISE NOR THE ST
+                  RANGE HANDLING THAT HE WAS SUBJECT TO, BROKE THE CORDS THAT B
+                  OUND HIM AND, TUMBLING OFF THE POLE, FELL INTO THE RIVER.  UP
+                  ON THIS, THE OLD MAN, VEXED AND ASHAMED, MADE THE BEST OF HIS
+                   WAY HOME AGAIN, CONVINCED THAT BY ENDEAVORING TO PLEASE EVER
+                  YBODY HE HAD PLEASED NOBODY, AND LOST HIS ASS IN THE BARGAIN.
+                   
+
+2 row(s) retrieved.
+
+
+
+--
+-- 3. Dynamically generated small and big values
+--
+
+select id, 
+       mrcol, 
+       upper(mrcol || '  *****  ' || mrcol) value_uppercased
+from   test_mr
+where  id <= 5
+order by id;
+
+
+id                1
+mrcol             One: Here is one small value 
+value_uppercased  ONE: HERE IS ONE SMALL VALUE  *****  ONE: HERE IS ONE SMALL V
+                  ALUE 
+
+id                2
+mrcol             Two: Here is the second small value 
+value_uppercased  TWO: HERE IS THE SECOND SMALL VALUE  *****  TWO: HERE IS THE 
+                  SECOND SMALL VALUE 
+
+id                3
+mrcol             Three: Here is the third small value 
+value_uppercased  THREE: HERE IS THE THIRD SMALL VALUE  *****  THREE: HERE IS T
+                  HE THIRD SMALL VALUE 
+
+id                4
+mrcol             Four: Here is the fourth small value 
+value_uppercased  FOUR: HERE IS THE FOURTH SMALL VALUE  *****  FOUR: HERE IS TH
+                  E FOURTH SMALL VALUE 
+
+id                5
+mrcol             Five: Here is the fifth small value 
+value_uppercased  FIVE: HERE IS THE FIFTH SMALL VALUE  *****  FIVE: HERE IS THE
+                   FIFTH SMALL VALUE 
+
+5 row(s) retrieved.
+
+
+
+select id, 
+       upper(mrcol || '  *****  ' || mrcol) value_uppercased
+from   test_mr
+where  id > 5
+order by id;
+
+
+id                9
+value_uppercased  A FABLE BY AESOP: THE BUFFOON AND THE COUNTRYMAN : A RICH NOB
+                  LEMAN ONCE OPENED THE THEATERS WITHOUT CHARGE TO THE PEOPLE, 
+                  AND GAVE A PUBLIC NOTICE THAT HE WOULD HANDSOMELY REWARD ANY 
+                  PERSON WHO INVENTED A NEW AMUSEMENT FOR THE OCCASION. VARIOUS
+                   PUBLIC PERFORMERS CONTENDED FOR THE PRIZE.  AMONG THEM CAME 
+                  A BUFFOON WELL KNOWN AMONG THE POPULACE FOR HIS JOKES, AND SA
+                  ID THAT HE HAD A KIND OF ENTERTAINMENT WHICH HAD NEVER BEEN B
+                  ROUGHT OUT ON ANY STAGE BEFORE.  THIS REPORT BEING SPREAD ABO
+                  UT MADE A GREAT STIR, AND THE THEATER WAS CROWDED IN EVERY PA
+                  RT. THE BUFFOON APPEARED ALONE UPON THE PLATFORM, WITHOUT ANY
+                   APPARATUS OR CONFEDERATES, AND THE VERY SENSE OF EXPECTATION
+                   CAUSED AN INTENSE SILENCE.  HE SUDDENLY BENT HIS HEAD TOWARD
+                  S HIS BOSOM AND IMITATED THE SQUEAKING OF A LITTLE PIG SO ADM
+                  IRABLY WITH HIS VOICE THAT THE AUDIENCE DECLARED HE HAD A POR
+                  KER UNDER HIS CLOAK, AND DEMANDED THAT IT SHOULD BE SHAKEN OU
+                  T.  WHEN THAT WAS DONE AND NOTHING WAS FOUND, THEY CHEERED TH
+                  E ACTOR, AND LOADED HIM WITH THE LOUDEST APPLAUSE.  A COUNTRY
+                  MAN IN THE CROWD, OBSERVING ALL THAT HAS PASSED, SAID, "SO HE
+                  LP ME, HERCULES, HE SHALL NOT BEAT ME AT THAT TRICK!"  AND AT
+                   ONCE PROCLAIMED THAT HE WOULD DO THE SAME THING ON THE NEXT 
+                  DAY, THOUGH IN A MUCH MORE NATURAL WAY.  ON THE MORROW A STIL
+                  L LARGER CROWD ASSEMBLED IN THE THEATER, BUT NOW PARTIALITY F
+                  OR THEIR FAVORITE ACTOR VERY GENERALLY PREVAILED, AND THE AUD
+                  IENCE CAME RATHER TO RIDICULE THE COUNTRYMAN THAN TO SEE THE 
+                  SPECTACLE.  BOTH OF THE PERFORMERS APPEARED ON THE STAGE.  TH
+                  E BUFFOON GRUNTED AND SQUEAKED AWAY FIRST, AND OBTAINED, AS O
+                  N THE PRECEDING DAY, THE APPLAUSE AND CHEERS OF THE SPECTATOR
+                  S.  NEXT THE COUNTRYMAN COMMENCED, AND PRETENDING THAT HE CON
+                  CEALED A LITTLE PIG BENEATH HIS CLOTHES (WHICH IN TRUTH HE DI
+                  D, BUT NOT SUSPECTED BY THE AUDIENCE ) CONTRIVED TO TAKE HOLD
+                   OF AND TO PULL HIS EAR CAUSING THE PIG TO SQUEAK.  THE CROWD
+                  , HOWEVER, CRIED OUT WITH ONE CONSENT THAT THE BUFFOON HAD GI
+                  VEN A FAR MORE EXACT IMITATION, AND CLAMORED FOR THE COUNTRYM
+                  AN TO BE KICKED OUT OF THE THEATER.  ON THIS THE RUSTIC PRODU
+                  CED THE LITTLE PIG FROM HIS CLOAK AND SHOWED BY THE MOST POSI
+                  TIVE PROOF THE GREATNESS OF THEIR MISTAKE.  "LOOK HERE," HE S
+                  AID, "THIS SHOWS WHAT SORT OF JUDGES YOU ARE."  *****  A FABL
+                  E BY AESOP: THE BUFFOON AND THE COUNTRYMAN : A RICH NOBLEMAN 
+                  ONCE OPENED THE THEATERS WITHOUT CHARGE TO THE PEOPLE, AND GA
+                  VE A PUBLIC NOTICE THAT HE WOULD HANDSOMELY REWARD ANY PERSON
+                   WHO INVENTED A NEW AMUSEMENT FOR THE OCCASION. VARIOUS PUBLI
+                  C PERFORMERS CONTENDED FOR THE PRIZE.  AMONG THEM CAME A BUFF
+                  OON WELL KNOWN AMONG THE POPULACE FOR HIS JOKES, AND SAID THA
+                  T HE HAD A KIND OF ENTERTAINMENT WHICH HAD NEVER BEEN BROUGHT
+                   OUT ON ANY STAGE BEFORE.  THIS REPORT BEING SPREAD ABOUT MAD
+                  E A GREAT STIR, AND THE THEATER WAS CROWDED IN EVERY PART. TH
+                  E BUFFOON APPEARED ALONE UPON THE PLATFORM, WITHOUT ANY APPAR
+                  ATUS OR CONFEDERATES, AND THE VERY SENSE OF EXPECTATION CAUSE
+                  D AN INTENSE SILENCE.  HE SUDDENLY BENT HIS HEAD TOWARDS HIS 
+                  BOSOM AND IMITATED THE SQUEAKING OF A LITTLE PIG SO ADMIRABLY
+                   WITH HIS VOICE THAT THE AUDIENCE DECLARED HE HAD A PORKER UN
+                  DER HIS CLOAK, AND DEMANDED THAT IT SHOULD BE SHAKEN OUT.  WH
+                  EN THAT WAS DONE AND NOTHING WAS FOUND, THEY CHEERED THE ACTO
+                  R, AND LOADED HIM WITH THE LOUDEST APPLAUSE.  A COUNTRYMAN IN
+                   THE CROWD, OBSERVING ALL THAT HAS PASSED, SAID, "SO HELP ME,
+                   HERCULES, HE SHALL NOT BEAT ME AT THAT TRICK!"  AND AT ONCE 
+                  PROCLAIMED THAT HE WOULD DO THE SAME THING ON THE NEXT DAY, T
+                  HOUGH IN A MUCH MORE NATURAL WAY.  ON THE MORROW A STILL LARG
+                  ER CROWD ASSEMBLED IN THE THEATER, BUT NOW PARTIALITY FOR THE
+                  IR FAVORITE ACTOR VERY GENERALLY PREVAILED, AND THE AUDIENCE 
+                  CAME RATHER TO RIDICULE THE COUNTRYMAN THAN TO SEE THE SPECTA
+                  CLE.  BOTH OF THE PERFORMERS APPEARED ON THE STAGE.  THE BUFF
+                  OON GRUNTED AND SQUEAKED AWAY FIRST, AND OBTAINED, AS ON THE 
+                  PRECEDING DAY, THE APPLAUSE AND CHEERS OF THE SPECTATORS.  NE
+                  XT THE COUNTRYMAN COMMENCED, AND PRETENDING THAT HE CONCEALED
+                   A LITTLE PIG BENEATH HIS CLOTHES (WHICH IN TRUTH HE DID, BUT
+                   NOT SUSPECTED BY THE AUDIENCE ) CONTRIVED TO TAKE HOLD OF AN
+                  D TO PULL HIS EAR CAUSING THE PIG TO SQUEAK.  THE CROWD, HOWE
+                  VER, CRIED OUT WITH ONE CONSENT THAT THE BUFFOON HAD GIVEN A 
+                  FAR MORE EXACT IMITATION, AND CLAMORED FOR THE COUNTRYMAN TO 
+                  BE KICKED OUT OF THE THEATER.  ON THIS THE RUSTIC PRODUCED TH
+                  E LITTLE PIG FROM HIS CLOAK AND SHOWED BY THE MOST POSITIVE P
+                  ROOF THE GREATNESS OF THEIR MISTAKE.  "LOOK HERE," HE SAID, "
+                  THIS SHOWS WHAT SORT OF JUDGES YOU ARE." 
+
+id                10
+value_uppercased  A FABLE BY AESOP: THE MILLER, HIS SON, AND THEIR ASS: A MILLE
+                  R AND HIS SON WERE DRIVING THEIR ASS TO A NEIGHBORING FAIR TO
+                   SELL HIM.  THEY HAD NOT GONE FAR WHEN THEY MET WITH A TROOP 
+                  OF WOMEN COLLECTED ROUND A WELL, TALKING AND LAUGHING.  "LOOK
+                   THERE," CRIED ONE OF THEM, "DID YOU EVER SEE SUCH FELLOWS, T
+                  O BE TRUDGING ALONG THE ROAD ON FOOT WHEN THEY MIGHT RIDE?'  
+                  THE OLD MAN HEARING THIS, QUICKLY MADE HIS SON MOUNT THE ASS,
+                   AND CONTINUED TO WALK ALONG MERRILY BY HIS SIDE.  PRESENTLY 
+                  THEY CAME UP TO A GROUP OF OLD MEN IN EARNEST DEBATE.  "THERE
+                  ," SAID ONE OF THEM, "IT PROVES WHAT I WAS A-SAYING.  WHAT RE
+                  SPECT IS SHOWN TO OLD AGE IN THESE DAYS? DO YOU SEE THAT IDLE
+                   LAD RIDING WHILE HIS OLD FATHER HAS TO WALK? GET DOWN, YOU Y
+                  OUNG SCAPEGRACE, AND LET THE OLD MAN REST HIS WEARY LIMBS."  
+                  UPON THIS THE OLD MAN MADE HIS SON DISMOUNT, AND GOT UP HIMSE
+                  LF.  IN THIS MANNER THEY HAD NOT PROCEEDED FAR WHEN THEY MET 
+                  A COMPANY OF WOMEN AND CHILDREN: "WHY, YOU LAZY OLD FELLOW," 
+                  CRIED SEVERAL TONGUES AT ONCE, "HOW CAN YOU RIDE UPON THE BEA
+                  ST, WHILE THAT POOR LITTLE LAD THERE CAN HARDLY KEEP PACE BY 
+                  THE SIDE OF YOU?'  THE GOOD-NATURED MILLER IMMEDIATELY TOOK U
+                  P HIS SON BEHIND HIM.  THEY HAD NOW ALMOST REACHED THE TOWN. 
+                     "PRAY, HONEST FRIEND," SAID A CITIZEN, "IS THAT ASS YOUR O
+                  WN?'  "YES," REPLIED THE OLD MAN.  "O, ONE WOULD NOT HAVE THO
+                  UGHT SO," SAID THE OTHER, "BY THE WAY YOU LOAD HIM. WHY, YOU 
+                  TWO FELLOWS ARE BETTER ABLE TO CARRY THE POOR BEAST THAN HE Y
+                  OU."  "ANYTHING TO PLEASE YOU," SAID THE OLD MAN; "WE CAN BUT
+                   TRY."  SO, ALIGHTING WITH HIS SON, THEY TIED THE LEGS OF THE
+                   ASS TOGETHER AND WITH THE HELP OF A POLE ENDEAVORED TO CARRY
+                   HIM ON THEIR SHOULDERS OVER A BRIDGE NEAR THE ENTRANCE TO TH
+                  E TOWN. THIS ENTERTAINING SIGHT BROUGHT THE PEOPLE IN CROWDS 
+                  TO LAUGH AT IT, TILL THE ASS, NOT LIKING THE NOISE NOR THE ST
+                  RANGE HANDLING THAT HE WAS SUBJECT TO, BROKE THE CORDS THAT B
+                  OUND HIM AND, TUMBLING OFF THE POLE, FELL INTO THE RIVER.  UP
+                  ON THIS, THE OLD MAN, VEXED AND ASHAMED, MADE THE BEST OF HIS
+                   WAY HOME AGAIN, CONVINCED THAT BY ENDEAVORING TO PLEASE EVER
+                  YBODY HE HAD PLEASED NOBODY, AND LOST HIS ASS IN THE BARGAIN.
+                    *****  A FABLE BY AESOP: THE MILLER, HIS SON, AND THEIR ASS
+                  : A MILLER AND HIS SON WERE DRIVING THEIR ASS TO A NEIGHBORIN
+                  G FAIR TO SELL HIM.  THEY HAD NOT GONE FAR WHEN THEY MET WITH
+                   A TROOP OF WOMEN COLLECTED ROUND A WELL, TALKING AND LAUGHIN
+                  G.  "LOOK THERE," CRIED ONE OF THEM, "DID YOU EVER SEE SUCH F
+                  ELLOWS, TO BE TRUDGING ALONG THE ROAD ON FOOT WHEN THEY MIGHT
+                   RIDE?'  THE OLD MAN HEARING THIS, QUICKLY MADE HIS SON MOUNT
+                   THE ASS, AND CONTINUED TO WALK ALONG MERRILY BY HIS SIDE.  P
+                  RESENTLY THEY CAME UP TO A GROUP OF OLD MEN IN EARNEST DEBATE
+                  .  "THERE," SAID ONE OF THEM, "IT PROVES WHAT I WAS A-SAYING.
+                    WHAT RESPECT IS SHOWN TO OLD AGE IN THESE DAYS? DO YOU SEE 
+                  THAT IDLE LAD RIDING WHILE HIS OLD FATHER HAS TO WALK? GET DO
+                  WN, YOU YOUNG SCAPEGRACE, AND LET THE OLD MAN REST HIS WEARY 
+                  LIMBS."  UPON THIS THE OLD MAN MADE HIS SON DISMOUNT, AND GOT
+                   UP HIMSELF.  IN THIS MANNER THEY HAD NOT PROCEEDED FAR WHEN 
+                  THEY MET A COMPANY OF WOMEN AND CHILDREN: "WHY, YOU LAZY OLD 
+                  FELLOW," CRIED SEVERAL TONGUES AT ONCE, "HOW CAN YOU RIDE UPO
+                  N THE BEAST, WHILE THAT POOR LITTLE LAD THERE CAN HARDLY KEEP
+                   PACE BY THE SIDE OF YOU?'  THE GOOD-NATURED MILLER IMMEDIATE
+                  LY TOOK UP HIS SON BEHIND HIM.  THEY HAD NOW ALMOST REACHED T
+                  HE TOWN.    "PRAY, HONEST FRIEND," SAID A CITIZEN, "IS THAT A
+                  SS YOUR OWN?'  "YES," REPLIED THE OLD MAN.  "O, ONE WOULD NOT
+                   HAVE THOUGHT SO," SAID THE OTHER, "BY THE WAY YOU LOAD HIM. 
+                  WHY, YOU TWO FELLOWS ARE BETTER ABLE TO CARRY THE POOR BEAST 
+                  THAN HE YOU."  "ANYTHING TO PLEASE YOU," SAID THE OLD MAN; "W
+                  E CAN BUT TRY."  SO, ALIGHTING WITH HIS SON, THEY TIED THE LE
+                  GS OF THE ASS TOGETHER AND WITH THE HELP OF A POLE ENDEAVORED
+                   TO CARRY HIM ON THEIR SHOULDERS OVER A BRIDGE NEAR THE ENTRA
+                  NCE TO THE TOWN. THIS ENTERTAINING SIGHT BROUGHT THE PEOPLE I
+                  N CROWDS TO LAUGH AT IT, TILL THE ASS, NOT LIKING THE NOISE N
+                  OR THE STRANGE HANDLING THAT HE WAS SUBJECT TO, BROKE THE COR
+                  DS THAT BOUND HIM AND, TUMBLING OFF THE POLE, FELL INTO THE R
+                  IVER.  UPON THIS, THE OLD MAN, VEXED AND ASHAMED, MADE THE BE
+                  ST OF HIS WAY HOME AGAIN, CONVINCED THAT BY ENDEAVORING TO PL
+                  EASE EVERYBODY HE HAD PLEASED NOBODY, AND LOST HIS ASS IN THE
+                   BARGAIN. 
+
+2 row(s) retrieved.
+
+
+
+-- rename the explain output file to 'sqexplain.upper.log'
+
+
+-- ---------------------------------------------------------------
+-- END
+-- ---------------------------------------------------------------
+
+Database closed.
+

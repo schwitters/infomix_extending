@@ -1,0 +1,18 @@
+;
+; The following symbols are exported for
+; the FIXType DataBlade module.
+;
+DESCRIPTION 'This is the FIXType DataBlade module.'
+
+EXPORTS
+	FIXTypeExportText
+	FIXTypeReceive
+	FIXTypeInput
+	FIXTypeImportText
+	FIXTypeCompare
+	FIXTypeOutput
+	FIXTypeEqual
+	FIXTypeImportBinary
+	FIXTypeSend
+	FIXTypeNotEqual
+	FIXTypeExportBinary

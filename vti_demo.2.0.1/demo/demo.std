@@ -1,0 +1,701 @@
+Create a table using the demo_am access method and load some data
+
+Database selected.
+
+-- -------------------------------------------------------------------------
+-- Demo script for primary access method demo_am
+--
+-- Prerequisites:
+--                1. vti_demo.2.0.1 install files have been copied to
+--                   $INFORMIXDIR/extend/vti_demo.2.0.1
+-- Synopsis:
+--                1. Creates a table using the demo_am access method.
+--                2. Loads some data.
+--                3. Issues a variety of select/update/delete statements.
+-- -------------------------------------------------------------------------
+--
+begin work;
+Started transaction.
+
+
+
+-- Create a table of average monthly high temperatures for various Bay Area
+-- cities.
+
+create table temperatures
+(
+    city    char(30),
+    month   char(10),
+    temp    int
+)
+using demo_am;
+Table created.
+
+
+
+--
+-- load some data
+--
+load from 'vtidemo.dat' insert into temperatures;
+72 row(s) loaded.
+
+
+-- 
+-- Create a table of seasons and the months that they contain. This one
+-- will be in the extspace.
+--
+
+create table seasons
+(
+    season    char(15),
+    month     char(10)
+)
+in vtidemo_extspace using demo_am;
+Table created.
+
+
+--
+-- load some data
+--
+
+insert into seasons values ('winter', 'December');
+1 row(s) inserted.
+
+
+insert into seasons values ('winter', 'January');
+1 row(s) inserted.
+
+
+insert into seasons values ('winter', 'February');
+1 row(s) inserted.
+
+
+
+insert into seasons values ('spring', 'March');
+1 row(s) inserted.
+
+
+insert into seasons values ('spring', 'April');
+1 row(s) inserted.
+
+
+insert into seasons values ('spring', 'May');
+1 row(s) inserted.
+
+
+
+insert into seasons values ('summer', 'June');
+1 row(s) inserted.
+
+
+insert into seasons values ('summer', 'July');
+1 row(s) inserted.
+
+
+insert into seasons values ('summer', 'August');
+1 row(s) inserted.
+
+
+
+insert into seasons values ('fall', 'September');
+1 row(s) inserted.
+
+
+insert into seasons values ('fall', 'October');
+1 row(s) inserted.
+
+
+insert into seasons values ('fall', 'November');
+1 row(s) inserted.
+
+
+
+commit work;
+Data committed.
+
+
+
+
+Database closed.
+
+Issue some select statements
+
+Database selected.
+
+-- --------------------------------------------------------------------------
+-- demo_select.sql
+--
+-- Issue a few select statements against the "temperatures" table
+-- --------------------------------------------------------------------------
+--
+-- Turn on tracing.
+--
+execute function vti_demo_traceon(20);
+
+(expression) 
+
+           0
+
+1 row(s) retrieved.
+
+
+--
+-- What cities are in the database?
+--
+select distinct city from temperatures order by city;
+
+city                           
+
+Berkeley                      
+Concord                       
+Oakland                       
+Pittsburg                     
+San Francisco                 
+Walnut Creek                  
+
+6 row(s) retrieved.
+
+
+--
+-- What's the range of temperatures in Berkeley?
+--
+select city, month, temp from temperatures where city = 'Berkeley'
+order by temp;
+
+city                           month             temp 
+
+Berkeley                       February            54
+Berkeley                       January             55
+Berkeley                       March               58
+Berkeley                       December            61
+Berkeley                       April               64
+Berkeley                       November            65
+Berkeley                       May                 66
+Berkeley                       October             70
+Berkeley                       August              72
+Berkeley                       September           72
+Berkeley                       June                72
+Berkeley                       July                73
+
+12 row(s) retrieved.
+
+
+--
+-- What's the temperature range for each city in the database?
+--
+select city, max(temp), avg(temp), min(temp) from temperatures
+group by city;
+
+city                                 (max)            (avg)       (min) 
+
+San Francisco                           63 60.0000000000000          56
+Berkeley                                73 65.1666666666667          54
+Oakland                                 75 65.4166666666667          54
+Walnut Creek                            85 66.4166666666667          50
+Pittsburg                               91 69.0000000000000          48
+Concord                                 86 66.3333333333333          50
+
+6 row(s) retrieved.
+
+
+--
+-- What's the range of temperatures by month across all cities?
+--
+select month, max(temp) max_temp, avg(temp) avg_temp, min(temp) min_temp
+from temperatures
+group by month
+order by max_temp;
+
+month         max_temp         avg_temp    min_temp 
+
+February            56 52.0000000000000          48
+January             58 53.5000000000000          50
+March               60 56.1666666666667          53
+December            61 58.3333333333333          55
+April               64 61.5000000000000          60
+May                 69 65.6666666666667          63
+November            70 65.1666666666667          61
+June                78 72.0000000000000          60
+October             80 71.1666666666667          63
+September           85 74.6666666666667          61
+July                89 76.8333333333333          58
+August              91 77.6666666666667          58
+
+12 row(s) retrieved.
+
+
+--
+-- What are the hotest and coldest places in the Bay Area?
+--
+select city, month, temp from temperatures
+where temp = (select max(temp) from temperatures)
+or    temp = (select min(temp) from temperatures);
+
+city                           month             temp 
+
+Pittsburg                      February            48
+Pittsburg                      August              91
+
+2 row(s) retrieved.
+
+
+--
+-- And what places are just about average?
+--
+select city, month, temp from temperatures
+where temp + 1 >= (select avg(temp) from temperatures)
+and temp -1 <= (select avg(temp) from temperatures);
+
+city                           month             temp 
+
+Oakland                        November            66
+Walnut Creek                   May                 65
+Walnut Creek                   November            65
+Berkeley                       May                 66
+Berkeley                       November            65
+
+5 row(s) retrieved.
+
+
+--
+-- What data do we have in the table that we put in the extspace?
+--
+select * from seasons;
+
+season          month      
+
+winter          December  
+winter          January   
+winter          February  
+spring          March     
+spring          April     
+spring          May       
+summer          June      
+summer          July      
+summer          August    
+fall            September 
+fall            October   
+fall            November  
+
+12 row(s) retrieved.
+
+
+--
+-- Now let's join this table with our temperatures data:
+--
+-- What's the average summer temperature in Berkeley?
+--
+select city, temperatures.month, temperatures.temp
+from temperatures, seasons
+where city = 'Berkeley' 
+and  temperatures.month = seasons.month
+and temperatures.month in 
+(select month from seasons where season = 'summer')
+group by city, temperatures.month, temperatures.temp;
+
+city                           month             temp 
+
+Berkeley                       June                72
+Berkeley                       July                73
+Berkeley                       August              72
+
+3 row(s) retrieved.
+
+
+
+select distinct city, season, avg(temp) avg_temp
+from seasons, temperatures
+where temperatures.city = 'Berkeley'
+and temperatures.month = seasons.month
+and temperatures.month in 
+(select month from seasons where season = 'summer')
+group by city, season;
+
+city                           season                  avg_temp 
+
+Berkeley                       summer          72.3333333333333
+
+1 row(s) retrieved.
+
+
+--
+-- How do typical winter temperatures compare for the cities?
+--
+select distinct city, season, avg(temp) avg_temp
+from seasons, temperatures
+where temperatures.month = seasons.month
+and temperatures.month in 
+(select month from seasons where season = 'winter')
+group by city, season;
+
+city                           season                  avg_temp 
+
+Berkeley                       winter          56.6666666666667
+Concord                        winter          52.0000000000000
+Oakland                        winter          56.3333333333333
+Pittsburg                      winter          51.0000000000000
+San Francisco                  winter          58.0000000000000
+Walnut Creek                   winter          53.6666666666667
+
+6 row(s) retrieved.
+
+
+
+--
+-- Is it true that San Francisco has a year-round spring climate?
+--
+select city, season, avg(temp)
+from temperatures, seasons
+where city = 'San Francisco'
+and temperatures.month = seasons.month
+group by city, season;
+
+city                           season                     (avg) 
+
+San Francisco                  winter          58.0000000000000
+San Francisco                  spring          61.6666666666667
+San Francisco                  fall            61.6666666666667
+San Francisco                  summer          58.6666666666667
+
+4 row(s) retrieved.
+
+
+
+--
+-- I bet Pittsburg doesn't!
+--
+select city, season, avg(temp)
+from temperatures, seasons
+where city = 'Pittsburg'
+and temperatures.month = seasons.month
+group by city, season;
+
+city                           season                     (avg) 
+
+Pittsburg                      summer          86.0000000000000
+Pittsburg                      fall            78.3333333333333
+Pittsburg                      spring          60.6666666666667
+Pittsburg                      winter          51.0000000000000
+
+4 row(s) retrieved.
+
+
+
+-- done!
+
+
+Database closed.
+
+Update some records
+
+Database selected.
+
+-- --------------------------------------------------------------------------
+-- demo_update.sql
+--
+-- Update some records in the "temperatures" table
+-- --------------------------------------------------------------------------
+--
+-- Pittsburg just had a heat wave!
+--
+update temperatures set temp = 95 
+where city = 'Pittsburg' and month = 'July';
+1 row(s) updated.
+
+
+--
+-- The fog's been blowing into Berkeley all summer.
+--
+update temperatures set temp = 61 
+where city = 'Berkeley' and month = 'July';
+1 row(s) updated.
+
+
+--
+update temperatures set temp = 60 
+where city = 'Berkeley' and month = 'August';
+1 row(s) updated.
+
+
+--
+-- Oh! Did we say Walnut Creek? We meant Orinda, of course!
+--
+update temperatures set city = 'Orinda' where city = 'Walnut Creek';
+12 row(s) updated.
+
+
+--
+-- done!
+
+
+Database closed.
+
+Issue the same select statements
+
+Database selected.
+
+-- --------------------------------------------------------------------------
+-- demo_select.sql
+--
+-- Issue a few select statements against the "temperatures" table
+-- --------------------------------------------------------------------------
+--
+-- Turn on tracing.
+--
+execute function vti_demo_traceon(20);
+
+(expression) 
+
+           0
+
+1 row(s) retrieved.
+
+
+--
+-- What cities are in the database?
+--
+select distinct city from temperatures order by city;
+
+city                           
+
+Berkeley                      
+Concord                       
+Oakland                       
+Orinda                        
+Pittsburg                     
+San Francisco                 
+
+6 row(s) retrieved.
+
+
+--
+-- What's the range of temperatures in Berkeley?
+--
+select city, month, temp from temperatures where city = 'Berkeley'
+order by temp;
+
+city                           month             temp 
+
+Berkeley                       February            54
+Berkeley                       January             55
+Berkeley                       March               58
+Berkeley                       August              60
+Berkeley                       July                61
+Berkeley                       December            61
+Berkeley                       April               64
+Berkeley                       November            65
+Berkeley                       May                 66
+Berkeley                       October             70
+Berkeley                       June                72
+Berkeley                       September           72
+
+12 row(s) retrieved.
+
+
+--
+-- What's the temperature range for each city in the database?
+--
+select city, max(temp), avg(temp), min(temp) from temperatures
+group by city;
+
+city                                 (max)            (avg)       (min) 
+
+San Francisco                           63 60.0000000000000          56
+Berkeley                                72 63.1666666666667          54
+Oakland                                 75 65.4166666666667          54
+Orinda                                  85 66.4166666666667          50
+Pittsburg                               95 69.5000000000000          48
+Concord                                 86 66.3333333333333          50
+
+6 row(s) retrieved.
+
+
+--
+-- What's the range of temperatures by month across all cities?
+--
+select month, max(temp) max_temp, avg(temp) avg_temp, min(temp) min_temp
+from temperatures
+group by month
+order by max_temp;
+
+month         max_temp         avg_temp    min_temp 
+
+February            56 52.0000000000000          48
+January             58 53.5000000000000          50
+March               60 56.1666666666667          53
+December            61 58.3333333333333          55
+April               64 61.5000000000000          60
+May                 69 65.6666666666667          63
+November            70 65.1666666666667          61
+June                78 72.0000000000000          60
+October             80 71.1666666666667          63
+September           85 74.6666666666667          61
+August              91 75.6666666666667          58
+July                95 75.8333333333333          58
+
+12 row(s) retrieved.
+
+
+--
+-- What are the hotest and coldest places in the Bay Area?
+--
+select city, month, temp from temperatures
+where temp = (select max(temp) from temperatures)
+or    temp = (select min(temp) from temperatures);
+
+city                           month             temp 
+
+Pittsburg                      February            48
+Pittsburg                      July                95
+
+2 row(s) retrieved.
+
+
+--
+-- And what places are just about average?
+--
+select city, month, temp from temperatures
+where temp + 1 >= (select avg(temp) from temperatures)
+and temp -1 <= (select avg(temp) from temperatures);
+
+city                           month             temp 
+
+Oakland                        November            66
+Orinda                         May                 65
+Orinda                         November            65
+Berkeley                       May                 66
+Berkeley                       November            65
+
+5 row(s) retrieved.
+
+
+--
+-- What data do we have in the table that we put in the extspace?
+--
+select * from seasons;
+
+season          month      
+
+winter          December  
+winter          January   
+winter          February  
+spring          March     
+spring          April     
+spring          May       
+summer          June      
+summer          July      
+summer          August    
+fall            September 
+fall            October   
+fall            November  
+
+12 row(s) retrieved.
+
+
+--
+-- Now let's join this table with our temperatures data:
+--
+-- What's the average summer temperature in Berkeley?
+--
+select city, temperatures.month, temperatures.temp
+from temperatures, seasons
+where city = 'Berkeley' 
+and  temperatures.month = seasons.month
+and temperatures.month in 
+(select month from seasons where season = 'summer')
+group by city, temperatures.month, temperatures.temp;
+
+city                           month             temp 
+
+Berkeley                       July                61
+Berkeley                       August              60
+Berkeley                       June                72
+
+3 row(s) retrieved.
+
+
+
+select distinct city, season, avg(temp) avg_temp
+from seasons, temperatures
+where temperatures.city = 'Berkeley'
+and temperatures.month = seasons.month
+and temperatures.month in 
+(select month from seasons where season = 'summer')
+group by city, season;
+
+city                           season                  avg_temp 
+
+Berkeley                       summer          64.3333333333333
+
+1 row(s) retrieved.
+
+
+--
+-- How do typical winter temperatures compare for the cities?
+--
+select distinct city, season, avg(temp) avg_temp
+from seasons, temperatures
+where temperatures.month = seasons.month
+and temperatures.month in 
+(select month from seasons where season = 'winter')
+group by city, season;
+
+city                           season                  avg_temp 
+
+Berkeley                       winter          56.6666666666667
+Concord                        winter          52.0000000000000
+Oakland                        winter          56.3333333333333
+Orinda                         winter          53.6666666666667
+Pittsburg                      winter          51.0000000000000
+San Francisco                  winter          58.0000000000000
+
+6 row(s) retrieved.
+
+
+
+--
+-- Is it true that San Francisco has a year-round spring climate?
+--
+select city, season, avg(temp)
+from temperatures, seasons
+where city = 'San Francisco'
+and temperatures.month = seasons.month
+group by city, season;
+
+city                           season                     (avg) 
+
+San Francisco                  winter          58.0000000000000
+San Francisco                  spring          61.6666666666667
+San Francisco                  fall            61.6666666666667
+San Francisco                  summer          58.6666666666667
+
+4 row(s) retrieved.
+
+
+
+--
+-- I bet Pittsburg doesn't!
+--
+select city, season, avg(temp)
+from temperatures, seasons
+where city = 'Pittsburg'
+and temperatures.month = seasons.month
+group by city, season;
+
+city                           season                     (avg) 
+
+Pittsburg                      summer          88.0000000000000
+Pittsburg                      fall            78.3333333333333
+Pittsburg                      spring          60.6666666666667
+Pittsburg                      winter          51.0000000000000
+
+4 row(s) retrieved.
+
+
+
+-- done!
+
+
+Database closed.
+
+Done.

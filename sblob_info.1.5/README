@@ -1,0 +1,648 @@
+
+                  Smart Blob Information DataBlade Module
+
+                               sblob_info.1.5
+
+---------------------------------------------------------------------------
+
+This document is the README file for the sblob_info DataBlade module, which
+adds user-defined routines (UDR) that create and update "test" smart blobs,
+and extract information about any smart blob. 
+
+Contents
+
+     1. Overview
+
+     2. Software Needed
+
+     3. Getting Started
+          3.1 Download the Distribution
+          3.2 Install the DataBlade module
+          3.3 Register the DataBlade module in a database
+          3.4 Create a Smart Blob space
+
+     4. User-Defined Routines (UDRs)
+          4.1 SblobDebug
+          4.2 SblobStatSize
+          4.3 SblobSbspace
+          4.4 SblobMaxSize
+          4.5 SblobEstSize
+          4.6 SblobExtSize
+          4.7 SblobLog
+          4.8 SblobCreate
+          4.9 SblobUpdate
+          4.10 SblobRefCount
+
+Revision History
+
+     Version 1.0
+          Implements the functions documented in sections 4.1 to 4.3.
+
+     Version 1.1
+          Adds the functions documented in sections 4.4 to 4.9.
+
+     Version 1.1 fix 1/16/98
+          Source code replaces calls to ifx_int8toint() with
+          ifx_int8tolong().
+
+             o ifx_int8toint() corresponds to SQL SMALLINT /
+               mi_smallint ( -32767 to +32767 )
+
+             o ifx_int8tolong() corresponds to SQL INT / mi_integer
+               ( -2,147,483,647 to +2,147,483,647 )
+
+             o The next release will replace all sizes with SQL INT8 /
+               mi_int8.
+
+     Version 1.2
+          Adds the function documented in section 4.10.
+
+     Version 1.3
+          DataBlade shared object file is now compiled for server release 9.2
+	  using DBDK 4.00
+
+     Version 1.4
+          Adds a shared object file for WindowsNT.
+
+     Version 1.5
+          Extends integers associated with sblob size to int8 to support
+          sblobs > 2GB. The int8 data type will support whole numbers from
+          -9,223,372,036,854,775,807 to +9,223,372,036,854,775,807 (-2**63
+          to +(2**63)-1 ).
+
+---------------------------------------------------------------------------
+
+1. Overview
+
+The oncheck utility lets you monitor smart blob spaces (sbspaces) and
+monitor the smart blobs stored in those sbspaces, but it is difficult to
+associate oncheck output with a specific smart blob. The sblob_info
+DataBlade module creates smart blob metadata and constructor UDRs to make
+it easier to monitor a specific smart blob and to create/update "test"
+smart blobs.
+
+The sblob_info metadata UDRs extract storage information about a smart
+blob:
+
+      4.1 SblobDebug      Outputs debug messages to a trace file.
+      4.2 SblobStatSize   Returns the size of the smart blob.
+      4.3 SblobSbspace    Returns the name of the sbspace in which the smart
+                          blob is stored.
+      4.4 SblobMaxSize    Returns the maximum size specified for the smart
+                          blob.
+      4.5 SblobEstSize    Returns the estimated size specified for the smart
+                          blob.
+      4.6 SblobExtSize    Returns the smart blob extent size in kilobytes.
+      4.7 SblobLog        Returns if the user data portion of the smart blob
+                          is logged ("t") or not ("f").
+      4.10 SblobRefCount  Returns the reference count for a smart blob.
+
+The sblob_info constructor UDRs create and update "test" smart blobs:
+
+      4.8 SblobCreate     Creates a smart blob, allows specifying sbspace,
+                          size, logging, estimated size, and maximum size.
+      4.9 SblobUpdate     Updates a smart blob, allows append or replace.
+
+A smart blob created or updated with SblobCreate and SblobUpdate does not
+store anything interesting; the underlying code simply fills the smart blob
+space with Xs. The purpose is to test the creation of smart blobs with a
+variety of storage and/or logging characteristics, and append to or
+overwrite those smart blobs, then:
+
+   * Monitor the effects of the smart blob operation on sbspace and logical
+     log space usage with the sblob_info metadata UDRs and the "oncheck
+     -pS" and "onstat -l" commands.
+   * Verify that the end result is what was intended.
+
+Finally, sblob_info targets:
+
+   * Developers who create smart blobs in a DataBlade module as part of
+     opaque type or access method development. For example, one common
+     problem is a DataBlade module creates smart blobs in the default
+     sbspace instead of in the sbspace specified for a column in a table.
+     The source code for SblobCreate shows how to set storage
+     characteristics, and the metadata functions verify the result.
+
+   * Database administrators and end users who want to use the metadata
+     functions to monitor a specific smart blob.
+
+---------------------------------------------------------------------------
+
+2. Software Needed
+
+To build and run sblob_info.1.5, you need a C compiler to build the shared
+object, and Informix Dynamic Server.2000 installed on your system.
+
+On NT, you'll need Microsoft Visual C++ version 6.
+
+sblob_info.1.5 was tested with the software releases listed below:
+
+     SUN:
+
+        * Solaris 2.7
+        * IUS 9.14UC2
+        * IDS 9.20.UC2
+        * SUNpro C Compiler
+        * WindowsNT 4.0 with Service Pack 5
+        * Microsoft Visual Studio 6.0
+
+---------------------------------------------------------------------------
+
+3. Getting Started
+
+3.1 Download the Distribution
+
+Download the sblob_info.1.5.tar.Z compressed tar archive.
+
+Uncompress it:
+
+     uncompress sblob_info.1.5.tar
+
+Extract the tar archive:
+
+     tar xvf sblob_info.1.5.tar
+
+The distribution is extracted into a directory hierarchy under
+sblob_info.1.5. The directory contents are summarized in the table below.
+
++-------------------------------------------------------------------------+
+| README         This file.                                               |
++-------------------------------------------------------------------------+
+| demo/          Subdirectory with a demo script (main.sh), output from   |
+|                the script (demo.std), and sample tracefile output       |
+|                (demo.trc).                                              |
++-------------------------------------------------------------------------+
+| scripts/       SQL registration scripts. The contents of this directory |
+|                should be copied to:                                     |
+|                                                                         |
+|                     $INFORMIXDIR/extend/sblob_info.1.5                  |
++-------------------------------------------------------------------------+
+| src/           Source code for the UDRs.                                |
+|                                                                         |
+|                Build a Solaris shared object:                           |
+|                                                                         |
+|                     setenv MAKEINC_DIR $INFORMIXDIR/incl/dbdk           |
+|                     setenv TARGET $MAKEINC_DIR/makeinc.solaris          |
+|                     make -f sblob_infoU.mak server >& compile.log       |
+|                                                                         |
+|                Review compile.log for any symbols that will not be      |
+|                resolved later by the server, then install the shared    |
+|                object:                                                  |
+|                                                                         |
+|                     cp solaris-sparc/sblob_info.bld                     |
+|                     $INFORMIXDIR/extend/sblob_info.1.5                  |
+|                                                                         |
+|                Build a DLL for NT:                                      |
+|                                                                         |
+|                Edit sblob_info.mak to set the correct path to your      |
+|                Visual Studio installation. Then:                        |
+|                                                                         |
+|                      nmake -f sblob_info.mak                            |
+|                                                                         |
+|                Copy sblob_info.bld from src/WinNT-i386 to               |
+|                $INFORMIXDIR/extend/sblob_info.1.5, set its "read only"  |
+|                file property to "true".                                 |
+|                                                                         |
++-------------------------------------------------------------------------+
+| sblob_info.ibs BladeSmith project generated with BladeSmith version     |
+|                4.00.TC2                                                 |
++-------------------------------------------------------------------------+
+
+3.2 Install the DataBlade module
+
+The example comes ready made for Solaris 2.7 and for Windows NT 4.0. If you 
+are not on Solaris or NT, you must cd into the source code directory and 
+recompile for your platform.
+
+CURRENTDIR in the instructions below refers to the root location where you
+put the distribution for this example.
+
+Login as user informix and create the following directory:
+
+     mkdir $INFORMIXDIR/extend/sblob_info.1.5
+
+Copy the following files:
+
+     cd $CURRENTDIR
+
+       cp ./src/solaris-sparc/sblob_info.bld $INFORMIXDIR/extend/sblob_info.1.5
+    or:
+       cp ./src/WinNT-i386/sblob_info.bld $INFORMIXDIR/extend/sblob_info.1.5
+
+     cp ./scripts/* $INFORMIXDIR/extend/sblob_info.1.5
+
+3.3 Register the DataBlade module in a database
+
+At the UNIX prompt, login as user informix (or grant your userid resource
+privileges) and register the DataBlade module:
+
+     blademgr
+     shm> register sblob_info.1.5 demodb
+
+If registration fails, check the following files:
+
+     /tmp/blademgr/*.log
+     $INFORMIXDIR/online.log
+
+You can also run BladeManager from NT.
+
+3.4 Create a Smart Blob Space
+
+If you have not already created a smart blob space, you must do so before
+you can use the UDRs described in Section 4. Details about how to create
+a smart blob space can be found in the "Administrator's Guide for
+Informix Dynamic Server.2000".
+
+
+---------------------------------------------------------------------------
+
+4. User-Defined Routines (UDRs)
+
+The usage examples in this section assume the following table create and
+inserts:
+
+     create table sblob_test (description lvarchar, blob_column blob);
+
+     insert into sblob_test values
+     ('stdio.h: standard i/o header',
+      FileToBlob('/usr/include/stdio.h', 'server')
+     );
+
+     insert into sblob_test values
+     ('stdlib.h: standard library header',
+      FileToBlob('/usr/include/stdlib.h', 'server')
+     );
+
+These, and the SQL statements in the subsections that follow, are encoded
+in the shell scripts in the "demo" directory.
+    
+4.1 SblobDebug
+
+     4.1.1 Description
+
+     Turns on tracing, using the built-in "__myErrors__" trace class.
+     The tracefile is output to /tmp/session_id.trc
+
+     Trace messages are output if the trace level for the trace class
+     (set by the user with SblobDebug) is greater than the threshold
+     in the DPRINTF statement in the source code. So far, all
+     functions specify a threshold of 20. So specifying an argument >
+     20 in this debug function causes messages to be output to the
+     trace file.
+
+     4.1.2 Syntax
+
+     SblobDebug (integer) returns void
+
+     4.1.3 Example
+
+     execute procedure SblobDebug(30);
+
+4.2 SblobStatSize (mi_lo_stat_size)
+
+     4.2.1 Description
+
+     SblobStatSize calls mi_lo_stat_size to determine the size of a
+     smart blob.
+
+     4.2.2 Syntax
+
+     SblobStatSize (blob) returns int8
+
+     4.2.3 Example
+
+     Above, we inserted stdio.h and stdlib.h into the sblob_test
+     table. In a DB-Access window execute the following query:
+
+          select description, blob_column, SblobStatSize(blob_column)
+          from sblob_test;
+
+     In another window, do the following commands at the operating
+     system prompt to list the file size:
+
+          ls -l /usr/include/stdio.h
+          ls -l /usr/include/stdlib.h
+
+     Do the sizes match? (They should.) You can also check the size of
+     each smart blob with the oncheck command:
+
+          oncheck -pS sbspace
+
+     The size is output in the Size (Bytes) field.
+
+4.3 SblobSbspace (mi_lo_specget_sbspace)
+
+     4.3.1 Description
+
+     SblobSbspace calls mi_lo_specget_sbspace to get the name of the
+     smart blob space in which a smart blob is stored.
+
+     4.3.2 Syntax
+
+     SblobSbspace (blob) returns lvarchar
+
+     4.3.3 Example
+
+     In a DB-Access window execute the following query:
+
+          select description, blob_column, SblobSbspace(blob_column)
+          from sblob_test;
+
+     This example is more interesting if you do not use the default
+     Smart Blob space that is defined in the ONCONFIG file.
+
+4.4 SblobMaxSize
+
+     4.4.1 Description
+
+     SblobMaxSize calls mi_lo_specget_maxbytes to get the maximum size
+     specified for the smart blob.
+
+     4.4.2 Syntax
+
+     SblobMaxSize (blob) returns int8
+
+     4.4.3 Example
+
+     In a DB-Access window execute the following query:
+
+          select description, blob_column, SblobMaxSize(blob_column)
+          from sblob_test;
+
+     If no maximum size has been set for the smart blob, the result
+     will be -1. You can verify the result with the oncheck command:
+
+          oncheck -pS sbspace
+
+     The max size is output in the Size Limit field.
+
+4.5 SblobEstSize
+
+     4.5.1 Description
+
+     SblobEstSize calls mi_lo_specget_estbytes to get the estimated
+     size specified for the smart blob. The server preallocates this
+     size when the smart blob is created, and subsequent updates to
+     the smart blob "fill up" this space. Once this space is filled,
+     the server adds new extents as needed.
+
+     4.5.2 Syntax
+
+     SblobEstSize (blob) returns int8
+
+     4.5.3 Example
+
+     In a DB-Access window execute the following query:
+
+          select description, blob_column, SblobEstSize(blob_column)
+          from sblob_test;
+
+     Currently, if no estimated size has been established, the value
+     returned is the actual size. You may notice, however, that the
+     oncheck command outputs a NULL in the Total Estimated Size field:
+
+          oncheck -pS sbspace
+
+4.6 SblobExtSize
+
+     4.6.1 Description
+
+     SblobExtSize calls mi_lo_specget_extsz to get the extent size
+     (EXTENT_SIZE) specified for the smart blob.
+
+     4.6.2 Syntax
+
+     SblobExtSize (blob) returns int8
+
+     4.6.3 Example
+
+     In a DB-Access window execute the following query:
+
+          select description, blob_column, SblobExtSize(blob_column)
+          from sblob_test;
+
+     A return value of 0 means that an EXTENT_SIZE hint was not
+     provided when the sbspace was created. In this case, the system
+     will figure out the extent size itself.
+
+4.7 SblobLog
+
+     4.7.1 Description
+
+     SblobLog calls mi_lo_specget_flags to determine if the user data
+     portion of the smart blob is logged or not.
+
+     4.7.2 Syntax
+
+     SblobLog (blob) returns boolean
+
+     4.7.3 Example
+
+     In a DB-Access window execute the following query:
+
+          select description, blob_column, SblobLog(blob_column)
+          from sblob_test;
+
+     A return value of "t" means that the user data is logged; "f"
+     means it is not logged.
+
+4.8 SblobCreate
+
+     4.8.1 Description
+
+     SblobCreate creates a smart blob, and allows specifying some
+     smart blob attributes.
+
+     The purpose of this function is to create smart blobs with
+     different characteristics, which can be monitored with functions
+     in this blade as well as the oncheck and onstat -l commands. One
+     of the goals is to understand and demonstrate the affects of
+     smart blob operations on sbspaces and logical logs.
+
+     4.8.2 Syntax
+
+     SblobCreate (sbspace, size, logging, estbytes, maxbytes) returns
+     blob
+
+           sbspace    String containing the name of the smart blob space,
+                      which is passed to the call to
+                      mi_lo_specset_sbspace. If "default" is specified,
+                      mi_lo_specset_sbspace is not called, causing the
+                      smart blob to be created in the default SBSPACENAME
+                      defined in the ONCONFIG file. Does not check
+                      validity of sbspace name.
+
+           size       int8 value >= 0, specifying
+                      the length (in bytes) of the smart blob to be
+                      created. This space is filled with Xs.
+
+           logging    String containing "log" or "nolog"; any other value
+                      causes an error to be raised. The parameter sets the
+                      user data logging mode (LO_LOG or LO_NOLOG) for the
+                      call to mi_lo_specset_flags.
+
+           estbytes   Int8 value, specifying the
+                      estimated size of the smart blob for the call to
+                      mi_lo_specset_estbytes. If set to <= 0,
+                      mi_lo_specset_estbytes is not called.
+
+           maxbytes   Int8 value, specifying the
+                      maximum size of the smart blob for the call to
+                      mi_lo_specset_maxbytes. If set to <= 0,
+                      mi_lo_specset_maxbytes is not called.
+
+     Warning: setting any sizes to 2,147,483,647 or greater (max size of an
+     integer) has not been tested.
+
+     4.8.3 Example
+
+     In a DB-Access window execute the following query, while checking
+     with oncheck -pS in another window:
+
+          insert into sblob_test values
+          ('create a 1500 byte sblob',
+          SblobCreate("default", 1500, "nolog", -1, -1));
+
+          select  description,
+                  SblobStatSize(blob_column) as statsize,
+                  SblobSbspace(blob_column)  as sbspace,
+                  SblobEstSize(blob_column)  as estimated_size,
+                  SblobMaxSize(blob_column)  as max_size
+          from    sblob_test
+          where   description="create a 1500 byte sblob";
+
+          insert into sblob_test values
+          ('1024 byte sblob',
+          SblobCreate("default", 1024, "log", 2048, 4096));
+
+          select  description,
+                  SblobStatSize(blob_column) as statsize,
+                  SblobSbspace(blob_column)  as sbspace,
+                  SblobEstSize(blob_column)  as estimated_size,
+                  SblobMaxSize(blob_column)  as max_size
+          from    sblob_test
+          where   description="1024 byte sblob";
+
+4.9 SblobUpdate
+
+     4.9.1 Description
+
+     SblobUpdate updates a smart blob, and allows appending to or
+     replacing (truncating first) the previous contents.
+
+     One of the goals is to understand and demonstrate the affects of
+     smart blob updates on sbspaces and logical logs.
+
+     4.9.2 Syntax
+
+     SblobUpdate (blob, size, options) returns integer
+
+           blob      Smart blob handle.
+
+           size      int8 value specifying
+                     the length (in bytes) of the update. This space is
+                     filled with Xs.
+
+           options   String containing "truncate" or "append"; any other
+                     value causes an error to be raised. If the parameter
+                     is set to truncate, mi_lo_open flags are set to
+                     MI_LO_WRONLY | MI_LO_TRUNC. If the parameter is set
+                     to append, mi_lo_open is called with MI_LO_WRONLY.
+
+     4.9.3 Example
+
+     In a DB-Access window execute the following query, while checking
+     with oncheck -pS in another window:
+
+          insert into sblob_test values
+          ('foo', SblobCreate("default", 1024, "log", 2048, 4096));
+
+          -- Add 2000 bytes.
+          select SblobUpdate(blob_column, 2000, "append")
+          from    sblob_test
+          where   description="foo";
+
+          -- The resulting sblob should be 3024 bytes.
+          select  description,
+                  SblobStatSize(blob_column) as statsize,
+                  SblobSbspace(blob_column)  as sbspace,
+                  SblobEstSize(blob_column)  as estimated_size,
+                  SblobMaxSize(blob_column)  as max_size,
+                  SblobLog(blob_column)      as logged
+          from    sblob_test
+          where   description="foo";
+
+          -- Replace with 1800 bytes.
+          select SblobUpdate(blob_column, 1800, "truncate")
+          from    sblob_test
+          where   description="foo";
+
+          -- The resulting sblob should be 1800 bytes.
+          select  description,
+                  SblobStatSize(blob_column) as statsize,
+                  SblobSbspace(blob_column)  as sbspace,
+                  SblobEstSize(blob_column)  as estimated_size,
+                  SblobMaxSize(blob_column)  as max_size,
+                  SblobLog(blob_column)      as logged
+          from    sblob_test
+          where   description="foo";
+
+4.10 SblobRefCount
+
+     4.10.1 Description
+
+     SblobRefCount returns an integer indicating how many times a particular
+     blob is referenced by LO handles stored in database tables.
+
+     4.10.2 Syntax
+
+     SblobRefCount (blob) returns integer
+
+           blob      Smart blob handle.
+
+     4.10.3 Example
+
+     In a DB-Access window create a table with a blob column and insert
+     a row:
+ 
+          create table sblob_tab (blob_column blob);
+
+          insert into sblob_tab values
+          ( FileToBlob('/usr/include/stdio.h', 'server'));
+
+          select SblobRefCount(blob_column)
+          from sblob_tab;
+ 
+     Since this sblob is only used once, the value "1" should be returned.
+
+     Now create a temp table with a blob column that references the same
+     sblob:
+
+          select blob_column from sblob_tab
+          into temp sblob_temp_tab;
+
+     Check the refcount again: It should rise to "2".
+
+          select SblobRefCount(blob_column)
+          from sblob_tab;
+
+---------------------------------------------------------------------------
+
+Last updated 12-June-2000
+
+Copyright 1997, 1998, 1999, 2000 Informix Software, Inc. All rights reserved.
+
+---------------------------------------------------------------------------
+
+INFORMIX IS PROVIDING THIS DOCUMENT ON AN 'AS IS' BASIS AND MAKES NO
+EXPRESS OR IMPLIED CONDITION OR WARRANTY TO THE EXTENT PERMISSIBLE AT LAW
+AND SPECIFICALLY DISCLAIMS ANY CONDITIONS OR IMPLIED WARRANTIES, INCLUDING
+WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR
+A PARTICULAR PURPOSE, TITLE AND NON-INFRINGEMENT OR THAT THE SOFTWARE WILL
+BE UNINTERRUPTED OR ERROR-FREE. IN NO EVENT WILL INFORMIX OR ITS LICENSORS
+BE LIABLE FOR ANY DAMAGES INCLUDING LOST PROFITS, OR OTHER INCIDENTAL,
+CONSEQUENTIAL, SPECIAL OR INDIRECT DAMAGES, EVEN IF ADVISED OF THE PROSPECT
+OF SUCH DAMAGES.
+
+---------------------------------------------------------------------------
+

@@ -1,0 +1,20 @@
+README            This file.
+c/                C source code.
+
+mrLvarchar.mak    NT: Microsoft DevStudio 6.0 makefile
+
+                     nmake /f mrLvarchar.mak CFG="mrLvarchar - Win32 DataBlade Debug"
+
+mrLvarcharU.mak   UNIX makefile:
+
+                     setenv TARGET $INFORMIXDIR/incl/dbdk/makeinc.solaris 
+                     make -f mrLvarcharU.mak
+
+sol-gcc.mak       GNU gcc makefile that has only been tested on Solaris.
+
+                     setenv TARGET $INFORMIXDIR/incl/dbdk/makeinc.solaris 
+                     make -f sol-gcc.mak
+
+solaris-sparc/    DataBlade shared library built on Solaris.
+
+WinNT-i386/       DataBlade DLL built on NT.

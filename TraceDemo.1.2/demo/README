@@ -1,0 +1,197 @@
+--------------------------------------------------------------------------------
+This directory contains scripts and data to run a simple demo DataBlade that 
+uses the tracing features provided by the DataBlade Developer's Kit. 
+
+The demo is organized as follows:
+
+    0. What the demo shows.
+    1. Prerequisites for running the demo.
+    2. How to run the demo.
+    3. List of files
+    4. Compiling the Demo
+
+--------------------------------------------------------------------------------
+0. What the demo shows.
+--------------------------------------------------------------------------------
+The demo shows how you can use different trace levels to control the
+verbosity of your trace output. To do this, we've created a simple
+DataBlade with a single user-defined function called "UpOne". UpOne
+takes an integer as input, and returns a value that is one higher than
+the number input.
+
+Using BladeSmith, we defined five "Errors" for our project:
+
+   TD001   "This will be a low-threshhold message."
+   TD002   "This will be a medium-threshhold trace message."
+   TD003   "This will be a high-threshhold trace message."
+   TD004   "Say it %TEXT%"
+   TD005   "Times through the loop = %COUNTER%"
+
+Note that the last two include keywords for variable text.
+
+We used the DBDK-generated DBDK_TRACE_MSG macro to call the first three
+of these messages from within the UpOne C routine. We used increasing trace 
+threshholds for each message:
+
+        DBDK_TRACE_MSG( "TraceDemo", "TD001", 10 );
+        DBDK_TRACE_MSG( "TraceDemo", "TD002", 20 );
+        DBDK_TRACE_MSG( "TraceDemo", "TD003", 30 );
+
+We called the GL_DPRINTF directly to print the last two messages, since
+the DBDK doesn't provide macros for messages that contain variables:
+
+        GL_DPRINTF("TraceDemo", 40, 
+                  ("TD004", "TEXT%s", "once", MI_LIST_END));
+and
+        GL_DPRINTF("TraceDemo", 60, 
+                  ("TD005", "COUNTER%d", i, MI_LIST_END));
+        
+
+The standard DBDK_TRACE_ENTER and DBDK_TRACE_EXIT macros that BladeSmith
+generates were left in the source for the "UpOne" function.
+
+The demo calls the UpOne function several times, with the trace level for
+the session set to values from 10 to 60. The output shows that as the 
+session trace level increases, more messages are printed to the trace file.
+Note that when the trace level is 20 or higher, the standard DBDK_TRACE_ENTER
+and DBDK_TRACE_EXIT macros also fire. DBDK uses a trace level of 20 for these
+macros.
+
+--------------------------------------------------------------------------------
+1. Prerequisites
+--------------------------------------------------------------------------------
+    Before you run this demo, you must have:
+
+      a. Server version 9.2 (a.k.a. "Foundation.2000") up and running on your
+         Solaris machine.
+
+      b. The TraceDemo.1.2 distribution files installed in your
+         $INFORMIXDIR/extend directory. (Create directory
+         $INFORMIXDIR/extend/TraceDemo.1.2, then copy all of the 
+         files in the "scripts" directory, plus the TraceDemo.bld file
+         from "src/solaris-sparc" to it.)
+
+      c. Your environment set up to access your server installation (e.g.,
+         your INFORMIXDIR variable set to the root of your installation,
+         and $INFORMIXDIR/bin in your $path).
+
+--------------------------------------------------------------------------------
+2. How to run the demo.
+--------------------------------------------------------------------------------
+    To run the demo, just cd to the "demo" directory and type "main.sh" at the
+    command prompt:
+
+      % cd demo
+      % main.sh
+
+    The demo will provide some feedback as it progresses. Tracing output
+    is written to "/tmp/TraceDemo.trc". 
+
+    When the demo completes, the content of the trace output file is 
+    displayed. Your output should look like the "TraceDemo.trc" file in 
+    this directory.
+
+    You can drop the demo database and remove the temporary output files
+    by running the cleanup.sh script:
+
+     % cleanup.sh
+
+--------------------------------------------------------------------------------
+3. Files
+--------------------------------------------------------------------------------
+    This directory contains the following files:
+
+    README . . . . . . This file
+
+    ----------------------------------------------------------------------------
+    Shell Scripts:
+    --------------
+    main.sh  . . . . . The driver script for the demo. This shell script
+                       runs "setup.sh" to initialize the database, and "demo.sh"
+                       to turn on tracing and call the "UpOne()" function.
+
+    setup.sh . . . . . Script to create the test database ("tracedemodb"), 
+                       register the TraceDemo.1.2 DataBlade, create
+                       a trace class by inserting a row into the 
+                       systraceclasses system catalog, and create the
+                       SQL function for TraceSet_TraceDemo().
+
+    demo.sh  . . . . . Script to call dbaccess. This script turns on tracing
+                       and calls the UpOne() function.
+
+    cleanup.sh . . . . Script to drop the test database and remove temp files.
+
+    ----------------------------------------------------------------------------
+    Miscellaneous:
+    --------------
+    /tmp/TraceDemo.trc . . . Detailed trace output from the demo.
+
+    demo/TraceDemo.trc . . . Sample trace output.
+
+    ../TraceDemo.ibs . . . . The BladeSmith project file.
+
+    ----------------------------------------------------------------------------
+    Temporary Files:
+    ----------------
+    The test creates three output files, all of which are removed by the
+    cleanup.sh script.
+
+    setup.out. . . . . . . . Output from "setup.sh"
+
+    demo.out . . . . . . . . Output from "demo.sh"
+
+    /tmp/TraceDemo.trc . . . The tracefile.
+
+--------------------------------------------------------------------------------
+4. Compiling the Demo
+--------------------------------------------------------------------------------
+    You may wish to modify this demo to try out your own ideas. If you do,
+    you'll need to build a new TraceDemo.bld and replace the copy that comes
+    precompiled for the demo. Here are some guidelines:
+
+    a. The TraceDemo.bld file must be owned by user "informix", and no other
+       user can have write permission to it. Therefore, you should plan to
+       build a new copy as the informix user.
+
+    b. You'll need the following environment variables set:
+
+         $INFORMIXDIR    - path to your IUS installation
+
+         $ONCONFIG       - set to the name of your IUS configuration file
+                           (typically, "onconfig")
+
+         $INFORMIXSERVER - set to the value of either DBSERVERNAME or
+                           DBSERVERALIASES in your $INFORMIXDIR/etc/$ONCONFIG
+                           file.
+
+         $PATH           - include $INFORMIXDIR/bin,  /opt/SUNWspro/bin, and
+                           /usr/ccs/bin (for the "make" utility)
+
+         $TARGET         - point to $INFORMIXDIR/incl/dbdk/makeinc.solaris
+
+         $OS_NAME        - set to "solaris"
+
+         $PLATFORM       - set to "sparc"
+
+    c. To build a new TraceDemo.bld, go to the "src" directory and:
+
+         % make -f TraceDemoU.mak
+
+       You'll see a screenful of unresolved symbols -- don't worry! You're
+       building a shared object, and it references many symbols that will be
+       resolved at load time.
+
+       If you have a new TraceDemo.bld file in the "solaris-sparc" 
+       subdirectory, then your build has succeeded.
+
+    d. Copy or move the new TraceDemo.bld file to the
+       $INFORMIXDIR/extend/TraceDemo.1.2 directory. Be sure that its owner
+       is "informix" and that no other user has write access.
+
+    e. Finally, "recycle" your server -- bring it down ("onmode -k") and
+       back up again ("oninit"). This is the only way to guarantee that 
+       the old copy is no longer in memory, and to force the new one to
+       be loaded when you run the demo.
+
+    Now run the demo and see if your changes worked as you hoped they would!
+--------------------------------------------------------------------------------

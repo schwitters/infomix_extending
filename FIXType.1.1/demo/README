@@ -1,0 +1,77 @@
+This example demonstrates the use of mi_prepare() and 
+mi_exec_prepared_statement() to do a binary insert of
+a fixed-length opaque type into a table from a client
+application.
+
+1. FIXType
+
+   The opaque type used is "FIXType"; its C definition is:
+
+       typedef struct
+       {
+            mi_integer        col1;
+            mi_char           col2[10];
+       } FIXType;
+
+   The DBDK-generated code to support this type is included in the
+   "src" subdirectory.
+
+2. meps.c 
+
+   The mi_exec_prepared_statement() test is a client api program:
+   meps.c ("Mi_Execute_Prepared_Statement.c"). The script to compile
+   it is "mk".
+
+3. To run this test:
+
+   o As user informix, create a directory in $INFORMIXDIR/extend:
+
+       % mkdir $INFORMIXDIR/extend/FIXType.1.1
+
+   o Copy the DataBlade shared object (FIXType.bld) and the DataBlade
+     registration scripts (scripts/*) to the new directory.
+
+   o Create a test database:
+
+          % dbaccess - -
+          > create database testdb with log;
+          ^D^D
+          %
+
+   o Register the FIXType.1.1 DataBlade:
+
+          % blademgr
+          > register FIXType.1.1 testdb
+          Register module FIXType.1.1 into database testdb? [Y/n]y
+          Registering DataBlade module... (may take a while).
+          DataBlade FIXType.1.1 was successfully registered in database testdb.
+          > quit
+
+   o Create a table called "foo":
+
+          % dbaccess testdb -
+          > create table foo (col1 FIXType);
+
+   o Compile the "meps" executable:
+
+          % mk
+
+   o Run it:
+
+          % meps
+
+   o Verify that it inserted a row in your table:
+
+          > select * from foo;
+
+          col1  1234     abcdefghij
+
+          1 row(s) retrieved.
+
+          >
+
+Done!
+-------------------------------------------------------------------------------
+Note: This demo was updated for server release 9.20 and dbdk 4.00 on
+      August 24, 1999.
+-------------------------------------------------------------------------------

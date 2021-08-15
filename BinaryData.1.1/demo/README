@@ -1,0 +1,137 @@
+
+This example demonstrates the use of mi_prepare() and 
+mi_exec_prepared_statement() to transfer an image file
+from a client application to a server function without
+writing the in-memory image to a file and invoking
+mi_file_to_file().
+
+As can be seen from the example, this method works even
+for quite large files. 
+
+Background
+----------
+    A common problem for applications that use images, sounds, or
+    other variable-length opaque data is the need to transfer an
+    in-memory copy of an instance of that data from the client to
+    the server. 
+
+    This is typically accomplished by writing the data to a file on
+    the client, then calling mi_file_to_file() to copy the file to
+    the server, where it can be read into a server function.
+
+    An alternative is to create an opaque user-defined type to hold
+    a single variable-length string of bytes, and to use that type as
+    the input variable for a function on the server. IMPORTANT: This
+    user-defined type is NOT a substitute for the Informix BLOB type.
+    Its implementation in this example is extremely limited -- there
+    are no casts, for example, and there is a (default) 2k limit if
+    you use it to create a column in a table. To reiterate: This
+    example is only intended as a method for transferring binary
+    data from a client's memory to a server function without writing
+    to a file.
+
+    In this example, an image file is read into memory on the client
+    and sent to a server function which writes it to a file in /tmp.
+    Note that mi_file_to_file() would be a better way to implement
+    this particular task! A real application might use this strategy
+    to send an image or a sound file to a server function that runs
+    some sort of analysis and returns a value.
+
+BinaryData.1.1
+------------
+   BinaryData.1.1 is a very simple DataBlade that defines the data type 
+   "BinaryType":
+
+       typedef struct
+       {
+            mi_int1           data[1];
+       } BinaryType;
+
+   The DBDK-generated code to support this type on the Solaris platform
+   is included as "BinaryData.c", and "BinaryData.h". The makefile is
+   "UNIX.mak".
+
+   To instantiate the BinaryType opaque type in your database, install
+   the "BinaryData.1.1" DataBlade on your system, create a "test" database,
+   and register BinaryData.1.1 to the test database:
+
+     1. (OPTIONAL. A Solaris version of BinaryData.bld, compiled for release
+        9.2 of the server, is included in the example distribution tar file.)
+        Build BinaryData.bld using the UNIX.mak file. Be sure you have the
+        following variables set in your Unix environment:
+
+           INFORMIXDIR  - set to your server installation directory
+           TARGET       - set to $INFORMIXDIR/incl/dbdk/makeinc.solaris
+           OS_NAME      - set to solaris
+           PLATFORM     - set to sparc
+
+        You'll also need to include /opt/SUNWspro/bin and /usr/ccs/bin in
+        your $path, and set LD_LIBRARY_PATH to include $INFORMIXDIR/lib .
+        Navigate to BinaryData.1.1/src, and:
+
+           % make -f BinaryDataU.mak
+
+     2. As user "informix", create directory BinaryData.1.1 under
+        $INFORMIXDIR/extend
+
+           % mkdir $INFORMIXDIR/extend/BinaryData.1.1
+
+     3. Copy BinaryData.bld to the new BinaryData.1.1 directory.
+
+           % cd BinaryData.1.1/src/solaris-sparc
+           % cp BinaryData.bld $INFORMIXDIR/extend/BinaryData.1.1
+           % cd ..
+
+     4. Copy the registration scripts to BinaryData.1.1
+
+           % cd BinaryData.1.1/scripts 
+           % cp *.sql $INFORMIXDIR/extend/BinaryData.1.1
+
+     5. Create a "test" database and register the new DataBlade.
+
+         % dbaccess - -
+         % create database test with log;
+         > ^D
+
+         % blademgr
+         online_shm> register BinaryData.1.1 test
+         Register module BinaryData.1.1 into database test? [Y/n]y
+         Registering DataBlade module... (may take a while).
+         DataBlade BinaryData.1.1 was successfully registered in database test.
+         online_shm> quit
+         Disconnecting...
+         %
+
+meps.c 
+------
+
+   The example is a client api program: meps.c 
+   ("Mi_Execute_Prepared_Statement.c"). The source code and the script to 
+   compile it is in the src/client directory. Navigate to that directory,
+   and build the "meps" executable with this command:
+
+           % mk
+
+   The executable is placed in your "demo" directory.
+
+   To run the application, just enter "meps" at the Unix command line:
+
+      % meps
+      Open a connection...
+      Call mi_prepare...
+      Call mi_exec_prepared_statement...
+      Clean up...
+      Close the connection...
+      Program completed successfully.
+      %
+
+   "meps" will read the meps.jpg file into memory and call the server 
+   function WriteIt, passing it the in-memory copy of that image. The
+   server function will write the image to /tmp/image_out.jpg. Both copies
+   of meps.jpg should be identical after running the program.
+
+-------------------------------------------------------------------------------
+Note: This paper and demo were updated for the 9.2 server release and 
+      DBDK 4.00 on August 23, 1999
+-------------------------------- end --------------------------------------
+

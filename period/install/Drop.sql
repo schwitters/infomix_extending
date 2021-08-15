@@ -1,0 +1,13 @@
+--
+--  File:  Drop.sql
+--
+-- About:
+--
+--    This script drops a database called Period. It should be run
+--  through the 'dbaccess' tool.
+--
+--    Example:
+--
+--    > dbaccess sysmaster < Drop.sql
+--
+DROP DATABASE Period;

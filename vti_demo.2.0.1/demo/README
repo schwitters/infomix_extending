@@ -1,0 +1,298 @@
+--------------------------------------------------------------------------------
+This directory contains scripts and data for a test run of the vti_demo.2.0
+access method. It is organized as follows:
+
+    0. Changes.
+    1. Prerequisites for running the test.
+    2. How to run the automated test.
+    3. How to get untangled.
+    4. List of files
+    5. Compiling the Demo
+--------------------------------------------------------------------------------
+0. Changes
+--------------------------------------------------------------------------------
+  (0) Changes in 2.0.1:
+
+      Version 2.0.1 includes minor changes to make the DataBlade compatible
+      with server version 9.20, a.k.a., Informix Internet Foundation 2000.
+      Most of the changes are to accomodate more ansi-stringent compiler
+      flags used in the makeinc.solaris #include file used by the DBDK-
+      generated UNIX.mak makefile. (makeinc.solaris is the file identified
+      by the $TARGET environment variable -- see below.)
+
+      A slight modification was made to the method used to generate unique
+      names for the FIFO files used in this demo. Improved performance in
+      this version of the server meant that the clock-based technique used
+      in the previous version of the demo was no longer adequate -- the server
+      was just too fast!
+
+      Version 2.0.1 was also rebuilt with DBDK version 4.00TC1.
+
+  (1) Changes in 2.0:
+
+      Version 2.0 of the VTI demo has been completely reworked to demonstrate
+      how an access method can use named pipes (a.k.a. FIFOs) to communicate
+      with an external data server. 
+
+      To that end, an external executable, vtidemo_ext, was added. As before,
+      the data for a virtual table is stored in an disk file, but instead of
+      using the mi_file_*() DataBlade API calls to access that file, we
+      access it through vtidemo_ext, the external data manager. 
+--------------------------------------------------------------------------------
+1. Prerequisites
+--------------------------------------------------------------------------------
+    Before you run this demo, you must have:
+
+      a. INFORMIX-Universal Server version 9.20 up and running on your
+         Solaris machine. (Note: You can use 9.14, but you'll need to
+         rebuild the shared object for that server release. See instructions
+         below for building the shared object.)
+
+      b. An "IDN" VPCLASS configured for your installation. The simplest
+         way to do this is to add the following line to your onconfig file:
+
+         VPCLASS    IDN,noyield,num=1       # for the IDN demos
+
+         You'll need to recycle (start and restart) your server after adding
+         this line. (Note that you could have more than 1 instance, i.e.,
+         "num=" could be > 1. The "noyield" designation isn't required for
+         this demo, either, but some of the other demos that use this VP class
+         do require it.)
+
+      c. The vti_demo.2.0.1 distribution files installed in your
+         $INFORMIXDIR/extend directory.
+
+      d. Your environment set up to access your IDS installation (e.g.,
+         your INFORMIXDIR variable set to the root of your IDS installation,
+         and $INFORMIXDIR/bin in your $path).
+
+--------------------------------------------------------------------------------
+2. How to run the automated test.
+--------------------------------------------------------------------------------
+    WARNING: DO NOT run this demo on a production installation! See "How to
+    get untangled" below for details.
+
+    To run the test, first start the external data manager. You can run this
+    in the background, directing output to a file, or you can run it from a
+    different window on your machine. E.g.:
+
+    csh:
+      % vtidemo_ext >& vtidemo_ext.out &
+
+    sh:
+      % vtidemo_ext > vtidemo_ext.out 2>&1
+
+      or
+
+      % vtidemo_ext
+
+    The external data manager generates a large volume of output describing
+    transactions received and processed, including details concerning the
+    qualifications included in "beginscan" transactions. This output is
+    written to stderr. It's recommended that vtidemo_ext be invoked as in
+    the first example above, in order to save this output for review later.
+
+    Once vtidemo_ext is running, just type "main.sh" at the command prompt:
+
+      % main.sh
+
+    The test will provide some feedback as it progresses through each of its
+    three steps (setup, run the demo, and check the results). It will then
+    report either that the demo succeeded or that it failed.
+
+    Output from the demo scripts is written to the file "demo.out", which
+    is diff'd against "demo.std". If they differ, the differences are written
+    to "demo.diff".
+
+    In addition, a trace file is written to "/tmp/vti_demo.trc". Tracing is
+    minimal: An entry is made in the trace file each time one of the purpose
+    functions is entered or left. For am_beginscan, the ascii representation
+    of the qualification descriptor is also written to the trace file.
+
+    You can remove the database and the trace file, along with any temporary
+    files left over from having run the demo, by invoking the "cleanup.sh"
+    script.
+
+    The test database (vtidemodb) has two test tables. The "temperatures" 
+    table is located in /tmp/temperatures-9999, where 9999 is the unique 
+    storage number for the table (see mi_tab_partnum() for details). The 
+    "seasons" table is in a named extspace ("vtidemo_extspace") which is 
+    physically located in /tmp/VTIDEMODIR/seasons-9999
+--------------------------------------------------------------------------------
+3. How to get untangled.
+--------------------------------------------------------------------------------
+    This is just a demo, and Things Can Go Wrong. For example: 
+
+      o You killed your external data server in mid-transaction. Now your
+        UDR is hung, reading from an empty pipe.
+
+        There are a couple of things you can try, but you may need to kill
+        your server to free this up. In this order, try:
+
+          1. ^Z your dbaccess session to put it in the background, then
+             kill it with "kill %1".
+
+             Now try "onmode -k" to bring your server down. If it comes
+             down, bring it back up with "oninit", and you're back in
+             business. If "onmode -k" hangs:
+
+          2. Type "onstat -g sch" from the OS prompt, using a terminal
+             session that's configured to access your server installation.
+             You'll see a display of "VP Scheduler Statistics". Find the
+             pid associated with the cpu VP (vp #1). Kill it, from the OS,
+             with "kill -9". Now you should be able to restart your server
+             with "oninit".
+
+      o You re-booted your Unix machine, which flushed out the files in
+        /tmp that held your "seasons" and "temperatures" virtual tables.
+
+        Well, now you're in trouble! ;(  Your data tables are gone. You can
+        reconstitute the original tables using the demo scripts, but if you've
+        made any changes, they're lost forever.
+
+        But when you run the cleanup.sh script, it fails trying to drop your
+        vtidemodb database. When you try to drop the table or the database 
+        directly using dbaccess, you get errors.
+
+        Here's what to do:
+
+          1. % dbaccess vtidemodb -
+             > delete from systables where tabname = 'seasons';
+             > delete from systables where tabname = 'temperatures';
+             > database sysmaster;
+             > drop database vtidemodb;
+             > ^D^D
+
+          2. % cleanup.sh
+
+        The cleanup.sh script should work fine now, and you're ready to
+        rerun the main.sh script.
+    
+--------------------------------------------------------------------------------
+4. Files
+--------------------------------------------------------------------------------
+    This directory contains the following files:
+
+    README . . . . . . This file
+
+    ----------------------------------------------------------------------------
+    Shell Scripts:
+    --------------
+    main.sh  . . . . . The driver script for the test. This shell script
+                       runs "setup.sh" to initialize the test, "demo.sh"
+                       to create the test table and run the SQL commands
+                       against it, "cleanup.sh" to drop the test database
+                       and remove the temporary output files.
+
+    setup.sh . . . . . Script to create the test database ("vtidemodb"), 
+                       register the vti_demo.2.0.1 DataBlade, and create the
+                       demo_am access method.
+
+    demo.sh  . . . . . Script to create the test table ("temperatures") using
+                       the demo_am access method), load some data, and issue
+                       some SQL statements.
+
+    cleanup.sh . . . . Script to drop the test database and remove temp files.
+                       This script is automatically run by the "main.sh" script
+                       if the test succeeds, i.e., if the output from your test
+                       run matches the expected output.
+
+    ----------------------------------------------------------------------------
+    SQL Scripts:
+    ------------
+    demo_init.sql. . . dbaccess commands invoked by demo.sh. These commands
+                       create the test table and load the data.
+
+    demo_select.sql. . Called from demo.sh, contains SQL commands that select
+                       records from the test table.
+
+                       This SQL script is called twice: Once after the initial
+                       data is loaded, and again following the update script.
+
+    demo_update.sql. . Called from demo.sh to modify the test data. 
+
+    ----------------------------------------------------------------------------
+    Miscellaneous:
+    --------------
+    vtidemo_ext  . . . The external data manager. This program handles all
+                       interaction with the files that hold the table data,
+                       so it must be up and running when the demo is run.
+                       
+    vtidemo.dat. . . . Test data. The contents of this file are loaded into
+                       the temperatures table with the SQL "load" command.
+
+    demo.std . . . . . The expected output from a test run.
+
+    vti_demo.2.0.1.ibs . The DataBlade Developers Kit project file.
+
+    ----------------------------------------------------------------------------
+    Temporary Files:
+    ----------------
+    The test creates several output files, all of which are removed if the
+    output from a test run matches the expected output ("demo.std"). If the
+    test run output does not match the standard, then these files are
+    retained for debugging purposes.
+
+    setup.out. . . . . Output from "setup.sh"
+
+    demo.out . . . . . Output from "demo.sh"
+
+    demo.diff. . . . . Summary of the differences between the expected output
+                       and the output from a test run.
+
+    /tmp/vti_demo.trc  trace output showing the number of projections in each
+                       select statement and the columns requested.
+
+--------------------------------------------------------------------------------
+5. Compiling the Demo
+--------------------------------------------------------------------------------
+    You may wish to modify this demo to try out your own ideas. If you do,
+    you'll need to build a new vti_demo.bld and replace the copy that comes
+    precompiled for the demo. Here are some guidelines:
+
+    a. The vti_demo.bld file must be owned by user "informix", and no other
+       user can have write permission to it. Therefore, you should plan to
+       build a new copy as the informix user.
+
+    b. You'll need the following environment variables set:
+
+         $INFORMIXDIR    - path to your IUS installation
+
+         $ONCONFIG       - set to the name of your IUS configuration file
+                           (typically, "onconfig")
+
+         $INFORMIXSERVER - set to the value of either DBSERVERNAME or
+                           DBSERVERALIASES in your $INFORMIXDIR/etc/$ONCONFIG
+                           file.
+
+         $PATH           - include $INFORMIXDIR/bin,  /opt/SUNWspro/bin, and
+                           /usr/ccs/bin (for the "make" utility)
+
+         $TARGET         - point to $INFORMIXDIR/incl/dbdk/makeinc.solaris
+
+         $OS_NAME        - set to "solaris"
+
+         $PLATFORM       - set to "sparc"
+
+    c. To build a new vti_demo.bld, go to the "src/c" directory and:
+
+         % make -f vti_demoU.mak
+
+       You'll see a screenfull of unresolved symbols -- don't worry! You're
+       building a shared object, and it references many symbols that will be
+       resolved at load time.
+
+       If you have a new vti_demo.bld file in the "solaris-sparc" subdirectory,
+       then your compile has succeeded.
+
+    d. Copy or move the new vti_demo.bld file to the
+       $INFORMIXDIR/extend/vti_demo.2.0.1 directory. Be sure that its owner
+       is "informix" and that no other user has write access.
+
+    e. Finally, "recycle" your server -- bring it down ("onmode -k") and
+       back up again ("oninit"). This is the only way to guarantee that 
+       the old copy is no longer in memory, and to force the new one to
+       be loaded when you run the demo.
+
+    Now run the demo and see if your changes worked as you hoped they would!
+--------------------------------------------------------------------------------

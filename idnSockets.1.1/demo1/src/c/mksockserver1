@@ -1,0 +1,2 @@
+# This script builds the stand-alone socket server executable on Solaris
+cc -g -o idn_sockserver1 idn_sockserver1.c -lsocket

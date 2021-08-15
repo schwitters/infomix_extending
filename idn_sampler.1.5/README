@@ -1,0 +1,676 @@
+                        IDN DataBlade Corner Sampler
+
+                              idn_sampler.1.5
+
+------------------------------------------------------------------------
+
+Many of the DBDK projects that are available for download from the IDN
+DataBlade Corner are quite large, containing many user-defined routines
+(UDR). The IDN DataBlade Corner Sampler provides a DBDK project for
+miscellaneous UDRs so that they can be easily installed and registered as a
+single DataBlade module.
+
+Contents
+
+     Software Requirements
+
+     Getting Started
+
+          Download the Distribution
+          Install the DataBlade module
+          Register the DataBlade module in a database
+
+     User-Defined Routines (UDRs)
+
+           IDN_Debug      Sets/gets debug level: mi_tracelevel_set(),
+                          MI_TFLEV
+           IDN_FuncExec   Directly executes a UDR: mi_routine_exec()
+
+           IDN_FuncCache  Directly executes a UDR, caches descriptor:
+                          mi_routine_exec()
+
+           IDN_LogMsg     Outputs a message to an external file: mi_file_*
+                          funcs
+           IDN_Now        How to use datetime types
+           IDN_SetNow     How to use mi_datetime_to_binary()
+           IDN_EOT_reg    End-of-transaction callback features
+           IDN_SessionId  Gets client session id: mi_get_id()
+           IDN_EasyTrace  Easy debug output with DPRINTF
+
+Revision History
+
+      Version UDRs
+      1.0     IDN_Debug, IDN_FuncExec, IDN_FuncCache, IDN_LogMsg
+      1.1     IDN_Now
+      1.2     IDN_EOT_reg, IDN_SetNow
+
+      1.3     IDN_SessionId, IDN_EasyTrace, IDN_Debug that returns the
+              level
+
+      1.4     IDN_Debug options that get/set return the level for any
+              trace class.
+
+------------------------------------------------------------------------
+
+Software Requirements
+
+To build and run idn_sampler.1.5, you need a C compiler to build the shared
+object and Informix Dynamic Server (IDS) release 9.20 or higher.
+
+idn_sampler.1.5 was tested with the software releases listed below:
+
+     SUN:
+
+        * Solaris 2.5.1
+        * IDS-UD 9.13.UC2, 9.14.UC6, 9.20.UC1B5
+             o IDN_LogMsg uses mi_file_errno(), a new function that
+               became available in 9.13.
+             o IDN_EOT_reg uses end-of-transaction callback
+               capabilities that became available in 9.13.
+        * SUNpro C Compiler
+
+------------------------------------------------------------------------
+
+Getting Started
+
+Download the Distribution
+~~~~~~~~~~~~~~~~~~~~~~~~~
+Download the idn_sampler.1.5.tar.Z compressed tar archive.
+
+Uncompress it:
+
+     uncompress idn_sampler.1.5.tar
+
+Extract the tar archive:
+
+     tar xvf idn_sampler.1.5.tar
+
+The distribution is extracted into a directory hierarchy under
+idn_sampler.1.5. The directory contents are summarized in the table below.
+
+ README           This file.
+
+ demo/            Subdirectory with a demo script (demo.sql), output from
+                  the script (demo.log), and sample tracefile output
+                  (demo.trc).
+
+ scripts/         SQL registration scripts. The contents of this directory
+                  should be copied to:
+
+                       $INFORMIXDIR/extend/idn_sampler.1.5
+
+ src/             Source code for the UDRs.
+
+                  Build a Solaris shared object:
+
+                       setenv TARGET
+                       $INFORMIXDIR/incl/dbdk/makeinc.solaris
+                       make -f UNIX.mak server >& compile.log
+
+                  Review compile.log, then install the shared object:
+
+                       cp solaris-sparc/idn_sampler.bld
+                       $INFORMIXDIR/extend/idn_sampler.1.5
+
+ idn_sampler.ibs  BladeSmith project generated with BladeSmith version
+                  4.00.TC1
+
+Install the DataBlade module
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The example comes ready made for Solaris 2.5.1. If you are not on Solaris,
+you must cd into the source code directory and recompile for your platform.
+
+CURRENTDIR in the instructions below refers to the root location where you
+put the distribution for this example.
+
+Login as user informix and create the following directory:
+
+     mkdir $INFORMIXDIR/extend/idn_sampler.1.5
+
+Copy the following files:
+
+     cd $CURRENTDIR
+     cp ./src/solaris-sparc/idn_sampler.bld $INFORMIXDIR/extend/idn_sampler.1.5
+     cp ./scripts/* $INFORMIXDIR/extend/idn_sampler.1.5
+
+Register the DataBlade module in a database
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+At the UNIX prompt, login as user informix (or grant your userid resource
+privileges) and register the DataBlade module:
+
+     blademgr
+     shm> register idn_sampler.1.5 demodb
+
+If registration fails, check the following files:
+
+     /tmp/blademgr/*.log
+     $INFORMIXDIR/online.log
+
+You can also run BladeManager from NT.
+
+------------------------------------------------------------------------
+
+                        User-Defined Routines (UDRs)
+
+------------------------------------------------------------------------
+
+IDN_Debug
+
+Description
+
+IDN_Debug() sets the level of a trace class, which is one of two steps
+required for outputting debug messages.
+
+DataBlade module developers are encouraged to embed trace messages in their
+code using DPRINTF directly or by using the DBDK-generated tracing.
+Together the trace class level and the DPRINTF statement threshold
+determine if those trace messages will actually get output:
+
+     trace class level
+          The systracesclasses system catalog stores information about
+          trace classes. Most UDRs in the IDN Sampler use the built-in
+          "__myErrors__" trace class, but DataBlades can, and should,
+          add their own.
+
+          A level is associated with the trace class and starts off at
+          0 when a client starts a session. IDN_Debug() lets you set
+          the level of a trace class. If no trace class is provided,
+          it sets the level for "__myErrors__". For example, the
+          following statement sets the level of "__myErrors__" to 30:
+
+               execute function IDN_Debug(30);
+
+          The server saves the trace class level in an internal data
+          structure for the client session.
+
+     DPRINTF statement threshold
+          The DPRINTF macro lets you code a trace message. The first
+          and second arguments specify the trace class name and
+          statement threshold, respectively:
+
+               DPRINTF("__myErrors__", 20, (:"%s: This is my
+               message", r));
+
+          So far, most functions in the IDN Sampler specify a
+          threshold of 20. IDN_EasyTrace() lets you dynamically
+          specify a threshold for a debug statement.
+
+The server compares the level for the trace class specified by the DPRINTF
+statement to the statement threshold; and it outputs the statement if:
+
+   * trace class level > 0, and,
+   * statement_threshold <= trace class level
+
+The IDN_Debug() example above set the level for "__myErrors__" to 30. The
+sample DPRINTF set the statement threshold for "__myErrors__" to 20, which
+is less than 30, so the message will be output.
+
+The tracefile is output to /tmp/session_id.trc. IDN_SessionId tells you
+your session id.
+
+Syntax
+
+IDN_Debug has several prototypes:
+
+      IDN_Debug(n)              Sets the level of the built-in
+                                "__myErrors__" trace class to n.
+
+      IDN_Debug(trace_class, n) Sets the level of the specified trace
+                                class to n.
+
+      IDN_Debug()               Returns the current level of the
+                                "__myErrors__" trace class.
+
+      IDN_Debug(trace_class)    Returns the level of the specified trace
+                                class.
+
+Starting in idn_sampler.1.5, all IDN_Debug() signatures are functions that
+return a value. The previous release mixed functions with procedures, which
+was confusing.
+
+Example
+
+-- Set the level of trace class "__myErrors__" to 30
+execute function IDN_Debug(30);
+
+-- Get the level of trace class "__myErrors__"
+execute function IDN_Debug();
+
+-- Set the level of trace class "foo" to 40
+execute function IDN_Debug("foo", 40);
+
+-- Get the level of trace class "foo"
+execute function IDN_Debug("foo");
+
+------------------------------------------------------------------------
+
+IDN_FuncExec
+
+Description
+
+IDN_FuncExec() shows a simple way to execute a UDR from inside a C UDR
+using the DataBlade API fastpath functions. For a discussion of the issues,
+see "Fastpath: How to Execute Other UDRs and Casts ".
+
+To demonstrate fastpath syntax, IDN_FuncExec() compares the two integer
+arguments passed to it, and returns MI_TRUE if they are equal, otherwise
+MI_FALSE.
+
+Internally, IDN_FuncExec() executes the Equal() UDR to demonstrate how you
+would execute a UDR in another DataBlade module. First it calls
+mi_routine_get() to get the MI_FUNC_DESC descriptor for the function
+signature Equal(int, int). Next, it executes the function using
+mi_routine_exec(). Finally, it frees the descriptor by calling
+mi_routine_end().
+
+Syntax
+
+IDN_FuncExec (arg1 integer, arg2 integer) returns boolean
+
+ Arguments:
+
+ arg1          The first integer argument.
+
+ arg2          The second integer argument.
+
+Returns TRUE ("t") if the two arguments are equal; otherwise, returns FALSE
+("f").
+
+Example
+
+create table func_test (description lvarchar, arg1 integer, arg2 integer);
+
+insert into func_test values ( "test 1", 1, 5 );
+insert into func_test values ( "test 2", 5, 5 );
+
+select description, arg1, arg2, IDN_FuncExec(arg1, arg2)
+from func_test;
+
+------------------------------------------------------------------------
+
+IDN_FuncCache
+
+Description
+
+IDN_FuncCache() shows an optimized way to execute a UDR from inside a C UDR
+using the DataBlade API fastpath functions. For a discussion of the issues,
+see "Fastpath: How to Execute Other UDRs and Casts ".
+
+Like IDN_FuncExec() above, IDN_FuncCache() compares the two integer
+arguments passed to it, and returns MI_TRUE if they are equal, otherwise
+MI_FALSE.
+
+However, IDN_FuncCache() optimizes the UDR by caching the following
+pointers in the MI_FPARAM:
+
+   * MI_FUNC_DESC returned by mi_routine_get()
+   * MI_CONNECTION returned by mi_open()
+
+So the UDR just gets the function descriptor once for each UDR instance in
+a query.
+
+Syntax
+
+IDN_FuncCache (arg1 integer, arg2 integer) returns boolean
+
+ Arguments:
+
+ arg1          The first integer argument.
+
+ arg2          The second integer argument.
+
+Example
+
+create table func_test (description lvarchar, arg1 integer, arg2 integer);
+
+insert into func_test values ( "test 1", 1, 5 );
+insert into func_test values ( "test 2", 5, 5 );
+
+select description, arg1, arg2, IDN_FuncCache(arg1, arg2)
+from func_test;
+
+------------------------------------------------------------------------
+
+IDN_LogMsg
+
+Description
+
+IDN_LogMsg() shows how to output a message to an external file using the
+mi_file_* DataBlade API functions.
+
+It also shows how to use mi_file_errno(), a new function in 9.13 that
+returns the value of the system errno variable. For more information, see
+the DataBlade API release note in:
+
+     $INFORMIXDIR/release/en_us/0333/DBAPIDOC_9.1
+
+Syntax
+
+IDN_LogMsg (filename lvarchar, message lvarchar)
+
+ Arguments:
+
+ filename      Full pathname to the logfile.
+
+ message       The message to append to the
+               logfile.
+
+This procedure does not return a value.
+
+Example
+
+execute procedure IDN_LogMsg('/tmp/test.log', 'This is a test.');
+
+-- This should fail because /tmp is a directory.
+execute procedure IDN_LogMsg('/tmp', 'This should fail.');
+
+-- This should fail because the path doesn't exist.
+execute procedure IDN_LogMsg('/tmp/no_such_dir/test.log', 'This should fail.');
+
+------------------------------------------------------------------------
+
+IDN_Now
+
+Description
+
+IDN_Now() does the same thing as the built-in SQL command "CURRENT" -- it
+returns the current date and time. The point is to demonstrate how you can
+use the datetime data type in your DataBlade code.
+
+Syntax
+
+IDN_Now() returns datetime year to second
+
+Examples
+
+    execute function idn_now();
+    (expression)
+    1998-01-13 13:38:50
+
+    select current, idn_now() from foo;
+    (expression)               (expression)
+    1998-01-13 13:38:52.000    1998-01-13 13:38:52
+
+Note
+
+To specify a "datetime" data type as an input parameter or a return value
+for a user defined routine, you'll need to create a "qualified type", e.g.,
+"datetime year to second" in your BladeSmith project.
+
+------------------------------------------------------------------------
+
+IDN_SetNow
+
+Description
+
+IDN_SetNow() accepts a text string "yyyy-mm-dd hh:mi:ss", and converts it
+to the server's internal representation for a "datetime year to second"
+data type. The IMPORTANT feature of this example is that it uses a callback
+to catch any error that occurs when the text string is converted using the
+mi_datetime_to_binary() call. Since this API call doesn't return a status
+value (e.g., MI_OK or MI_ERROR), a callback is the only way to trap an
+error.
+
+Syntax
+
+IDN_SetNow(lvarchar datetime_string) returns datetime year to second
+
+Examples
+
+    execute function idn_setnow("1998-01-13 13:38:50");
+    (expression)
+    1998-01-13 13:38:50
+
+    select current, idn_setnow("1998-01-13 13:38:52") from foo;
+    (expression)               (expression)
+    1998-01-13 13:38:52.000    1998-01-13 13:38:52
+
+    execute function idn_setnow("1998-00-13 13:38:50");
+    (expression)
+    (U0001) - mi_datetime_to_binary() call failed.
+    Error in line 1
+    Near character position 50
+
+Starting in 9.2, a more specific error message is delivered:
+
+    execute function idn_setnow("1998-00-28 11:47:05");
+    (expression)
+
+    1263: A field in a datetime or interval value is incorrect or an illegal operation specified on datetime field.
+    Error in line 111
+    Near character position 50
+
+Note
+
+To specify a "datetime" data type as an input parameter or a return value
+for a user defined routine using the DBDK, you'll need to create a
+"qualified type", e.g., "datetime year to second" in your BladeSmith
+project.
+
+------------------------------------------------------------------------
+
+IDN_EOT_reg
+
+Description
+
+Prior to 9.13, a callback function could not execute a SQL statement; nor
+could it register a callback. Starting in 9.13, an end-of-transaction
+(MI_EVENT_END_XACT) callback can execute SQL statements and can register an
+MI_Exception callback. IDN_EOT_reg () exercises these new
+end-of-transaction callback features.
+
+There are several components to this sample:
+
+      1. IDN_EOT_reg()       SQL UDR that registers idn_eot_cb() as a
+                             callback function for MI_EVENT_END_XACT. The
+                             SQL UDR returns a message that the callback
+                             was successfully registered.
+      2. idn_eot_cb()        Fires when the transaction ends. It registers
+                             MI_Exception callback idn_exception_cb(),
+                             then inserts a record into the idn_cb_test
+                             table:
+
+                                  Structure of the idn_cb_test table
+
+                              Column       Value Inserted
+
+                              dtime        current
+
+                              sess_id      mi_get_id(conn,
+                                           MI_SESSION_ID)
+
+                              stmt_id      mi_get_id(conn,
+                                           MI_STATEMENT_ID)
+
+                              Description  "Transaction Committed",
+                                           "Transaction Aborted" (the
+                                           Example section below
+                                           explains why an aborted
+                                           message does not persist)
+
+                             If the insert fails because the idn_cb_test
+                             table does not exist (sqlcode 42000),
+                             idn_eot_cb() creates the table, then retries
+                             the insert. If the second attempt fails,
+                             idn_eot_cb() raises an error.
+      3. idn_exception_cb()  Fires if idn_eot_cb's insert statement fails.
+                             Returns MI_CB_EXC_HANDLED if the insert
+                             failed because idn_cb_test doesn't exist
+                             (sqlcode 42000); otherwise, returns
+                             MI_CB_CONTINUE. If it returns
+                             MI_CB_EXC_HANDLED, the server returns control
+                             to idn_eot_cb, which can create the table and
+                             retry the insert. For more information about
+                             how a function can get control after an
+                             error, see IUS: MI_Exception Callbacks in the
+                             Server .
+
+Syntax
+
+IDN_EOT_reg () returns lvarchar
+
+This function does not take any arguments. The return value is the
+following message:
+
+     "EOT callback registered; event output will be in idn_cb_test "
+
+Example
+
+An initial select from idn_cb_test fails if that table has not been created
+yet. The following output is from a DB-ACCESS session:
+
+     select * from idn_cb_test;
+       206: The specified table (idn_cb_test) is not in the database.
+
+       111: ISAM error:  no record found.
+     Error in line 45
+     Near character position 25
+
+Register the end-of-transaction callback. Since we are executing this
+function with "execute function", we must first explicitly start a
+transaction. Executing it in a DML statement (select, insert, update,
+delete) would implicitly start a transaction.
+
+     begin work;
+     Started transaction.
+
+     execute function IDN_eot_reg();
+
+     (expression)  EOT callback registered; event output will be in idn_cb_test
+
+     1 row(s) retrieved.
+
+Now commit the transaction:
+
+     commit work;
+     Data committed.
+
+The table will have been created and one row inserted:
+
+     select * from idn_cb_test;
+
+     dtime        1998-01-05 13:04:17
+     sess_id      20
+     stmt_id      2
+     description  Transaction Committed
+
+     1 row(s) retrieved.
+
+Now see what happens if the transaction is rolled back:
+
+     begin work;
+     Started transaction.
+
+     execute function IDN_eot_reg();
+
+     (expression)  EOT callback registered; event output will be in idn_cb_test
+
+     1 row(s) retrieved.
+
+     rollback work;
+     Transaction rolled back.
+
+Did you expect the last row to now be a "Transaction Aborted" entry?
+
+     select * from idn_cb_test;
+
+     dtime        1998-01-05 13:04:17
+     sess_id      20
+     stmt_id      2
+     description  Transaction Committed
+
+     1 row(s) retrieved.
+
+If you output trace messages with IDN_Debug(), you will see that a
+"Transaction Aborted" record does get inserted successfully into the table.
+However, that insert gets rolled back along with all the other changes made
+by that transaction. So it makes more sense to output abort state to an
+external file using DPRINTF or the mi_file_* routines.
+
+------------------------------------------------------------------------
+
+IDN_SessionId
+
+Description
+
+IDN_SessionId returns the database identifier for the client session. It
+gets the id by calling mi_get_id().
+
+Syntax
+
+IDN_SessionId () returns integer
+
+The return value is the client session id.
+
+Example
+
+execute function IDN_SessionId();
+
+------------------------------------------------------------------------
+
+IDN_EasyTrace
+
+Description
+
+The IDN_Debug() section above introduces trace class levels and DPRINTF
+statement thresholds, which together let you output debug messages:
+
+   * IDN_Debug() sets the level for a trace class.
+   * IDN_EasyTrace() lets you specify the DPRINTF statement threshold and
+     the message to output. The message gets output to a tracefile if:
+        o trace class level > 0, and,
+        o statement_threshold <= trace class level
+
+Like the other UDRs in the IDN Sampler, IDN_EasyTrace() uses the
+"__myErrors__" trace class.
+
+Syntax
+
+IDN_EasyTrace (message lvarchar, threshold integer)
+
+ Arguments:
+
+ message       Message to output to the
+               tracefile.
+
+ threshold     Threshold to be used by the
+               DPRINTF statement.
+
+Example
+
+If the trace level for "__myErrors__" is 0, the first call to
+IDN_EasyTrace() sets the trace level to 20 with the following code:
+
+     mi_tracelevel_set("__myErrors__ 20");
+
+You can also set the level at any time with IDN_Debug(). For example, the
+following sets it to 20:
+
+     execute function IDN_Debug(20);
+
+If the trace level for "__myErrors__" has already been set to a non-zero
+value, IDN_EasyTrace() does not set the level.
+
+Given the following SQL statement:
+
+     execute procedure IDN_EasyTrace("This is my message", 15);
+
+Internally, the source code for IDN_EasyTrace() executes the following
+DPRINTF statement:
+
+     DPRINTF("__myErrors__", 15, ("%s: This is my message", r));
+
+The DPRINTF threshold (15) is less than the trace class level (20), so the
+message gets output to the tracefile.
+
+The following message will not get output to the tracefile because the
+DPRINTF threshold is > the trace class level:
+
+     execute procedure IDN_EasyTrace("This message will not get
+     output", 35);
+
+------------------------------------------------------------------------
+
+Last updated 25-August-1999.
+
+Copyright (c) 1998-1999 Informix Software, Inc. All rights reserved.

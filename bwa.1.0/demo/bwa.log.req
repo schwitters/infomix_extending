@@ -1,0 +1,64 @@
+
+============================================================
+
+Tracing session: 18 on 07/09/1999
+
+17:03:10  Successfully exiting TraceSet_BWA (support.c).
+17:03:10  Entering function BWAInput (BWA.c).
+17:03:10  Successfully exiting BWAInput (BWA.c).
+17:03:10  Entering function BWAInput (BWA.c).
+17:03:10  Successfully exiting BWAInput (BWA.c).
+17:03:10  Entering function BWAInput (BWA.c).
+17:03:10  ERROR: in Routine (bwain)
+17:03:10  ERROR: lvarchar_to_BWA: a BWA has 4 parts, but this specifies 3.
+17:03:10  ERROR: Routine aborted
+17:03:10  Entering function BWAInput (BWA.c).
+17:03:10  ERROR: in Routine (bwain)
+17:03:10  ERROR: lvarchar_to_BWA: a BWA has 4 parts, but this specifies 3.
+17:03:10  ERROR: Routine aborted
+17:03:10  Entering function BWAInput (BWA.c).
+17:03:10  Successfully exiting BWAInput (BWA.c).
+17:03:10  Entering function BWAOutput (BWA.c).
+17:03:10  Successfully exiting BWAOutput (BWA.c).
+17:03:10  Entering function BWAOutput (BWA.c).
+17:03:10  Successfully exiting BWAOutput (BWA.c).
+17:03:10  Entering function BWAOutput (BWA.c).
+17:03:10  Successfully exiting BWAOutput (BWA.c).
+17:03:10  Entering function BWACompare (BWA.c).
+17:03:10  Successfully exiting BWACompare (BWA.c).
+17:03:10  Entering function BWACompare (BWA.c).
+17:03:10  Successfully exiting BWACompare (BWA.c).
+17:03:10  Entering function BWACompare (BWA.c).
+17:03:10  Successfully exiting BWACompare (BWA.c).
+17:03:10  Entering function BWAOutput (BWA.c).
+17:03:10  Successfully exiting BWAOutput (BWA.c).
+17:03:10  Entering function BWAOutput (BWA.c).
+17:03:10  Successfully exiting BWAOutput (BWA.c).
+17:03:10  Entering function BWAOutput (BWA.c).
+17:03:10  Successfully exiting BWAOutput (BWA.c).
+17:03:10  Entering function BWAInput (BWA.c).
+17:03:10  Successfully exiting BWAInput (BWA.c).
+17:03:10  Entering function BWACompare (BWA.c).
+17:03:10  Successfully exiting BWACompare (BWA.c).
+17:03:10  Entering function BWACompare (BWA.c).
+17:03:10  Successfully exiting BWACompare (BWA.c).
+17:03:10  Entering function BWACompare (BWA.c).
+17:03:10  Successfully exiting BWACompare (BWA.c).
+17:03:10  Entering function BWAOutput (BWA.c).
+17:03:10  Successfully exiting BWAOutput (BWA.c).
+17:03:10  Entering function BWAInput (BWA.c).
+17:03:10  Successfully exiting BWAInput (BWA.c).
+17:03:10  Entering function Contains (udr.c).
+17:03:10  Successfully exiting Contains (udr.c).
+17:03:10  Entering function Contains (udr.c).
+17:03:10  Successfully exiting Contains (udr.c).
+17:03:10  Entering function Contains (udr.c).
+17:03:10  Successfully exiting Contains (udr.c).
+17:03:10  Entering function BWAOutput (BWA.c).
+17:03:10  Successfully exiting BWAOutput (BWA.c).
+17:03:10  Entering function BWAOutput (BWA.c).
+17:03:10  Successfully exiting BWAOutput (BWA.c).
+17:03:10  Entering function BWACompare (BWA.c).
+17:03:10  Successfully exiting BWACompare (BWA.c).
+17:03:10  Entering function BWACompare (BWA.c).
+17:03:10  Successfully exiting BWACompare (BWA.c).

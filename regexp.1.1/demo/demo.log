@@ -1,0 +1,371 @@
+
+Database selected.
+
+--
+-- Demo for regexp bladelet.
+--
+
+execute procedure ifx_allow_newline('t');
+Routine executed.
+
+
+
+drop table tongue_twisters;
+  206: The specified table (tongue_twisters) is not in the database.
+
+  111: ISAM error:  no record found.
+Error in line 7
+Near character position 26
+
+
+create table tongue_twisters (id int, twister lvarchar);
+Table created.
+
+
+
+--
+-- Insert some data.
+--
+-- English tongue twisters from:
+--    http://www.uebersetzung.at/twister/en.htm
+--
+
+insert into tongue_twisters values
+(246,
+'Sally sells sea shells by the sea shore. But if Sally sells sea
+shells by the sea shore then where are the sea shells Sally sells?'
+);
+1 row(s) inserted.
+
+
+
+insert into tongue_twisters values
+(278,
+'Peter Piper picked a peck of pickled peppers.
+A peck of pickled peppers Peter Piper picked.
+Peter Piper picked a peck of pickled peppers,
+Where''s the peck of pickled peppers Peter Piper picked?'
+);
+1 row(s) inserted.
+
+
+
+insert into tongue_twisters values
+(286,
+'If two witches would watch two watches, which witch would watch which watch?'
+);
+1 row(s) inserted.
+
+
+
+insert into tongue_twisters values
+(301,
+'Fuzzy Wuzzy was a bear, Fuzzy Wuzzy had no hair, 
+Fuzzy Wuzzy wasn''t very fuzzy, was he?'
+);
+1 row(s) inserted.
+
+
+
+insert into tongue_twisters values
+(306,
+'I slit a sheet, a sheet I slit, and on that slitted sheet I sit.'
+);
+1 row(s) inserted.
+
+
+
+insert into tongue_twisters values
+(313,
+'Betty bought some bitter butter and it made her batter bitter,
+so Betty bought some better butter to make her bitter batter better.'
+);
+1 row(s) inserted.
+
+
+
+ 
+insert into tongue_twisters values
+(335,
+'How much wood could a woodchuck chuck if a woodchuck could chuck wood?
+A woodchuck could chuck as much wood as a woodchuck would chuck
+if a woodchuck could chuck wood.'
+);
+1 row(s) inserted.
+
+
+
+
+insert into tongue_twisters values
+(361,
+'She sells seashells on the seashore. The seashells she
+sells are seashore seashells.'
+);
+1 row(s) inserted.
+
+
+
+--
+-- List the contents of the table.
+--
+select id, twister from tongue_twisters
+order by id;
+
+
+id       246
+twister  Sally sells sea shells by the sea shore. But if Sally sells sea
+shells
+          by the sea shore then where are the sea shells Sally sells? 
+
+id       278
+twister  Peter Piper picked a peck of pickled peppers.
+A peck of pickled pepper
+         s Peter Piper picked.
+Peter Piper picked a peck of pickled peppers,
+Wh
+         ere's the peck of pickled peppers Peter Piper picked? 
+
+id       286
+twister  If two witches would watch two watches, which witch would watch which 
+         watch? 
+
+id       301
+twister  Fuzzy Wuzzy was a bear, Fuzzy Wuzzy had no hair, 
+Fuzzy Wuzzy wasn't v
+         ery fuzzy, was he? 
+
+id       306
+twister  I slit a sheet, a sheet I slit, and on that slitted sheet I sit. 
+
+id       313
+twister  Betty bought some bitter butter and it made her batter bitter,
+so Bett
+         y bought some better butter to make her bitter batter better. 
+
+id       335
+twister  How much wood could a woodchuck chuck if a woodchuck could chuck wood?
+         
+A woodchuck could chuck as much wood as a woodchuck would chuck
+if a 
+         woodchuck could chuck wood. 
+
+id       361
+twister  She sells seashells on the seashore. The seashells she
+sells are seash
+         ore seashells. 
+
+8 row(s) retrieved.
+
+
+
+
+--
+-- This regular expression looks for 'wood' or 'would': 
+--
+--     wo[ou]l?d
+--
+
+select id, twister 
+from   tongue_twisters
+where  regexp_match(twister, 'wo[ou]l?');
+
+
+id       286
+twister  If two witches would watch two watches, which witch would watch which 
+         watch? 
+
+id       335
+twister  How much wood could a woodchuck chuck if a woodchuck could chuck wood?
+         
+A woodchuck could chuck as much wood as a woodchuck would chuck
+if a 
+         woodchuck could chuck wood. 
+
+2 row(s) retrieved.
+
+
+
+--
+-- This regular expression looks for 'wood' or 'would': followed
+-- by 0 or more characters until end-of-word identified by a space
+-- or punctuation character. Note that the hyphen at the start of
+-- the character class means a real hyphen and not a range of values.
+--
+--     wo[ou]l?d[a-z]*[- .?!]
+--
+
+select id, 
+       regexp_replace(twister,  'wo[ou]l?d[a-z]*[- .?!]', '~&~')
+from   tongue_twisters
+where  regexp_match(twister, 'wo[ou]l?');
+
+
+id            286
+(expression)  If two witches ~would ~watch two watches, which witch ~would ~wat
+              ch which watch? 
+
+id            335
+(expression)  How much ~wood ~could a ~woodchuck ~chuck if a ~woodchuck ~could 
+              chuck ~wood?~
+A ~woodchuck ~could chuck as much ~wood ~as a ~wood
+              chuck ~~would ~chuck
+if a ~woodchuck ~could chuck ~wood.~ 
+
+2 row(s) retrieved.
+
+
+
+--
+-- This next regular expression groups expression so we can put the 
+-- ~ marks around just the word and not the word plus the ending
+-- punctuation:
+--
+--     (wo[ou]l?d[a-z]*)([- .?!])
+--     \_______________/\_______/
+--            |             |
+--            |             +------> punctuation gets referenced as \2
+--            +--------------------> found word gets referenced as \1
+--
+select id,
+       regexp_replace(twister,
+       '(wo[ou]l?d[a-z]*)([- .?!])', '~\1~\2')
+from   tongue_twisters
+where  regexp_match(twister, 'wo[ou]l?');
+
+
+id            286
+(expression)  If two witches ~would~ watch two watches, which witch ~would~ wat
+              ch which watch? 
+
+id            335
+(expression)  How much ~wood~ could a ~woodchuck~ chuck if a ~woodchuck~ could 
+              chuck ~wood~?
+A ~woodchuck~ could chuck as much ~wood~ as a ~wood
+              chuck~ ~would~ chuck
+if a ~woodchuck~ could chuck ~wood~. 
+
+2 row(s) retrieved.
+
+
+
+
+
+--
+-- Compare extract and split operations
+--
+execute function regexp_extract(
+   'How much wood could a woodchuck chuck if a woodchuck could chuck wood?
+    A woodchuck could chuck as much wood as a woodchuck would chuck
+    if a woodchuck could chuck wood.',
+    'wo[ou]l?d[a-z]*[- .?!]'
+);
+
+
+(expression)  wood  
+
+(expression)  woodchuck  
+
+(expression)  woodchuck  
+
+(expression)  wood? 
+
+(expression)  woodchuck  
+
+(expression)  wood  
+
+(expression)  woodchuck  
+
+(expression)  would  
+
+(expression)  woodchuck  
+
+(expression)  wood. 
+
+10 row(s) retrieved.
+
+
+
+execute function regexp_split(
+   'How much wood could a woodchuck chuck if a woodchuck could chuck wood?
+    A woodchuck could chuck as much wood as a woodchuck would chuck
+    if a woodchuck could chuck wood.',
+    'wo[ou]l?d[a-z]*[- .?!]'
+);
+
+
+(expression)  How much  
+
+(expression)  could a  
+
+(expression)  chuck if a  
+
+(expression)  could chuck  
+
+(expression)  
+    A  
+
+(expression)  could chuck as much  
+
+(expression)  as a  
+
+(expression)  chuck
+    if a  
+
+(expression)  could chuck  
+
+9 row(s) retrieved.
+
+
+
+--
+-- Limit the # results returned.
+--
+execute function regexp_extract(
+   'How much wood could a woodchuck chuck if a woodchuck could chuck wood?
+    A woodchuck could chuck as much wood as a woodchuck would chuck
+    if a woodchuck could chuck wood.',
+    'wo[ou]l?d[a-z]*[- .?!]',
+    3
+);
+
+
+(expression)  wood  
+
+(expression)  woodchuck  
+
+(expression)  woodchuck  
+
+3 row(s) retrieved.
+
+
+
+execute function regexp_split(
+   'How much wood could a woodchuck chuck if a woodchuck could chuck wood?
+    A woodchuck could chuck as much wood as a woodchuck would chuck
+    if a woodchuck could chuck wood.',
+    'wo[ou]l?d[a-z]*[- .?!]',
+    3
+);
+
+
+(expression)  How much  
+
+(expression)  could a  
+
+(expression)  chuck if a woodchuck could chuck wood?
+    A woodchuck could chuc
+              k as much wood as a woodchuck would chuck
+    if a woodchuck coul
+              d chuck wood. 
+
+3 row(s) retrieved.
+
+
+
+drop table tongue_twisters;
+Table dropped.
+
+
+
+Database closed.
+

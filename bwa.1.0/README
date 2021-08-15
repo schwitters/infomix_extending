@@ -1,0 +1,980 @@
+
+                 Business Web Application User-Defined Type
+
+                                  bwa.1.0
+
+------------------------------------------------------------------------
+
+The Business Web Application (BWA) user-defined type (UDT) identifies
+products on an e-commerce site. BWA is an "Intelligent Part Number",
+meaning that it is composed of multiple parts, each of which has meaning.
+
+The BWA UDT is implemented as an opaque type and packaged as a DataBlade
+module that is available for download. The project includes C source code
+for implementing the opaque type support functions, btree index support,
+and UDRs that access each part separately.
+
+Contents
+
+   * Software Requirements
+        o Getting Started
+        o Download the Distribution
+        o Build the DataBlade module
+        o Install the DataBlade module
+        o Register the DataBlade module in a database
+
+   * User-Defined Type (UDT)
+        o Description
+        o Format
+        o Features
+        o Implementation
+        o Example
+
+   * User-Defined Routines (UDRs)
+
+           Search Operators Standard search functions that are bound to a
+                            short cut symbol such as Equal() and
+                            LessThan().
+           GetCategory      Extracts the category part from a BWA.
+           GetFamily        Extracts the family part from a BWA.
+           GetGroup         Extracts the group part from a BWA.
+           GetIdentity      Extracts the identity part from a BWA.
+           Contains         Find all BWA's that contain certain parts.
+           Empty            Returns true if BWA part(s) are not filled in.
+           NotEmpty         Returns true if BWA part(s) are filled in.
+           TraceSet_BWA     Enables tracing for the BWA Multi-Part Number.
+
+------------------------------------------------------------------------
+
+Software Requirements
+
+To build and run bwa.1.0, you need a C compiler to build the shared object
+and Informix Dynamic Server 9.x.
+
+bwa.1.0 was tested with the software releases listed below:
+
+     SUN:
+
+        * Solaris 2.5.1
+        * SUNpro C Compiler
+        * IDS
+             o 9.14.UC6
+             o 9.20.UC1B7X2
+
+     NT:
+
+        * NT 4.0, Service Pack 3
+        * IDS 9.14.TC6
+        * Microsoft Visual C++ 6.0
+
+------------------------------------------------------------------------
+
+Getting Started
+
+
+Download the Distribution
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Download the bwa.1.0.tar.Z compressed tar archive from the
+IDN DataBlade Corner:
+
+     http://www.informix.com/idn
+
+Uncompress it:
+
+     uncompress bwa.1.0.tar
+
+Extract the tar archive:
+
+     tar xvf bwa.1.0.tar
+
+On NT use WinZip, MKS Toolkit, or any other utility that can extract
+compressed UNIX tar files.
+
+The distribution is extracted into a directory hierarchy under bwa.1.0. The
+directory contents are summarized below:
+
+ README     This file.
+
+ demo/      Sample SQL statements.
+
+ functest/  Functional tests for the opaque type.
+
+ scripts/   SQL registration scripts for BladeManager.
+
+ src/c      C source code.
+
+ bwa.ibs    BladeSmith project generated with BladeSmith version 3.70.TC1.
+
+
+Build the DataBlade module
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This distribution includes the DataBlade module built for Solaris 2.5.1 and
+for NT 4.0:
+
+   * The Solaris shared object is in the src/c/solaris-sparc subdirectory.
+   * The NT dynamic link library (DLL) is in the src/c/WinNT-i386
+     subdirectory.
+
+If you are not on one of those platforms or if you modify the source code,
+recompile the DataBlade module using the instructions below.
+
+UNIX
+----
+     UNIX.mak is the makefile that builds the DataBlade module under UNIX.
+
+     First, set the TARGET variable to the appropriate platform-specific
+     include file. For example, on Solaris set it like this in the C-Shell:
+
+     setenv TARGET $INFORMIXDIR/incl/dbdk/makeinc.solaris
+
+     Next, build the DataBlade module:
+
+     make -f UNIX.mak
+
+     Disregard warnings that mi_*, ifx_*, and gl_* symbols could not be
+     resolved. The IDS server resolves those symbols at runtime.
+
+     Detailed instructions for building a UNIX shared object library are
+     included here.
+
+NT
+--
+     You can build the DLL with either the WinNT.mak or BWA.mak makefiles.
+
+     Use the WinNT.mak makefile to build the DataBlade module from the DOS
+     command line:
+
+     nmake -s -nologo -f WinNT.mak
+
+     Use the BWA.mak makefile to load the DataBlade module source files
+     into Microsoft Visual C++.
+
+        o Choose File -> Open Workspace
+        o Set the Files of type: to Makefiles (.mak)
+        o Open BWA.mak
+          The provided BWA.mak file is a version 4.2 makefile. Microsoft
+          Visual C++ version 5.0 and later convert it to your current
+          version.
+        o Choose Tools -> Options -> Directories and make sure your include
+          files and library files paths are set.
+        o Choose Build -> Build BWA.bld to compile.
+
+     Detailed instructions for building an NT DLL are included here.
+
+Install the DataBlade module
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Login as user informix, change to the bwa.1.0 directory in which the
+distribution has been extracted, and follow the steps outlined below for
+your platform.
+
+
+SUN Solaris
+-----------
+     mkdir $INFORMIXDIR/extend/bwa.1.0 cp ./scripts/*
+     $INFORMIXDIR/extend/bwa.1.0 cp ./src/c/solaris-sparc/BWA.bld
+     $INFORMIXDIR/extend/bwa.1.0
+
+NT
+--
+     mkdir %INFORMIXDIR%\extend\bwa.1.0 cp .\scripts\*
+     %INFORMIXDIR%\extend\bwa.1.0 cp .\src\c\WinNT-i386\BWA.bld
+     %INFORMIXDIR%\extend\bwa.1.0 attrib +R
+     %INFORMIXDIR%\extend\bwa.1.0\BWA.bld
+
+Register the DataBlade module in a database
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+At the UNIX or DOS prompt, use the blademgr program to register the
+DataBlade module:
+
+blademgr shm> register bwa.1.0 demodb
+
+If registration fails, check the BladeManager log files for details.
+
+You can also run the BladeManager GUI from NT.
+
+------------------------------------------------------------------------
+
+                         User-Defined Types (UDTs)
+
+------------------------------------------------------------------------
+
+BWA
+
+Description
+~~~~~~~~~~~
+
+The Business Web Application (BWA) user-defined type identifies a product
+on an e-commerce web site.
+
+BWA is an Intelligent Part Number (IPN), which means that it is composed of
+multiple parts and each part individually has meaning. BWA uses four parts
+to identify a product. Each part specifies a particular characteristic of
+the product, and each part makes sense by itself; i.e., it is not a
+meaningless key that requires a lookup from another source to decode.
+Together the four parts provide intelligent product identification.
+
+The four parts are summarized in the table below:
+
+      Part    Name                        Description
+
+      1     Category  The most general part to which the product belongs.
+
+      2     Family    The next most general part to which the product
+                      belongs.
+
+      3     Group     The next most specific part for the product.
+
+      4     Identity  The most specific part for the product.
+
+BWA parts are named in a way that conveys the notion of identifying
+products from their most general to most specific attributes. The actual
+use of BWA parts can be interpreted broadly, allowing diverse site-specific
+implementations to be based on the single BWA data type.
+
+Format
+~~~~~~
+
+The BWA format is four alpha-numeric parts, delimited by the dot (".")
+character:
+
+     Category.Family.Group.Identity
+
+The properties for each part include:
+
+   * Variable length, up to a maximum of 32 characters
+   * May be empty
+   * Any alpha-numeric character may be used, except for the dot ("."),
+     which is used for the part delimiter.
+
+Sample BWA values include:
+
+   * Hats.Baseball.Professional Baseball.SF Giants
+   * Hats.Baseball.Professional Baseball.SD Padres
+   * Hats.Baseball.Professional Baseball.Oakland A's
+   * Hats.Sun..Straw
+   * Shirts.Baseball.Professional Baseball.SF Giants
+   * Shirts.Baseball.Professional Baseball.SD Padres
+   * Shirts.Baseball.Professional Baseball.Oakland A's
+   * Shirts.Dress.Ralph Lauren.Long Sleeve Button-down Collar
+   * Shirts.Casual.Polo.Dark blue w/ red pony
+   * Shirts.Tees.Fruit of the Loom.V-Neck
+   * Shirts.Tees.Fruit of the Loom.Standard
+
+Features
+~~~~~~~~
+
+The BWA UDT supports the following features:
+
+   * Create a table that contains a BWA column.
+     Support standard SQL column-level features such as:
+        o Uniqueness constraint
+        o NOT NULL constraint
+
+   * Standard I/O:
+        o Insert values in ascii or binary format.
+        o Bulk load or unload data using the DB-Access LOAD and UNLOAD
+          commands.
+        o Transport data between heterogenous architectures.
+
+   * Extract any part from a BWA.
+
+   * Search for values using one of the UDRs described in the "User-Defined
+     Routines (UDRs)" section below.
+
+   * Create a b-tree index on a BWA column.
+
+Implementation
+~~~~~~~~~~~~~~
+
+BWA is implemented as an opaque type, which means that it is a black box to
+the IDS server. Opaque type support UDRs supplied by the BWA DataBlade
+module provide the I/O services that the server requires, such as text
+input/output and binary send/receive for transport across heterogenous
+architectures. When the server needs to perform an I/O task, it blindly
+executes the UDR registered to perform that task.
+
+The external text representation for a BWA is the format described above.
+
+Internally, a BWA is stored in the C structure below:
+
+#define BWA_PART_SIZE   32
+typedef struct
+{
+    mi_boolean   nulls[4];
+    mi_string    category[BWA_PART_SIZE + 1];
+    mi_string    family[BWA_PART_SIZE + 1];
+    mi_string    group[BWA_PART_SIZE + 1];
+    mi_string    identity[BWA_PART_SIZE + 1];
+}
+BWA;
+
+Each part is stored internally as a NULL-terminated string. A nulls boolean
+array keeps track of whether a part is actually filled in or is empty.
+
+The UDRs summarized in the section on "User-Defined Routines (UDRs)" below
+provide access to individual parts of the data type and test for the
+existence of data with particular characteristics.
+
+Example
+~~~~~~~
+
+First create a table that includes a BWA column:
+
+create table products (id int, product BWA);
+
+Now insert some data:
+
+     insert into products values
+     (1, "Hats.Baseball.Professional Baseball.SF Giants");
+
+     insert into products values
+     (2, "Hats.Baseball.Professional Baseball.SD Padres");
+
+     insert into products values
+     (3, "Hats.Baseball.Professional Baseball.Oakland A's");
+
+     insert into products values
+     (4, "Shirts.Baseball.Professional Baseball.SF Giants");
+
+     insert into products values
+     (5, "Shirts.Baseball.Professional Baseball.SD Padres");
+
+     insert into products values
+     (6, "Shirts.Baseball.Professional Baseball.Oakland A's");
+
+     insert into products values
+     (7, "Shirts.Dress.Ralph Lauren.Long Sleeve Button-down Collar");
+
+     insert into products values
+     (8, "Shirts.Casual.Polo.Dark blue w/ red pony");
+
+     insert into products values
+     (9, "Shirts.Tees.Fruit of the Loom.V-Neck");
+
+     insert into products values
+     (10, "Shirts.Tees.Fruit of the Loom.Standard");
+
+
+Any part can be empty.
+
+     -- Part 3 for the Straw Hat is empty
+     insert into products values (11, "Hats.Sun..Straw");
+
+     -- All parts are empty
+     insert into products values (12, "...");
+
+But don't forget to include a dot as a placeholder for an empty part;
+otherwise, you will get an error.
+
+     -- We get an error if we leave out the dot for part 3
+     insert into products values (11, "Hats.Sun.Straw");
+     (UBWA1) - lvarchar_to_BWA: a BWA has 4 parts, but this specifies 3.
+     Error in line 39
+     Near character position 50
+
+We also get an error if any part exceeds the 32 character limit:
+
+      -- We also get an error if any part is too long
+     insert into products values
+     (11, "Part one is way too long, exceeding the max 32 character limit...");
+     (UBWA0) - lvarchar_to_BWA: The Category part (62) exceeds the 32 character limit.
+     Error in line 43
+     Near character position 72
+
+We can unload data into an external file:
+
+     unload to "bwa_demo.unl" select * from products;
+
+And we can load data into a table from an external file:
+
+     load from "bwa_demo.unl" insert into products;
+
+Finally, we can create a b-tree index on the BWA column:
+
+     create index bwa_ndx on products (product);
+
+We can also create a functional index using one of the "Get" UDRs described
+in the next section.
+
+     create index bwa_ndx on products (GetCategory(product));
+
+
+------------------------------------------------------------------------
+
+                        User-Defined Routines (UDRs)
+
+------------------------------------------------------------------------
+
+Search Operators
+
+Description
+~~~~~~~~~~~
+
+The table below summarizes the built-in search routines that can be used
+with the BWA type. Each routine is bound to a short cut symbol (an
+"operator").
+
+     Routine            Operator
+     Equal                  =
+     NotEqual              <>
+     LessThan              <
+     LessThanOrEqual       <=
+     GreaterThanOrEqual    >=
+     GreaterThan           >
+
+The most useful search operators for BWA are Equal() and NotEqual().
+
+Syntax
+~~~~~~
+
+Each search operator takes two BWA arguments, one on either side of the
+operator symbol, and returns either true or false. The search is
+case-insensitive.
+
+Example
+~~~~~~~
+
+     select * from products
+     where  product = "Hats.Sun..Straw" ;
+
+     id       11
+     product  Hats.Sun..Straw
+     
+     1 row(s) retrieved.
+
+     select * from products
+     where  product <> "Hats.Sun..Straw" ;
+
+     ... returns all rows except for the straw hat...
+
+The search operators consider all parts of the BWA. If I wanted to find all
+hats, the following query would not return any rows because it looks for an
+exact match on the entire BWA:
+
+     select * from products
+     where  product = "Hats..." ;
+
+     No rows found.
+
+The Contains() UDR performs case-insensitive searches based on partially
+filled-in BWA's. And the GetCategory() UDR performs a case-sensitive search
+on just the Category part.
+
+------------------------------------------------------------------------
+
+GetCategory
+
+Description
+~~~~~~~~~~~
+
+GetCategory() extracts the Category part from a BWA and returns it as a
+varchar(32) type. If the Category is empty, SQL NULL is returned.
+
+Syntax
+~~~~~~
+
+GetCategory(BWA) returns varchar(32)
+
+Example
+~~~~~~~
+
+Extract the Category part:
+
+     select id, GetCategory(product) from products;
+
+         id (expression)
+
+          1 Hats
+          2 Hats
+          3 Hats
+          4 Shirts
+          5 Shirts
+          6 Shirts
+          7 Shirts
+          8 Shirts
+          9 Shirts
+         10 Shirts
+         11 Hats
+
+     11 row(s) retrieved.
+
+Do a search based on the Category part:
+
+     select * from products
+     where GetCategory(product) = "Hats";
+
+     id       1
+     product  Hats.Baseball.Professional Baseball.SF Giants
+
+     id       2
+     product  Hats.Baseball.Professional Baseball.SD Padres
+
+     id       3
+     product  Hats.Baseball.Professional Baseball.Oakland A's
+
+     id       11
+     product  Hats.Sun..Straw
+
+     4 row(s) retrieved.
+
+Doing a search with the GetCategory() UDR is case-sensitive.
+
+------------------------------------------------------------------------
+
+GetFamily
+
+Description
+~~~~~~~~~~~
+
+GetFamily() extracts the Family part from a BWA and returns it as a
+varchar(32) type. An empty Family is returned as SQL NULL.
+
+Syntax
+~~~~~~
+
+GetFamily(BWA) returns varchar(32)
+
+Example
+~~~~~~~
+
+Extract the Family part:
+
+     select id, GetFamily(product) from products;
+
+         id (expression)
+
+          1 Baseball
+          2 Baseball
+          3 Baseball
+          4 Baseball
+          5 Baseball
+          6 Baseball
+          7 Dress
+          8 Casual
+          9 Tees
+         10 Tees
+         11 Sun
+
+     11 row(s) retrieved.
+
+Do a case-sensitive search based on the Family part:
+
+     select * from products
+     where GetFamily(product) = "Tees";
+
+     id       9
+     product  Shirts.Tees.Fruit of the Loom.V-Neck
+
+     id       10
+     product  Shirts.Tees.Fruit of the Loom.Standard
+
+     2 row(s) retrieved.
+
+------------------------------------------------------------------------
+
+GetGroup
+
+Description
+~~~~~~~~~~~
+
+GetGroup() extracts the Group part from a BWA and returns it as a
+varchar(32) type. An empty Group is returned as SQL NULL.
+
+Syntax
+~~~~~~
+
+GetGroup(BWA) returns varchar(32)
+
+Example
+~~~~~~~
+
+Extract the Group part. Notice that row 11 had an empty part 3 and it is
+returned as SQL NULL.
+
+     select id, GetGroup(product) from products;
+
+         id (expression)
+
+          1 Professional Baseball
+          2 Professional Baseball
+          3 Professional Baseball
+          4 Professional Baseball
+          5 Professional Baseball
+          6 Professional Baseball
+          7 Ralph Lauren
+          8 Polo
+          9 Fruit of the Loom
+         10 Fruit of the Loom
+         11
+
+     11 row(s) retrieved.
+
+Do a search based on the Group part:
+
+     select * from products
+     where GetGroup(product) = "Polo";
+
+     id       8
+     product  Shirts.Casual.Polo.Dark blue w/ red pony
+
+     1 row(s) retrieved.
+
+------------------------------------------------------------------------
+
+GetIdentity
+
+Description
+~~~~~~~~~~~
+
+GetIdentity() extracts the Identity part from a BWA and returns it as a
+varchar(32) type. An empty Identity is returned as SQL NULL.
+
+Syntax
+~~~~~~
+
+GetIdentity(BWA) returns varchar(32)
+
+Example
+~~~~~~~
+
+Extract the Identity part:
+
+     select id, GetIdentity(product) from products;
+
+         id (expression)
+
+          1 SF Giants
+          2 SD Padres
+          3 Oakland A's
+          4 SF Giants
+          5 SD Padres
+          6 Oakland A's
+          7 Long Sleeve Button-down Collar
+          8 Dark blue w/ red pony
+          9 V-Neck
+         10 Standard
+         11 Straw
+
+     11 row(s) retrieved.
+
+Do a search based on the Identity part:
+
+     select * from products
+     where GetIdentity(product) = "V-Neck";
+
+     id       9
+     product  Shirts.Tees.Fruit of the Loom.V-Neck
+
+     1 row(s) retrieved.
+
+------------------------------------------------------------------------
+
+Contains
+
+Description
+~~~~~~~~~~~
+
+Contains() finds all BWA's that contain the parts included in a search BWA.
+It is useful for finding BWA's based on a partial match. The search is
+case-insensitive.
+
+Syntax
+~~~~~~
+
+Contains(BWA,BWA) returns boolean
+
+Example
+~~~~~~~
+
+Find all Hats:
+
+     select * from products
+     where Contains(product, "hats...");
+
+     id       1
+     product  Hats.Baseball.Professional Baseball.SF Giants
+
+     id       2
+     product  Hats.Baseball.Professional Baseball.SD Padres
+
+     id       3
+     product  Hats.Baseball.Professional Baseball.Oakland A's
+
+     id       11
+     product  Hats.Sun..Straw
+
+     4 row(s) retrieved.
+
+Find all Straw Hats
+
+     select * from products
+     where Contains(product, "hats...straw");
+
+     id       11
+     product  Hats.Sun..Straw
+
+     1 row(s) retrieved.
+
+The same query could be expressed using a combination of GetCategory and
+GetIdentity predicates, but those searches are case-sensitive because they
+rely on the built-in Equal() behavior for a varchar(32):
+
+     select * from products
+      where   GetCategory(product) = "Hats"
+        and   GetIdentity(product) = "Straw";
+
+     id       11
+     product  Hats.Sun..Straw
+     
+     1 row(s) retrieved.
+
+     Find all Hats that are not straw:
+
+     select * from products
+     where Contains(product, "Hats...")
+       and not Contains (product, "Hats...Straw");
+
+     id       1
+     product  Hats.Baseball.Professional Baseball.SF Giants
+     
+     id       2
+     product  Hats.Baseball.Professional Baseball.SD Padres
+     
+     id       3
+     product  Hats.Baseball.Professional Baseball.Oakland A's
+
+     3 row(s) retrieved.
+
+------------------------------------------------------------------------
+
+Empty
+
+Description
+~~~~~~~~~~~
+
+Empty() returns true if BWA part(s) are not filled in.
+
+If you pass it just a BWA argument, Empty() returns true if any part in a
+BWA is not set.
+
+If you pass it a BWA argument and a part number, Empty() returns true if
+the specific part number is not set.
+
+Syntax
+~~~~~~
+
+Empty(BWA) returns boolean
+
+Empty(BWA, int) returns boolean
+
+Example
+~~~~~~~
+
+Return all rows that have a partially filled-in BWA.
+
+     select * from products
+     where    Empty(product)
+     order by 1;
+     
+     id       11
+     product  Hats.Sun..Straw
+     
+     id       12
+     product  ...
+
+     2 row(s) retrieved.
+
+Return any row whose BWA has an empty first part.
+
+     select * from products
+     where    Empty(product, 1)
+     order by 1;
+
+     id       12
+     product  ...
+
+     1 row(s) retrieved.
+
+------------------------------------------------------------------------
+
+NotEmpty
+
+Description
+~~~~~~~~~~~
+
+NotEmpty() returns true if BWA part(s) are filled in.
+
+If you pass it just a BWA argument, NotEmpty() returns true if all parts in
+a BWA are set.
+
+If you pass it a BWA argument and a part number, Empty() returns true if
+the specific part number is set.
+
+Syntax
+~~~~~~
+
+NotEmpty(BWA) returns boolean
+
+NotEmpty(BWA, int) returns boolean
+
+Example
+~~~~~~~
+
+Find all hats.
+
+     select * from products
+     where Contains(product, "hats...")
+     order by 1;
+     
+     id       1
+     product  Hats.Baseball.Professional Baseball.SF Giants
+     
+     id       2
+     product  Hats.Baseball.Professional Baseball.SD Padres
+     
+     id       3
+     product  Hats.Baseball.Professional Baseball.Oakland A's
+     
+     id       11
+     product  Hats.Sun..Straw
+
+     4 row(s) retrieved.
+
+Find all hats, but restrict the result set to just the BWA's that are
+completely filled in.
+
+     select * from products
+     where Contains(product, "hats...")
+       and NotEmpty(product)
+     order by 1;
+
+     id       1
+     product  Hats.Baseball.Professional Baseball.SF Giants
+     
+     id       2
+     product  Hats.Baseball.Professional Baseball.SD Padres
+     
+     id       3
+     product  Hats.Baseball.Professional Baseball.Oakland A's
+
+     3 row(s) retrieved.
+
+Empty() and NotEmpty() are created as negator functions for each other. So
+the next query returns the opposite results.
+
+     select * from products
+     where Contains(product, "hats...")
+       and Empty(product)
+     order by 1;
+
+     id       11
+     product  Hats.Sun..Straw
+
+     1 row(s) retrieved.
+
+And, since they are negator functions, NOT Empty() (i.e., the NOT
+predicate) and NotEmpty() must return the same results.
+
+     select * from products
+     where Contains(product, "hats...")
+       and NOT Empty(product)
+     order by 1;
+
+     id       1
+     product  Hats.Baseball.Professional Baseball.SF Giants
+     
+     id       2
+     product  Hats.Baseball.Professional Baseball.SD Padres
+     
+     id       3
+     product  Hats.Baseball.Professional Baseball.Oakland A's
+     
+     3 row(s) retrieved.
+
+We can also apply the not empty to check to any specific part. The next
+query returns all hats whose third part is not empty.
+
+     select * from products
+     where  Contains(product, "hats...")
+       and  NotEmpty(product, 3)
+     order by 1;
+
+     id       1
+     product  Hats.Baseball.Professional Baseball.SF Giants
+     
+     id       2
+     product  Hats.Baseball.Professional Baseball.SD Padres
+     
+     id       3
+     product  Hats.Baseball.Professional Baseball.Oakland A's
+          
+     3 row(s) retrieved.
+
+------------------------------------------------------------------------
+
+TraceSet_BWA
+
+Description
+~~~~~~~~~~~
+
+TraceSet_BWA() enables the output of debug messages. Currently only UDR
+entry and exit debug messages are coded.
+
+Syntax
+~~~~~~
+
+TraceSet_BWA(lvarchar, int)
+
+The lvarchar argument is the full pathname of the file to which you want
+the debug messages output.
+
+The int argument is the level to which you want to set the trace class.
+Setting it to 20 or greater will output the UDR entry and exit messages to
+the file you specify in the first argument.
+
+Example
+~~~~~~~
+
+You must set the GLS LOCALE environment variables to en_us.8859-1 for
+messages to actually get output. The following example is for the UNIX
+C-Shell:
+
+     setenv DB_LOCALE en_us.8859-1
+     setenv SERVER_LOCALE en_us.8859-1
+     setenv CLIENT_LOCALE en_us.8859-1
+
+The next command sets the BWA trace class level to 20 and specifies the
+output file for debug messages:
+
+     execute procedure TraceSet_BWA("/tmp/bwa.log", 20);
+
+After executing this procedure, you should see output like the following in
+/tmp/bwa.log:
+
+============================================================
+
+Tracing session: 18 on 07/09/1999
+
+17:03:10  Successfully exiting TraceSet_BWA (support.c).
+
+The current version of the BWA DataBlade module outputs UDR entry and exit
+debug messages. For example, given the following SQL statement:
+
+     insert into products values
+     (1, "Hats.Baseball.Professional Baseball.SF Giants");
+
+You will see output that looks like this:
+
+     17:03:10  Entering function BWAInput (BWA.c).
+     17:03:10  Successfully exiting BWAInput (BWA.c).
+
+------------------------------------------------------------------------
+
+Last updated 15-July-1999.
+
+Copyright (c) 1999 Informix Corporation. All rights reserved.
+

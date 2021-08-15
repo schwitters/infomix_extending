@@ -1,0 +1,80 @@
+unl_utils
+=========
+
+Utilities for converting csv-files to Informix unl-files and vice-versa.
+
+    csv2unl - Converts a csv-file into an unl-file.
+    unl2csv - Converts an unl-file into a csv-file.
+    unl2err - Splits an unl-file into good/bad parts.
+    csv_fix - 'Fixes' a malformed csv-file.
+
+(C) Richard Harnden, 2005
+
+Please report bugs: <richard.harnden@lineone.net>
+
+Public Domain.  Use/copy at will.  No warranties, etc.
+
+Building
+========
+
+Just typing 'make' should do it.
+
+
+csv2unl
+-------
+
+Converts a csv-file into an unl-file.
+
+    csv2unl [-i <filename>] [-o <filename>] [-d <delimiter>] [-h] [-F <cols>]
+
+    where:
+       -i <filename>, take input from <filename>, default stdin.
+       -o <filename>, send output to <filename>, default stdout.
+       -d <delimiter>, use <delimiter> as the unl-delimiter,
+                       defaults to $DBDELIMITER or '|'.
+       -h, the first line in the csv-file are headings.
+       -F <ncols>, force output to at least <ncols> columns.
+
+unl2csv
+-------
+
+Converts an unl-file into a csv-file.
+
+    unl2csv [-i <filename>] [-o <filename>] [-d <delimiter>]
+
+    where:
+       -i <filename>, take input from <filename>, default stdin.
+       -o <filename>, send output to <filename>, default stdout.
+       -d <delimiter>, use <delimiter> as the unl-delimiter,
+                       defaults to $DBDELIMITER or '|'.
+
+unl2err
+-------
+
+Splits an unl-file into two parts: all rows with the same column count
+as the first line, and anything else.
+
+    unl2err [-i <filename>] [-o <filename>] [-e <filename<] [-d <delimiter>]
+
+    where:
+       -i <filename>, take input from <filename>, default stdin.
+       -o <filename>, send good records to <filename>, default stdout.
+       -e <filename>, send bad records to <filename>, default stderr.
+       -d <delimiter>, use <delimiter> as the unl-delimiter,
+                       defaults to $DBDELIMITER or '|'.
+
+csv_fix
+-------
+
+'Fixes' a malformed csv-file.
+
+    csv_fix [-i <filename>] [-o <filename>]
+
+    where:
+       -i <filename>, take input from <filename>, default stdin.
+       -o <filename>, send output to <filename>, default stdout.
+
+
+-- 
+
+"@(#) $Id: README,v 1.1 2005/04/13 12:49:45 richard Exp $"

@@ -1,0 +1,304 @@
+
+Database selected.
+
+-- --------------------------------------------------------------------------
+-- 
+-- Module          : Functional Test for snip(idn_mrLvarchar)
+-- Filename        : snip.sql
+-- Description     : Tests additional string functions introduced in 1.1
+-- 
+-- Tests:
+-- 
+--    1. Little sanity checks
+--    2. Small values
+--    3. Big values
+--    4. Dynamically generated small and big values
+--
+-- If enabled, additional trace info gets output to /tmp/mrLvarchar_snip.trc.
+-- ---------------------------------------------------------------------------
+
+--
+-- 1. Little sanity checks
+--
+
+-- Return everything starting with the first character
+execute function snip('abcdefg', 1) ;
+
+
+(expression)  abcdefg 
+
+1 row(s) retrieved.
+
+
+
+-- Return everything starting with the second character
+execute function snip('abcdefg', 2) ;
+
+
+(expression)  bcdefg 
+
+1 row(s) retrieved.
+
+
+
+-- Return three characters starting with the third character
+execute function snip('abcdefg', 3, 3) ;
+
+
+(expression)  cde 
+
+1 row(s) retrieved.
+
+
+
+-- Specify a length that is way too big.
+execute function snip('abcdefg', 3, 50) ;
+
+
+(expression)  cdefg 
+
+1 row(s) retrieved.
+
+
+
+-- Return the last character
+execute function snip('abcdefg', -1) ;
+
+
+(expression)  g 
+
+1 row(s) retrieved.
+
+
+
+-- Return the last two characters
+execute function snip('abcdefg', -2) ;
+
+
+(expression)  fg 
+
+1 row(s) retrieved.
+
+
+
+-- Return the last three characters
+execute function snip('abcdefg', -3) ;
+
+
+(expression)  efg 
+
+1 row(s) retrieved.
+
+
+
+-- Return the two characters starting at the third character from the end
+execute function snip('abcdefg', -3, 2) ;
+
+
+(expression)  ef 
+
+1 row(s) retrieved.
+
+
+
+-- Set a start point beyond the end of the string
+execute function snip('abcdefg', 50) ;
+
+
+(expression)   
+
+1 row(s) retrieved.
+
+
+
+--
+-- 2. Small values
+--
+select '***' || snip(mrcol, 1, 5) || '***'
+from   test_mr
+where  id <=5;
+
+
+(expression)  ***One: *** 
+
+(expression)  ***Two: *** 
+
+(expression)  ***Three*** 
+
+(expression)  ***Four:*** 
+
+(expression)  ***Five:*** 
+
+5 row(s) retrieved.
+
+
+
+select '***' || snip(mrcol, 5) || '***'
+from   test_mr
+where  id <=5;
+
+
+(expression)  *** Here is one small value*** 
+
+(expression)  *** Here is the second small value*** 
+
+(expression)  ***e: Here is the third small value*** 
+
+(expression)  ***: Here is the fourth small value*** 
+
+(expression)  ***: Here is the fifth small value*** 
+
+5 row(s) retrieved.
+
+
+
+select '***' || snip(mrcol, -5) || '***'
+from   test_mr
+where  id <=5;
+
+
+(expression)  ***value*** 
+
+(expression)  ***value*** 
+
+(expression)  ***value*** 
+
+(expression)  ***value*** 
+
+(expression)  ***value*** 
+
+5 row(s) retrieved.
+
+
+
+select '***' || snip(mrcol, -5, 3) || '***'
+from   test_mr
+where  id <=5;
+
+
+(expression)  ***val*** 
+
+(expression)  ***val*** 
+
+(expression)  ***val*** 
+
+(expression)  ***val*** 
+
+(expression)  ***val*** 
+
+5 row(s) retrieved.
+
+
+
+--
+-- 3. Big values
+--
+
+-- Snip out the last 60 characters.
+select snip(mrcol, -60)
+from   test_mr where id > 5;
+
+
+(expression)  ok here," he said, "this shows what sort of judges you are." 
+
+(expression)  body he had pleased nobody, and lost his Ass in the bargain. 
+
+2 row(s) retrieved.
+
+
+
+--
+-- Snip out the last sentence.
+--
+select id, snip(mrcol, instr(mrcol, '. ', -1)+3) 
+from  test_mr where id > 5;
+
+
+id            9
+(expression)  "Look here," he said, "this shows what sort of judges you are." 
+
+id            10
+(expression)  Upon this, the old man, vexed and ashamed, made the best of his w
+              ay home again, convinced that by endeavoring to please everybody 
+              he had pleased nobody, and lost his Ass in the bargain. 
+
+2 row(s) retrieved.
+
+
+
+--
+-- Snip out the last word from all records, big and small.
+--
+select id, snip(mrcol, instr(mrcol, ' ', -1)+1)  last_word
+from  test_mr;
+
+
+id         1
+last_word  value 
+
+id         2
+last_word  value 
+
+id         3
+last_word  value 
+
+id         4
+last_word  value 
+
+id         5
+last_word  value 
+
+id         9
+last_word  are." 
+
+id         10
+last_word  bargain. 
+
+7 row(s) retrieved.
+
+
+
+--
+-- 4. Dynamically generated small and big values
+--
+
+--
+-- Find first occurrence of 'son', output 100 characters
+--
+select snip(mrcol, instr(lower(mrcol), 'son'), 100 )
+from   test_mr
+where  instr(lower(mrcol), 'son') > 0;
+
+
+(expression)  son who invented a new amusement for the occasion. Various public
+               performers contended for the prize 
+
+(expression)  Son, and Their Ass: A MILLER and his son were driving their Ass t
+              o a neighboring fair to sell him.   
+
+2 row(s) retrieved.
+
+
+
+--
+-- Find last occurrence of 'one', output 100 characters
+--
+select snip(mrcol, instr(lower(mrcol), 'one', -1), 100 )
+from   test_mr
+where  instr(lower(mrcol), 'one') > 0;
+
+
+(expression)  one small value 
+
+(expression)  one consent that the Buffoon had given a far more exact imitation
+              , and clamored for the Countryman t 
+
+(expression)  one would not have thought so," said the other, "by the way you l
+              oad him. Why, you two fellows are b 
+
+3 row(s) retrieved.
+
+
+
+Database closed.
+

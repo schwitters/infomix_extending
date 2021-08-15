@@ -1,0 +1,155 @@
+=============================================================================
+                              FIFO Examples 
+=============================================================================
+FIFOs, a.k.a. "named pipes", provide a relatively safe and simple way for
+a user defined routine (UDR) to communicate with an external process running
+on the same machine. They do involve blocking calls, so the use of a FIFO 
+will require that the UDR run in a named virtual processor, but there can be
+multiple instances of that UDR active in an installation.
+
+This directory contains a simple demo that uses named pipes (FIFOs) to permit
+a DataBlade to communicate with an external process. 
+
+An external process monitors a "well-known address" (a FIFO file in /tmp).
+It is completely independent of the DataBlade. It reads text from the FIFO
+and responds to it. It has no way to know whether the text has come from a
+DataBlade routine or from some other source.
+
+==========================================================================
+1. Overview
+==========================================================================
+
+  o Why use FIFOs?
+
+    For the sake of safety and performance, you should always follow those
+    DataBlade "Safe Coding Guidelines". But sometimes you just can't. For
+    example, your DataBlade might make extensive use of legacy code that
+    was written without knowledge of the guidelines. What do you do then?
+
+    One possibility is to let your non-compliant code run as an external
+    process, completely outside the database server, and to communicate
+    with it using named pipes. Although there will be a performance cost for
+    doing so, you can then write a thin DataBlade that does conform to
+    the guidelines, and let most of the work take place at the external
+    process.
+
+    Note that any DataBlade routines that make use of FIFOs will have to
+    run in a named virtual processor. By their nature, FIFOs will make
+    blocking i/o calls; they can't be permitted in the CPU VP.
+    
+  o Overall design of the demo
+
+    The demo is a simple example of inter-process communication between a
+    UDR and a process running outside the Informix installation. The
+    external process acts as a server, accepting requests sent to a
+    FIFO, and sending back responses.
+
+    Each time it is called, the UDR creates a new FIFO that the external
+    program can use to send information back to it. This FIFO is uniquely
+    identified by a timestamp, which is sent to the external program along
+    with a text string.
+
+    The external program reads the timestamp and text string from its
+    "well-known address" (the FIFO file in /tmp). It uses the timestamp
+    to construct the pathname for the FIFO that the client will be listening
+    on, and it processes the text string. The processing consists of flipping
+    the text (reversing the order of the characters) and sending it back.
+    
+==========================================================================
+2. IUS Software Requirements
+==========================================================================
+This release has been tested with the following IUS server builds:
+
+	9.14.UC2
+	9.20.UC1G1
+
+==========================================================================
+3. Getting Started
+==========================================================================
+
+Before you look at the source code, you may want to install the example 
+DataBlade module and run the demo. 
+
+It comes ready made for Solaris 5.5.1, and has only been tested under
+Solaris.  If you are not on Solaris, you must cd into the source 
+directories and recompile for your platform. 
+
+To install the demo:
+
+  (1) Create a directory to hold the demo DataBlade: 
+
+           $INFORMIXDIR/extend/idn_fifo.1.1
+
+  (2) Copy the demo DataBlade scripts to the above directory:
+
+          % cd scripts
+          % cp * $INFORMIXDIR/extend/idn_fifo.1.1
+
+  (3) Copy the DataBlade shared object to the DataBlade directory:
+
+         % cd src/c/solaris-sparc
+         % cp *.bld $INFORMIXDIR/extend/idn_fifo.1.1
+
+  (4) Add a line to your Informix server configuration file (usually
+      $INFORMIXDIR/etc/config) to define the "IDN" VP class:
+
+          VPCLASS        IDN,noyield,num=1    # for the IDN socket demos
+
+  (5) Recycle (stop and restart) your database server.
+
+
+See the README file in the "demo" directory for details about how to
+run the demo.
+         
+==========================================================================
+4. Directory contents
+==========================================================================
+
+    README               This file.
+    demo/                The demo.
+
+    The demo directory contains:
+
+    scripts/             SQL registration scripts. The contents of this
+                         directory should be copied to:
+                         $INFORMIXDIR/extend/idn_fifo.1.1
+
+    src/                 Source code for the demo, including both the DataBlade
+                         code and the external fifo server.
+
+    demo/                scripts that run the demo.
+
+    idn_fifo.ibs         BladeSmith project generated with BladeSmith
+                         version 4.0
+
+==========================================================================
+5. Source Code 
+==========================================================================
+
+This source code creates a shared object file, following the usual conventions
+for DataBlade modules:
+
+   % make -f UNIX.mak
+
+generates a .bld file in the solaris-sparc subdirectory.
+
+Source code and a compile script (not a makefile) are also provided for
+the external executable used in the demo. See the mkfifoserver
+script and the idnFIFOServer.c file in the src/c directory.
+
+==========================================================================
+6. Known Problems and Deficiencies
+==========================================================================
+
+    - The example does very minimal handling of error conditions.
+    - The example was developed for Unix. It's unlikely that it will
+      compile or run on NT without modification.
+
+==========================================================================
+8. Whom to contact
+==========================================================================
+Please send any questions, suggestions, or bug fixes to the User Forum on the
+DataBlade Developer Corner of the IDN site ( http://www.informix.com/idn ).
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Last updated: 7-September-1999

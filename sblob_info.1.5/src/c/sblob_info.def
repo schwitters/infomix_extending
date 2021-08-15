@@ -1,0 +1,16 @@
+;
+; The following symbols are exported for
+; the sblob_info DataBlade module.
+;
+DESCRIPTION 'This is the sblob_info DataBlade module.'
+
+EXPORTS
+	SblobEstSize
+	SblobMaxSize
+	SblobLog
+	SblobCreate_5args
+	SblobExtSize
+	SblobUpdate_3args
+	SblobDebug
+	SblobStatSize
+	SblobSbspace

@@ -1,0 +1,26 @@
+========================================================================
+                     DBDK DataBlade Project vti_demo
+========================================================================
+
+Unfinished Code
+---------------
+
+This project contains code  which requires  implementation before  the
+DataBlade module will  work properly.  The following  routines contain
+"TO DO" code:
+
+		demo_am_beginscan
+		demo_am_check
+		demo_am_close
+		demo_am_create
+		demo_am_delete
+		demo_am_drop
+		demo_am_endscan
+		demo_am_getbyid
+		demo_am_getnext
+		demo_am_insert
+		demo_am_open
+		demo_am_scancost
+		demo_am_stats
+		demo_am_update
+

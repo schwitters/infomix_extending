@@ -1,0 +1,147 @@
+
+
+QUERY:
+------
+select * from test_mr
+
+Estimated Cost: 1
+Estimated # of Rows Returned: 2
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+
+QUERY:
+------
+select * from test_mr
+
+Estimated Cost: 1
+Estimated # of Rows Returned: 2
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+
+QUERY:
+------
+select count(*) from test_mr
+
+Estimated Cost: 1
+Estimated # of Rows Returned: 1
+
+  1) jta.test_mr: INDEX PATH
+
+    (1) Index Keys: (count)
+
+
+QUERY:
+------
+select {+USE_HASH(b)}
+       count(*) 
+from   test_mr a, test_mr b 
+where  a.mrcol=b.mrcol
+
+DIRECTIVES FOLLOWED: 
+DIRECTIVES NOT FOLLOWED: 
+USE_HASH ( b ) Hash-Join cannot be forced w/o equality predicate or with Complex Outerjoins.
+
+Estimated Cost: 3
+Estimated # of Rows Returned: 1
+
+  1) jta.a: SEQUENTIAL SCAN
+
+  2) jta.b: SEQUENTIAL SCAN
+
+        Filters: informix.equal(jta.a.mrcol ,jta.b.mrcol )
+NESTED LOOP JOIN
+
+UDRs in query:
+--------------
+    UDR id  :	225
+    UDR name:	equal
+
+QUERY:
+------
+select count(*) 
+from   test_mr
+where  mrcol in 
+	(select mrcol from test_mr)
+
+Estimated Cost: 2
+Estimated # of Rows Returned: 1
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+        Filters: jta.test_mr.mrcol = ANY <subquery> 
+
+    Subquery:
+    ---------
+    Estimated Cost: 1
+    Estimated # of Rows Returned: 2
+
+      1) jta.test_mr: SEQUENTIAL SCAN
+
+UDRs in query:
+    --------------
+        UDR id  :	225
+        UDR name:	equal
+
+UDRs in query:
+--------------
+    UDR id  :	225
+    UDR name:	equal
+
+QUERY:
+------
+select count (distinct mrcol)
+from   test_mr
+
+Estimated Cost: 1
+Estimated # of Rows Returned: 1
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+UDRs in query:
+--------------
+    UDR id  :	225
+    UDR name:	equal
+
+QUERY:
+------
+select distinct mrcol
+from   test_mr
+
+Estimated Cost: 1
+Estimated # of Rows Returned: 1
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+UDRs in query:
+--------------
+    UDR id  :	224
+    UDR name:	compare
+
+QUERY:
+------
+select count(id), mrcol
+from   test_mr
+group by 2
+
+Estimated Cost: 6
+Estimated # of Rows Returned: 1
+Temporary Files Required For: Group By
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+UDRs in query:
+--------------
+    UDR id  :	225
+    UDR name:	equal
+
+QUERY:
+------
+delete from test_mr
+
+Estimated Cost: 1
+Estimated # of Rows Returned: 2
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+

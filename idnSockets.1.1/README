@@ -1,0 +1,187 @@
+=============================================================================
+                          Sockets Examples 
+=============================================================================
+Any use of sockets presents safety and scalability issues for a DataBlade.
+The goal of these demos is to offer two approaches to addressing those 
+issues. Note that currently it isn't possible to completely solve these
+problems, but the risks can be minimized, and some degree of scalability
+can be achieved.
+
+This directory contains two separate demos that use sockets to permit a
+DataBlade to communicate with an external process. 
+
+In one scenario, the socket server executes as an external process, and is 
+completely independent of the DataBlade. It listens on a specific port, and
+responds to requests sent to it. It has no way to know whether the request 
+has come from a DataBlade routine or from some other source.
+
+In the second scenario, the socket server is implemented from within the
+DataBlade, and the external process is actually a client to the socket
+server. This has two advantages:
+
+  1. The external process is under the control of the server. It gets
+     started automatically by the DataBlade, and when the server shuts
+     down, the external process shuts down, too. (Eventually. This is
+     accomplished by using the "KEEPALIVE" sockets option (see the man
+     page for setsockopt(3N). The timeout before the client detects that
+     its server has disappeared could be as much as two hours.)
+
+  2. Since the port number is allocated at runtime, each instance of the
+     virtual processor class in which the DataBlade runs can have its own
+     copy of the external process. This allows a degree of scalability --
+     for more highly concurrent applications, several instances of the 
+     vp class could be configured.
+
+
+==========================================================================
+1. Overview
+==========================================================================
+
+  o Why use sockets?
+
+    For the sake of safety and performance, you should always follow those
+    DataBlade "Safe Coding Guidelines". But sometimes you just can't. For
+    example, your DataBlade might make extensive use of legacy code that
+    was written without knowledge of the guidelines. What do you do then?
+
+    One possibility is to let your non-compliant code run as an external
+    process, completely outside the database server, and to communicate
+    with it using sockets. Although there will be a performance cost for
+    doing so, you can then write a thin DataBlade that does conform to
+    the guidelines, and let most of the work take place at the external
+    process.
+
+    Note that any DataBlade routines that make use of sockets will have to
+    run in a named virtual processor. By their nature, sockets will make
+    blocking i/o calls; they can't be permitted in the CPU VP.
+    
+  o Overall design of these demos
+
+    These demos are designed to be similar in function and appearance, but
+    they take opposite approaches to the client/server nature of the socket
+    interface. In one, the DataBlade routine is a client to an external socket
+    server. In the other, the DataBlade initializes a socket server within its
+    named virtual processor, and spawns an external socket client. The socket
+    server and the client maintain a connection after the UDR returns, and
+    that connection is reused the next time the UDR is called on that VP.
+
+    The UDR can send a shutdown message to terminate the socket client 
+    associated with the vp on which it runs. This demo includes no provision
+    for shutting down a specific client if more than one vp is running. It
+    also includes very minimal error condition handling -- if the socket
+    client associated with an instance of a vp exits unexpectedly, then 
+    the udr will error whenever it happens to execute on that instance.
+
+==========================================================================
+2. IUS Software Requirements
+==========================================================================
+This release has been tested with the following IUS server builds:
+
+	9.14.UC1X2
+	9.20.UC1G1
+
+==========================================================================
+3. Getting Started
+==========================================================================
+
+Before you look at the source code, you may want to install the example 
+DataBlade modules and run the demos. 
+
+They come ready made for Solaris 5.5.1 and the 9.2 server, and have only been
+tested under Solaris.  If you are not on Solaris, you must cd into the source 
+directories and recompile for your platform. 
+
+To install a demo:
+
+  (1) Create a directory to hold the demo DataBlade. For demo #1, the
+      directory is:
+
+           $INFORMIXDIR/extend/idn_socket1.1.1
+
+      For demo #2, the directory is:
+
+           $INFORMIXDIR/extend/idn_socket2.1.1
+
+  (2) Copy the demo DataBlade scripts to the above directory. For demo #1,
+      the steps would be:
+
+          % cd scripts
+          % cp * $INFORMIXDIR/extend/idn_socket1.1.1
+
+  (3) Copy the external executable and the DataBlade shared object to
+      the DataBlade directory:
+
+         % cd src/c
+         % cp idn_sockserver1 $INFORMIXDIR/extend/idn_socket1.1.1
+         % cd solaris-sparc
+         % cp *.bld $INFORMIXDIR/extend/idn_socket1.1.1
+
+  (4) Add a line to your Informix server configuration file (usually
+      $INFORMIXDIR/etc/config) to define the "IDN" VP class:
+
+          VPCLASS        IDN,noyield,num=1    # for the IDN socket demos
+
+  (5) Recycle (stop and restart) your database server.
+
+
+See the README file in the "demo" directories for details about how to
+run the individual demos.
+         
+==========================================================================
+4. Directory contents
+==========================================================================
+
+    README               This file.
+    demo1/               The socket server is an independent executable.
+    demo2/               The socket server runs within the named VP, which
+                         spawns a socket client as an external process.
+
+    Each of the demo directories contain:
+
+    scripts/             SQL registration scripts. The contents of this
+                         directory should be copied to:
+                         $INFORMIXDIR/extend/idn_socket<1,2>.1.1
+
+    src/                 Source code for the demos, including both the DataBlade
+                         code and the external socket client or server.
+
+    demo/                scripts that run the demo.
+
+    idn_socket<1,2>.ibs  BladeSmith project generated with BladeSmith
+                         version 3.6
+
+==========================================================================
+5. Source Code 
+==========================================================================
+
+This source code creates a shared object file, following the usual conventions
+for DataBlade modules:
+
+   % make -f idn_socket1U.mak
+
+or
+
+   % make -f idn_socket2U.mak
+
+generates a .bld file in the solaris-sparc subdirectory.
+
+Source code and a compile script (not a makefile) are also provided for
+the external executables used in the demo. See the mksocketserver[1,2]
+scripts and the idn_sockserver[1,2].c files in the src/c directories.
+
+==========================================================================
+6. Known Problems and Deficiencies
+==========================================================================
+
+    - These examples do very minimal handling of error conditions.
+    - These examples were developed for Unix. It's unlikely that they'll
+      compile or run on NT without modification.
+
+==========================================================================
+8. Whom to contact
+==========================================================================
+Please send any questions, suggestions, or bug fixes to the User Forum on the
+DataBlade Developer Corner of the IDN site ( http://www.informix.com/idn ).
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Last updated: 7-September-1999

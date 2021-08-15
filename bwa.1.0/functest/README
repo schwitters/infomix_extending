@@ -1,0 +1,50 @@
+This directory contains functional unit tests for the BWA opaque type.
+
+Files
+-----
+    README      This file
+    main.sh     Functional test driver
+    *.sql       SQL scripts that get executed for main.sh
+    *.req       Baseline files that are compared to the current run.
+                The distribution includes the *.req files from
+                Informix DataBlade Unit testing.  
+
+Running
+-------
+
+Running this on NT requires the MKS toolkit, and the instructions
+below work for the MKS korn shell.
+
+Make sure that a database has already been created and that
+the BWA DataBlade module has been installed in it.
+
+Set the TESTDB env variable.
+
+   csh syntax:
+
+        setenv TESTDB bwatest
+
+   ksh syntax
+        TESTDB=bwatest
+        export TESTDB
+
+To test against the distributed baseline files (*.req), enter:
+
+        main.sh all
+
+To generate new baseline (*.req) files:
+
+        main.sh build
+        main.sh run
+
+'run' outputs the *.log files, which are compared to the *.req using
+'diff'. Review the *.log files, correct any problems, and rerun.  When
+you have a good set of *.log files, save them as the new baseline by  
+executing:
+
+        main.sh save
+        main.sh clean
+
+Subsequent runs:
+
+        main.sh all            

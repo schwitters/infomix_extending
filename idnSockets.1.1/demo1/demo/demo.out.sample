@@ -1,0 +1,46 @@
+--
+-- demo.tpl
+--
+-- This is a template for the demo SQL script. We'll run it through sed
+-- to convert the SERVER PORT variable to the correct number and generate
+-- demo.sql
+--
+execute function 
+idnCallSocket1(33369, "racecar");
+
+
+(expression)  racecar 
+
+--
+execute function 
+idnCallSocket1(33369, 
+    "are we not drawn onward, we few, drawn onward to new era?");
+
+
+(expression)  ?are wen ot drawno nward ,wef ew ,drawno nward ton ew era 
+
+--
+execute function 
+idnCallSocket1(33369, "Was it a rat I saw?");
+
+
+(expression)  ?was I tar a ti saW 
+
+--
+execute function 
+idnCallSocket1(33369, "pull up if I pull up");
+
+
+(expression)  pu llup I fi pu llup 
+
+--
+-- This isn't working, is it? ;)
+--
+execute function
+idnCallSocket1(33369, "Ok, this one should work!");
+
+
+(expression)  !krow dluohs eno siht ,kO 
+
+--
+

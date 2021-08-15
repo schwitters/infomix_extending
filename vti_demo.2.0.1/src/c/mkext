@@ -1,0 +1,2 @@
+# This script builds the stand-alone external executable on Solaris
+cc -g -o vtidemo_ext vtidemo_ext.c

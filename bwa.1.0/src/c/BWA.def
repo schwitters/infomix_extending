@@ -1,0 +1,34 @@
+;
+; The following symbols are exported for
+; the BWA DataBlade module.
+;
+DESCRIPTION 'This is the BWA DataBlade module.'
+
+EXPORTS
+	BWAImportText
+	BWAGreaterThan
+	BWANotEmpty
+	BWACategory
+	BWAGreaterThanOrEqual
+	BWANotEqual
+	BWASend
+	BWAFamily
+	BWAEqual
+	BWAIdentity
+	BWACompare
+	BWAOutput
+	BWAInput
+	BWALessThan
+	BWAReceive
+	BWANotEmptyPart
+	BWAImportBinary
+	BWAContains
+	BWAEmptyPart
+	BWAExportText
+	BWAPrintStats
+	BWAGroup
+	BWALessThanOrEqual
+	BWAExportBinary
+	BWAInitStats
+	BWAEmpty
+	TraceSet_BWA

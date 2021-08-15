@@ -1,0 +1,26 @@
+;
+; Exports for VTable
+;
+DESCRIPTION 'VTable'
+
+EXPORTS
+	ddl_exec
+	vt_beginscan
+	vt_parse_qd
+	vt_populate_arrays
+	vt_get_amparam
+	vt_endscan
+	vt_getnext
+	vt_rescan
+	vt_scancost
+	vt_getbyid
+	vt_close
+	vt_drop
+	vt_stats
+	vt_check
+	vt_create
+	vt_open
+	vt_insert
+	vt_update
+	vt_delete
+

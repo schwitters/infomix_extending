@@ -1,0 +1,2 @@
+# This script builds the stand-alone socket server executable on Solaris
+cc -g -o idnFIFOServer idnFIFOServer.c 

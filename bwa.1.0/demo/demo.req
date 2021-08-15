@@ -1,0 +1,1015 @@
+
+Database selected.
+
+--
+-- Filename:     demo.sql
+-- Description:  Demonstrates usage of the bwa DataBlade module
+--
+
+--
+-- <<<<<<<<<<<<<<<<< Insert data >>>>>>>>>>>>>>>>>>>
+--
+
+--
+-- Create a table that contains a BWA column
+--
+create table products (id int, product BWA);
+Table created.
+
+
+
+--
+-- Insert some rows
+--
+insert into products values 
+(1, "Hats.Baseball.Professional Baseball.SF Giants");
+1 row(s) inserted.
+
+
+
+insert into products values 
+(2, "Hats.Baseball.Professional Baseball.SD Padres");
+1 row(s) inserted.
+
+
+
+insert into products values 
+(3, "Hats.Baseball.Professional Baseball.Oakland A's");
+1 row(s) inserted.
+
+
+
+insert into products values 
+(4, "Shirts.Baseball.Professional Baseball.SF Giants");
+1 row(s) inserted.
+
+
+
+insert into products values 
+(5, "Shirts.Baseball.Professional Baseball.SD Padres");
+1 row(s) inserted.
+
+
+
+insert into products values 
+(6, "Shirts.Baseball.Professional Baseball.Oakland A's");
+1 row(s) inserted.
+
+
+
+insert into products values 
+(7, "Shirts.Dress.Ralph Lauren.Long Sleeve Button-down Collar");
+1 row(s) inserted.
+
+
+
+insert into products values 
+(8, "Shirts.Casual.Polo.Dark blue w/ red pony");
+1 row(s) inserted.
+
+
+
+insert into products values 
+(9, "Shirts.Tees.Fruit of the Loom.V-Neck");
+1 row(s) inserted.
+
+
+
+insert into products values 
+(10, "Shirts.Tees.Fruit of the Loom.Standard");
+1 row(s) inserted.
+
+ 
+
+--
+-- Part 3 for the Straw Hat is empty.
+--
+insert into products values (11, "Hats.Sun..Straw");
+1 row(s) inserted.
+
+
+
+--
+-- But notice that we get an error if we forget to include
+-- a placeholding dot for part 3.
+--
+insert into products values (0, "Hats.Sun.Straw");
+(UBWA1) - lvarchar_to_BWA: a BWA has 4 parts, but this specifies 3.
+Error in line 57
+Near character position 49
+
+
+--
+-- Insert a completely empty product.
+--
+insert into products values (12, "...");
+1 row(s) inserted.
+
+
+
+--
+-- We also get an error if any part is too long.
+--
+insert into products values 
+(0, "Part one is way too long, exceeding the max 32 character limit...");
+(UBWA0) - lvarchar_to_BWA: The Category part (62) exceeds the 32 character limit.
+Error in line 68
+Near character position 71
+
+
+--
+-- Output all the data we inserted.
+--
+select * from products
+order by 1;
+
+
+id       1
+product  Hats.Baseball.Professional Baseball.SF Giants 
+
+id       2
+product  Hats.Baseball.Professional Baseball.SD Padres 
+
+id       3
+product  Hats.Baseball.Professional Baseball.Oakland A's 
+
+id       4
+product  Shirts.Baseball.Professional Baseball.SF Giants 
+
+id       5
+product  Shirts.Baseball.Professional Baseball.SD Padres 
+
+id       6
+product  Shirts.Baseball.Professional Baseball.Oakland A's 
+
+id       7
+product  Shirts.Dress.Ralph Lauren.Long Sleeve Button-down Collar 
+
+id       8
+product  Shirts.Casual.Polo.Dark blue w/ red pony 
+
+id       9
+product  Shirts.Tees.Fruit of the Loom.V-Neck 
+
+id       10
+product  Shirts.Tees.Fruit of the Loom.Standard 
+
+id       11
+product  Hats.Sun..Straw 
+
+id       12
+product  ... 
+
+12 row(s) retrieved.
+
+
+
+--
+-- Unload the data to a file, delete it, then reload it.
+--
+unload to "bwa_demo.unl" select * from products;
+12 row(s) unloaded.
+
+
+
+delete from products;
+12 row(s) deleted.
+
+
+
+load from "bwa_demo.unl" insert into products;
+12 row(s) loaded.
+
+
+
+select * from products
+order by 1;
+
+
+id       1
+product  Hats.Baseball.Professional Baseball.SF Giants 
+
+id       2
+product  Hats.Baseball.Professional Baseball.SD Padres 
+
+id       3
+product  Hats.Baseball.Professional Baseball.Oakland A's 
+
+id       4
+product  Shirts.Baseball.Professional Baseball.SF Giants 
+
+id       5
+product  Shirts.Baseball.Professional Baseball.SD Padres 
+
+id       6
+product  Shirts.Baseball.Professional Baseball.Oakland A's 
+
+id       7
+product  Shirts.Dress.Ralph Lauren.Long Sleeve Button-down Collar 
+
+id       8
+product  Shirts.Casual.Polo.Dark blue w/ red pony 
+
+id       9
+product  Shirts.Tees.Fruit of the Loom.V-Neck 
+
+id       10
+product  Shirts.Tees.Fruit of the Loom.Standard 
+
+id       11
+product  Hats.Sun..Straw 
+
+id       12
+product  ... 
+
+12 row(s) retrieved.
+
+
+
+--
+-- <<<<<<<<<<<<<<<<< Search for data >>>>>>>>>>>>>>>>>>>
+--
+
+--
+-- The BWA operators are not case-sensitive, so the next two 
+-- queries return the same result.
+--
+select * from products
+where  product = "Hats.Sun..Straw" 
+order by 1;
+
+
+id       11
+product  Hats.Sun..Straw 
+
+1 row(s) retrieved.
+
+
+
+select * from products
+where  product = "hats.sun..straw" 
+order by 1;
+
+
+id       11
+product  Hats.Sun..Straw 
+
+1 row(s) retrieved.
+
+
+
+--
+-- Output everything except for the straw hat.
+--
+select * from products
+where  product <> "Hats.Sun..Straw" 
+order by 1;
+
+
+id       1
+product  Hats.Baseball.Professional Baseball.SF Giants 
+
+id       2
+product  Hats.Baseball.Professional Baseball.SD Padres 
+
+id       3
+product  Hats.Baseball.Professional Baseball.Oakland A's 
+
+id       4
+product  Shirts.Baseball.Professional Baseball.SF Giants 
+
+id       5
+product  Shirts.Baseball.Professional Baseball.SD Padres 
+
+id       6
+product  Shirts.Baseball.Professional Baseball.Oakland A's 
+
+id       7
+product  Shirts.Dress.Ralph Lauren.Long Sleeve Button-down Collar 
+
+id       8
+product  Shirts.Casual.Polo.Dark blue w/ red pony 
+
+id       9
+product  Shirts.Tees.Fruit of the Loom.V-Neck 
+
+id       10
+product  Shirts.Tees.Fruit of the Loom.Standard 
+
+id       12
+product  ... 
+
+11 row(s) retrieved.
+
+
+
+--
+-- Equal() considers all parts of a BWA, so the next query 
+-- does not return any rows.
+--
+select * from products
+where  product = "hats..." 
+order by 1;
+
+
+No rows found.
+
+
+
+--
+-- Contains() will find all Hats.
+-- Like the BWA operators, Contains() is not case-sensitive.
+--
+select * from products
+where Contains(product, "hats...")
+order by 1;
+
+
+id       1
+product  Hats.Baseball.Professional Baseball.SF Giants 
+
+id       2
+product  Hats.Baseball.Professional Baseball.SD Padres 
+
+id       3
+product  Hats.Baseball.Professional Baseball.Oakland A's 
+
+id       11
+product  Hats.Sun..Straw 
+
+4 row(s) retrieved.
+
+
+
+--
+-- Find all Straw Hats.
+--
+select * from products
+where Contains(product, "hats...straw")
+order by 1;
+
+
+id       11
+product  Hats.Sun..Straw 
+
+1 row(s) retrieved.
+
+
+
+-- Find all Hats that are not straw
+select * from products
+where Contains(product, "hats...")
+  and not Contains (product, "hats...straw")
+order by 1;
+
+
+id       1
+product  Hats.Baseball.Professional Baseball.SF Giants 
+
+id       2
+product  Hats.Baseball.Professional Baseball.SD Padres 
+
+id       3
+product  Hats.Baseball.Professional Baseball.Oakland A's 
+
+3 row(s) retrieved.
+
+
+
+--
+-- Extract each part separately.
+--
+select id, 
+       product,
+       GetCategory(product) category,
+       GetFamily(product)   family,
+       GetGroup(product)    group,
+       GetIdentity(product) identity
+from   products
+order by 1;
+
+
+id        1
+product   Hats.Baseball.Professional Baseball.SF Giants 
+category  Hats
+family    Baseball
+group     Professional Baseball
+identity  SF Giants
+
+id        2
+product   Hats.Baseball.Professional Baseball.SD Padres 
+category  Hats
+family    Baseball
+group     Professional Baseball
+identity  SD Padres
+
+id        3
+product   Hats.Baseball.Professional Baseball.Oakland A's 
+category  Hats
+family    Baseball
+group     Professional Baseball
+identity  Oakland A's
+
+id        4
+product   Shirts.Baseball.Professional Baseball.SF Giants 
+category  Shirts
+family    Baseball
+group     Professional Baseball
+identity  SF Giants
+
+id        5
+product   Shirts.Baseball.Professional Baseball.SD Padres 
+category  Shirts
+family    Baseball
+group     Professional Baseball
+identity  SD Padres
+
+id        6
+product   Shirts.Baseball.Professional Baseball.Oakland A's 
+category  Shirts
+family    Baseball
+group     Professional Baseball
+identity  Oakland A's
+
+id        7
+product   Shirts.Dress.Ralph Lauren.Long Sleeve Button-down Collar 
+category  Shirts
+family    Dress
+group     Ralph Lauren
+identity  Long Sleeve Button-down Collar
+
+id        8
+product   Shirts.Casual.Polo.Dark blue w/ red pony 
+category  Shirts
+family    Casual
+group     Polo
+identity  Dark blue w/ red pony
+
+id        9
+product   Shirts.Tees.Fruit of the Loom.V-Neck 
+category  Shirts
+family    Tees
+group     Fruit of the Loom
+identity  V-Neck
+
+id        10
+product   Shirts.Tees.Fruit of the Loom.Standard 
+category  Shirts
+family    Tees
+group     Fruit of the Loom
+identity  Standard
+
+id        11
+product   Hats.Sun..Straw 
+category  Hats
+family    Sun
+group     
+identity  Straw
+
+id        12
+product   ... 
+category  
+family    
+group     
+identity  
+
+12 row(s) retrieved.
+
+
+
+--
+-- Use the "Get" UDRs to search for data.
+-- These searches are case-sensitive because
+-- each "Get" UDR returns a varchar(32) and
+-- the built-in Equal() operator for the varchar 
+-- type is case-sensitive.
+--
+
+select * from products
+where GetCategory(product) = "hats"
+order by 1;
+
+
+No rows found.
+
+
+
+select * from products
+where GetCategory(product) = "Hats"
+order by 1;
+
+
+id       1
+product  Hats.Baseball.Professional Baseball.SF Giants 
+
+id       2
+product  Hats.Baseball.Professional Baseball.SD Padres 
+
+id       3
+product  Hats.Baseball.Professional Baseball.Oakland A's 
+
+id       11
+product  Hats.Sun..Straw 
+
+4 row(s) retrieved.
+
+
+
+select * from products
+where GetFamily(product) = "Tees"
+order by 1;
+
+
+id       9
+product  Shirts.Tees.Fruit of the Loom.V-Neck 
+
+id       10
+product  Shirts.Tees.Fruit of the Loom.Standard 
+
+2 row(s) retrieved.
+
+
+
+select * from products
+where GetGroup(product) = "Polo"
+order by 1;
+
+
+id       8
+product  Shirts.Casual.Polo.Dark blue w/ red pony 
+
+1 row(s) retrieved.
+
+
+
+select * from products
+where GetIdentity(product) = "V-Neck"
+order by 1;
+
+
+id       9
+product  Shirts.Tees.Fruit of the Loom.V-Neck 
+
+1 row(s) retrieved.
+
+
+
+--
+-- We can combine the "Get" UDRs, and we end up
+-- with a case-sensitive version of the Contains
+-- query.
+--
+select   * from products
+ where   GetCategory(product) = "Hats"
+   and   GetIdentity(product) = "Straw"
+order by 1;
+
+
+id       11
+product  Hats.Sun..Straw 
+
+1 row(s) retrieved.
+
+
+
+select * from products
+where Contains(product, "hats...straw")
+order by 1;
+
+
+id       11
+product  Hats.Sun..Straw 
+
+1 row(s) retrieved.
+
+
+
+
+--
+-- BWA allows a part to be empty, so sometimes you
+-- might want to eliminate empty BWA's from the
+-- the result set.
+--
+-- But the SQL "IS NOT NULL" syntax is not supported
+-- and returns the following error:
+--
+--   293: IS [NOT] NULL predicate may be used only with simple columns.
+--
+
+select * from products
+where GetIdentity(product) is not null
+order by 1;
+  293: IS [NOT] NULL predicate may be used only with simple columns.
+Error in line 207
+Near character position 34
+
+
+
+--
+-- The Empty() and NotEmpty() UDRs let you perform operations
+-- based on whether any part is empty or filled in.
+--
+-- Empty(BWA) returns true if any part is empty.
+-- NotEmpty(BWA) return true if no parts are empty.
+--
+-- They return the opposite results, so are called "negator" UDRs.
+--
+
+select id, 
+       product, 
+       Empty(product)     empty, 
+       NotEmpty(product)  notempty
+from   products
+order by 1;
+
+
+id        1
+product   Hats.Baseball.Professional Baseball.SF Giants 
+empty     f
+notempty  t
+
+id        2
+product   Hats.Baseball.Professional Baseball.SD Padres 
+empty     f
+notempty  t
+
+id        3
+product   Hats.Baseball.Professional Baseball.Oakland A's 
+empty     f
+notempty  t
+
+id        4
+product   Shirts.Baseball.Professional Baseball.SF Giants 
+empty     f
+notempty  t
+
+id        5
+product   Shirts.Baseball.Professional Baseball.SD Padres 
+empty     f
+notempty  t
+
+id        6
+product   Shirts.Baseball.Professional Baseball.Oakland A's 
+empty     f
+notempty  t
+
+id        7
+product   Shirts.Dress.Ralph Lauren.Long Sleeve Button-down Collar 
+empty     f
+notempty  t
+
+id        8
+product   Shirts.Casual.Polo.Dark blue w/ red pony 
+empty     f
+notempty  t
+
+id        9
+product   Shirts.Tees.Fruit of the Loom.V-Neck 
+empty     f
+notempty  t
+
+id        10
+product   Shirts.Tees.Fruit of the Loom.Standard 
+empty     f
+notempty  t
+
+id        11
+product   Hats.Sun..Straw 
+empty     t
+notempty  f
+
+id        12
+product   ... 
+empty     t
+notempty  f
+
+12 row(s) retrieved.
+
+
+
+--
+-- Return any BWA that has an empty part.
+--
+select * from products
+where    Empty(product)
+order by 1;
+
+
+id       11
+product  Hats.Sun..Straw 
+
+id       12
+product  ... 
+
+2 row(s) retrieved.
+
+
+
+--
+-- Find all hats.
+--
+select * from products
+where Contains(product, "hats...")
+order by 1;
+
+
+id       1
+product  Hats.Baseball.Professional Baseball.SF Giants 
+
+id       2
+product  Hats.Baseball.Professional Baseball.SD Padres 
+
+id       3
+product  Hats.Baseball.Professional Baseball.Oakland A's 
+
+id       11
+product  Hats.Sun..Straw 
+
+4 row(s) retrieved.
+
+
+
+--
+-- Find all hats, but restrict the search to
+-- just the BWA's that are completely filled in.
+--
+--
+select * from products
+where Contains(product, "hats...")
+  and NotEmpty(product)
+order by 1;
+
+
+id       1
+product  Hats.Baseball.Professional Baseball.SF Giants 
+
+id       2
+product  Hats.Baseball.Professional Baseball.SD Padres 
+
+id       3
+product  Hats.Baseball.Professional Baseball.Oakland A's 
+
+3 row(s) retrieved.
+
+
+
+--
+-- Empty() and NotEmpty() are negator functions
+-- so the next query should return opposite results.
+--
+select * from products
+where Contains(product, "hats...")
+  and Empty(product)
+order by 1;
+
+
+id       11
+product  Hats.Sun..Straw 
+
+1 row(s) retrieved.
+
+
+
+--
+-- Finally, NotEmpty() and NOT Empty() should return the 
+-- same results.
+--
+select * from products
+where Contains(product, "hats...")
+  and NOT Empty(product)
+order by 1;
+
+
+id       1
+product  Hats.Baseball.Professional Baseball.SF Giants 
+
+id       2
+product  Hats.Baseball.Professional Baseball.SD Padres 
+
+id       3
+product  Hats.Baseball.Professional Baseball.Oakland A's 
+
+3 row(s) retrieved.
+
+
+
+--
+-- Empty(BWA,part) returns true if the specified part is empty.
+-- NotEmpty(BWA,part) return true if the specified part is not empty.
+--
+
+select id, 
+       product, 
+       Empty(product, 1)     Part1_empty, 
+       NotEmpty(product, 1)  Part1_notempty,
+       Empty(product, 2)     Part2_empty, 
+       NotEmpty(product, 2)  Part2_notempty,
+       Empty(product, 3)     Part3_empty, 
+       NotEmpty(product, 3)  Part3_notempty,
+       Empty(product, 4)     Part4_empty, 
+       NotEmpty(product, 4)  Part4_notempty
+from   products
+order by 1;
+
+
+id              1
+product         Hats.Baseball.Professional Baseball.SF Giants 
+part1_empty     f
+part1_notempty  t
+part2_empty     f
+part2_notempty  t
+part3_empty     f
+part3_notempty  t
+part4_empty     f
+part4_notempty  t
+
+id              2
+product         Hats.Baseball.Professional Baseball.SD Padres 
+part1_empty     f
+part1_notempty  t
+part2_empty     f
+part2_notempty  t
+part3_empty     f
+part3_notempty  t
+part4_empty     f
+part4_notempty  t
+
+id              3
+product         Hats.Baseball.Professional Baseball.Oakland A's 
+part1_empty     f
+part1_notempty  t
+part2_empty     f
+part2_notempty  t
+part3_empty     f
+part3_notempty  t
+part4_empty     f
+part4_notempty  t
+
+id              4
+product         Shirts.Baseball.Professional Baseball.SF Giants 
+part1_empty     f
+part1_notempty  t
+part2_empty     f
+part2_notempty  t
+part3_empty     f
+part3_notempty  t
+part4_empty     f
+part4_notempty  t
+
+id              5
+product         Shirts.Baseball.Professional Baseball.SD Padres 
+part1_empty     f
+part1_notempty  t
+part2_empty     f
+part2_notempty  t
+part3_empty     f
+part3_notempty  t
+part4_empty     f
+part4_notempty  t
+
+id              6
+product         Shirts.Baseball.Professional Baseball.Oakland A's 
+part1_empty     f
+part1_notempty  t
+part2_empty     f
+part2_notempty  t
+part3_empty     f
+part3_notempty  t
+part4_empty     f
+part4_notempty  t
+
+id              7
+product         Shirts.Dress.Ralph Lauren.Long Sleeve Button-down Collar 
+part1_empty     f
+part1_notempty  t
+part2_empty     f
+part2_notempty  t
+part3_empty     f
+part3_notempty  t
+part4_empty     f
+part4_notempty  t
+
+id              8
+product         Shirts.Casual.Polo.Dark blue w/ red pony 
+part1_empty     f
+part1_notempty  t
+part2_empty     f
+part2_notempty  t
+part3_empty     f
+part3_notempty  t
+part4_empty     f
+part4_notempty  t
+
+id              9
+product         Shirts.Tees.Fruit of the Loom.V-Neck 
+part1_empty     f
+part1_notempty  t
+part2_empty     f
+part2_notempty  t
+part3_empty     f
+part3_notempty  t
+part4_empty     f
+part4_notempty  t
+
+id              10
+product         Shirts.Tees.Fruit of the Loom.Standard 
+part1_empty     f
+part1_notempty  t
+part2_empty     f
+part2_notempty  t
+part3_empty     f
+part3_notempty  t
+part4_empty     f
+part4_notempty  t
+
+id              11
+product         Hats.Sun..Straw 
+part1_empty     f
+part1_notempty  t
+part2_empty     f
+part2_notempty  t
+part3_empty     t
+part3_notempty  f
+part4_empty     f
+part4_notempty  t
+
+id              12
+product         ... 
+part1_empty     t
+part1_notempty  f
+part2_empty     t
+part2_notempty  f
+part3_empty     t
+part3_notempty  f
+part4_empty     t
+part4_notempty  f
+
+12 row(s) retrieved.
+
+
+
+--
+-- Return any BWA whose first part is empty.
+--
+select * from products
+where    Empty(product, 1)
+order by 1;
+
+
+id       12
+product  ... 
+
+1 row(s) retrieved.
+
+
+
+--
+-- Return hats for any BWA whose third part is not empty.
+--
+select * from products
+where  Contains(product, "hats...")
+  and  NOT Empty(product, 3)
+order by 1;
+
+
+id       1
+product  Hats.Baseball.Professional Baseball.SF Giants 
+
+id       2
+product  Hats.Baseball.Professional Baseball.SD Padres 
+
+id       3
+product  Hats.Baseball.Professional Baseball.Oakland A's 
+
+3 row(s) retrieved.
+
+
+
+select * from products
+where  Contains(product, "hats...")
+  and  NotEmpty(product, 3)
+order by 1;
+
+
+id       1
+product  Hats.Baseball.Professional Baseball.SF Giants 
+
+id       2
+product  Hats.Baseball.Professional Baseball.SD Padres 
+
+id       3
+product  Hats.Baseball.Professional Baseball.Oakland A's 
+
+3 row(s) retrieved.
+
+
+
+drop table products;
+Table dropped.
+
+
+
+
+
+Database closed.
+

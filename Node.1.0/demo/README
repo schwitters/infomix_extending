@@ -1,0 +1,30 @@
+
+To run this demo:
+
+1. Install the DataBlade on your server. As user informix:
+
+   a. Create a new installation directory: $INFORMIXDIR/extend/Node.1.0
+
+   b. Copy the files in the "scripts" directory to the new DataBlade 
+      installation directory.
+
+   c. Copy the shared object file (.../src/c/solaris-sparc/Node.bld) 
+      to the new DataBlade installation directory.
+
+2. In another window, where your process is set up to access your Informix
+   installation, run the "main.sh" script:
+
+     % main.sh
+
+   After some setup steps, dbaccess is called and passed the demo.sql
+   script, which contains a series of calls to the Node bladelet
+   functions. The output is written to "demo.out", which is displayed
+   after the script completes.
+  
+   Did you get the correct output? Your "demo.out" file should look
+   something like the "demo.req" file in this directory.
+
+3. When you're done, you can drop the "nodedb" database and clean up
+   the demo's temp files by running the "cleanup.sh" script.
+
+

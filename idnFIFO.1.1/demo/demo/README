@@ -1,0 +1,59 @@
+
+To run this demo:
+
+0. This demo requires an instance of the named virtual processor class
+   "IDN". Edit your $INFORMIXDIR/etc/onconfig file, and add the 
+   following line to the end of it:
+
+        VPCLASS         IDN,noyield,num=1   # some of the idn demos use this
+
+   Now restart your server (onmode -k, followed by oninit)
+
+1. Install the DataBlade on your server. As user informix:
+
+   a. Create a new installation directory: $INFORMIXDIR/extend/idn_fifo.1.1
+
+   b. Copy the files in the "scripts" directory to the new DataBlade 
+      installation directory.
+
+   c. Copy the shared object file (.../src/c/solaris-sparc/idn_fifo.bld) 
+      to the new DataBlade installation directory.
+
+2. In one window, start the FIFO server. The source, executable, and compile
+   script are in the demo1/src/c directory:
+
+     % idnFIFOServer
+
+     FIFO server starting...
+     Reading...
+
+   The FIFO server creates a named pipe (/tmp/idn_fifo.tmp), and opens it,
+   then issues a "read" call and waits for a client to write to the pipe.
+     
+3. In another window, where your process is set up to access your Informix
+   installation, run the "main.sh" script:
+
+     % main.sh
+
+   After some setup steps, dbaccess is called and passed the demo.sql
+   script, which contains a series of calls to the idnCallFIFO() 
+   function. The output is written to "demo.out", which is displayed
+   after the script completes.
+
+   You'll also see some feedback at the FIFO server as it receives
+   and responds to messages sent to it by the DataBlade.
+  
+   Did you get the correct output? Your "demo.out" file should look
+   something like the "demo.out.sample" file in this directory.
+
+4. You can use dbaccess or sqleditor to send your own requests to the
+   FIFO server. For example:
+
+      % dbaccess fifodb -
+      execute function idnCallFIFO("This is a text string");
+
+5. When you're done, shut down the FIFO server with ^C. You can drop the
+   "fifodb" database and clean up the demo's temp files by running the
+   "cleanup.sh" script.
+
+

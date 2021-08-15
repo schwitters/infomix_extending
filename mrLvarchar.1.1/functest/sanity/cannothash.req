@@ -1,0 +1,235 @@
+
+Database selected.
+
+-- ---------------------------------------------------------------
+-- 
+-- Module          : Functional Test for idn_mrLvarchar UDT
+-- Filename        : cannothash.sql
+-- Description     : Test queries that invoke built-in hash() function
+-- 
+--
+--   idn_mrLvarchar is created with the 'cannothash' modifier, which
+--   tells the server that it cannot use the built-in hash function.
+--   The hash join directive will be ignored and nested loop used
+--   instead. Queries 2-3 will raise exceptions.
+--
+--   (If you remove the 'cannothash' modifier, these queries return
+--   incorrect results.)
+--
+--   Tests:
+--
+--      1. hash join
+--      2. IN
+--	3. COUNT DISTINCT
+--      4. GROUP BY
+--
+--   Additional trace output is to /tmp/mrLvarchar_hash.trc.
+-- ---------------------------------------------------------------
+
+--
+-- Turn tracing on.
+--
+execute procedure TraceSet_mrLvarchar ("/tmp/mrLvarchar_hash.trc", 20);
+Routine executed.
+
+
+
+--
+-- Set explain on.
+--
+
+set explain on;
+Explain set.
+
+
+
+--
+-- Load data
+--
+load from small_values.txt insert into test_mr;
+5 row(s) loaded.
+
+ 
+load from big_values.txt insert into test_mr;
+2 row(s) loaded.
+
+ 
+select count(*) from test_mr;
+
+      (count(*)) 
+
+               7
+
+1 row(s) retrieved.
+
+
+
+--
+-- 1. hash join
+--
+-- The query plan should show that the server rejects the 
+-- USE_HASH directive and does a nested loop join instead.
+--
+select {+USE_HASH(b)}
+       count(*) 
+from   test_mr a, test_mr b 
+where  a.mrcol=b.mrcol;
+
+      (count(*)) 
+
+               7
+
+1 row(s) retrieved.
+
+  
+
+--
+-- 2. IN
+--
+-- This query is expected to fail with the following error:
+--
+--	  999: Not implemented yet.
+--
+select count(*) 
+from   test_mr
+where  mrcol in 
+	(select mrcol from test_mr);
+  999: Not implemented yet.
+Error in line 65
+Near character position 26
+
+
+--
+-- 3. COUNT DISTINCT
+--
+-- This query is expected to fail with the following error:
+--
+--	9643: Type (idn_mrlvarchar) is not hashable.
+--
+
+select count (distinct mrcol)
+from   test_mr;
+ 9643: Type (idn_mrlvarchar) is not hashable.
+Error in line 76
+Near character position 12
+
+
+
+-- But DISTINCT by itself works because the server calls
+-- the UDT's compare routine.
+
+select distinct mrcol
+from   test_mr;
+
+
+mrcol  A fable by Aesop: The Buffoon and the Countryman : A RICH NOBLEMAN once 
+       opened the theaters without charge to the people, and gave a public noti
+       ce that he would handsomely reward any person who invented a new amuseme
+       nt for the occasion. Various public performers contended for the prize. 
+        Among them came a Buffoon well known among the populace for his jokes, 
+       and said that he had a kind of entertainment which had never been brough
+       t out on any stage before.  This report being spread about made a great 
+       stir, and the theater was crowded in every part. The Buffoon appeared al
+       one upon the platform, without any apparatus or confederates, and the ve
+       ry sense of expectation caused an intense silence.  He suddenly bent his
+        head towards his bosom and imitated the squeaking of a little pig so ad
+       mirably with his voice that the audience declared he had a porker under 
+       his cloak, and demanded that it should be shaken out.  When that was don
+       e and nothing was found, they cheered the actor, and loaded him with the
+        loudest applause.  A Countryman in the crowd, observing all that has pa
+       ssed, said, "So help me, Hercules, he shall not beat me at that trick!" 
+        and at once proclaimed that he would do the same thing on the next day,
+        though in a much more natural way.  On the morrow a still larger crowd 
+       assembled in the theater, but now partiality for their favorite actor ve
+       ry generally prevailed, and the audience came rather to ridicule the Cou
+       ntryman than to see the spectacle.  Both of the performers appeared on t
+       he stage.  The Buffoon grunted and squeaked away first, and obtained, as
+        on the preceding day, the applause and cheers of the spectators.  Next 
+       the Countryman commenced, and pretending that he concealed a little pig 
+       beneath his clothes (which in truth he did, but not suspected by the aud
+       ience ) contrived to take hold of and to pull his ear causing the pig to
+        squeak.  The Crowd, however, cried out with one consent that the Buffoo
+       n had given a far more exact imitation, and clamored for the Countryman 
+       to be kicked out of the theater.  On this the rustic produced the little
+        pig from his cloak and showed by the most positive proof the greatness 
+       of their mistake.  "Look here," he said, "this shows what sort of judges
+        you are." 
+
+mrcol  A fable by Aesop: The Miller, His Son, and Their Ass: A MILLER and his s
+       on were driving their Ass to a neighboring fair to sell him.  They had n
+       ot gone far when they met with a troop of women collected round a well, 
+       talking and laughing.  "Look there," cried one of them, "did you ever se
+       e such fellows, to be trudging along the road on foot when they might ri
+       de?'  The old man hearing this, quickly made his son mount the Ass, and 
+       continued to walk along merrily by his side.  Presently they came up to 
+       a group of old men in earnest debate.  "There," said one of them, "it pr
+       oves what I was a-saying.  What respect is shown to old age in these day
+       s? Do you see that idle lad riding while his old father has to walk? Get
+        down, you young scapegrace, and let the old man rest his weary limbs." 
+        Upon this the old man made his son dismount, and got up himself.  In th
+       is manner they had not proceeded far when they met a company of women an
+       d children: "Why, you lazy old fellow," cried several tongues at once, "
+       how can you ride upon the beast, while that poor little lad there can ha
+       rdly keep pace by the side of you?'  The good-natured Miller immediately
+        took up his son behind him.  They had now almost reached the town.    "
+       Pray, honest friend," said a citizen, "is that Ass your own?'  "Yes," re
+       plied the old man.  "O, one would not have thought so," said the other, 
+       "by the way you load him. Why, you two fellows are better able to carry 
+       the poor beast than he you."  "Anything to please you," said the old man
+       ; "we can but try."  So, alighting with his son, they tied the legs of t
+       he Ass together and with the help of a pole endeavored to carry him on t
+       heir shoulders over a bridge near the entrance to the town. This enterta
+       ining sight brought the people in crowds to laugh at it, till the Ass, n
+       ot liking the noise nor the strange handling that he was subject to, bro
+       ke the cords that bound him and, tumbling off the pole, fell into the ri
+       ver.  Upon this, the old man, vexed and ashamed, made the best of his wa
+       y home again, convinced that by endeavoring to please everybody he had p
+       leased nobody, and lost his Ass in the bargain. 
+
+mrcol  five 
+
+mrcol  four 
+
+mrcol  one 
+
+mrcol  three 
+
+mrcol  two 
+
+7 row(s) retrieved.
+
+
+
+--
+--      4. GROUP BY
+--
+-- This query is expected to fail with the following error:
+--
+--	9643: Type (idn_mrlvarchar) is not hashable.
+--
+select count(id), mrcol
+from   test_mr
+group by 2;
+ 9643: Type (idn_mrlvarchar) is not hashable.
+Error in line 94
+Near character position 8
+
+
+--
+-- Cleanup
+--
+
+delete from test_mr;
+7 row(s) deleted.
+
+
+
+-- rename the explain output file to 'sqexplain.hash.log'
+
+
+-- ---------------------------------------------------------------
+-- END
+-- ---------------------------------------------------------------
+
+Database closed.
+

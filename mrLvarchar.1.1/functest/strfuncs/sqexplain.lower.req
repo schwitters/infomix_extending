@@ -1,0 +1,95 @@
+
+
+QUERY:
+------
+select id, 
+       mrcol, 
+       lower(mrcol) value_lowercased
+from   test_mr
+where  id <= 5
+order by id
+
+Estimated Cost: 3
+Estimated # of Rows Returned: 1
+Temporary Files Required For: Order By  
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+        Filters: jta.test_mr.id <= 5 
+
+UDRs in query:
+--------------
+    UDR id  :	241
+    UDR name:	lower
+
+QUERY:
+------
+select id, 
+       lower(mrcol) value_lowercased
+from   test_mr
+where  id > 5
+order by id
+
+Estimated Cost: 3
+Estimated # of Rows Returned: 1
+Temporary Files Required For: Order By  
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+        Filters: jta.test_mr.id > 5 
+
+UDRs in query:
+--------------
+    UDR id  :	241
+    UDR name:	lower
+
+QUERY:
+------
+select id, 
+       mrcol, 
+       lower(mrcol || '  *****  ' || mrcol) value_lowercased
+from   test_mr
+where  id <= 5
+order by id
+
+Estimated Cost: 3
+Estimated # of Rows Returned: 1
+Temporary Files Required For: Order By  
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+        Filters: jta.test_mr.id <= 5 
+
+UDRs in query:
+--------------
+    UDR id  :	241
+    UDR name:	lower
+    UDR id  :	227
+    UDR name:	concat
+    UDR id  :	227
+    UDR name:	concat
+
+QUERY:
+------
+select id, 
+       lower(mrcol || '  *****  ' || mrcol) value_lowercased
+from   test_mr
+where  id > 5
+order by id
+
+Estimated Cost: 3
+Estimated # of Rows Returned: 1
+Temporary Files Required For: Order By  
+
+  1) jta.test_mr: SEQUENTIAL SCAN
+
+        Filters: jta.test_mr.id > 5 
+
+UDRs in query:
+--------------
+    UDR id  :	241
+    UDR name:	lower
+    UDR id  :	227
+    UDR name:	concat
+    UDR id  :	227
+    UDR name:	concat
