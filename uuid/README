@@ -1,0 +1,84 @@
+This directory contains the implementation of the Guid opaque type.
+The files include:
+
+guid.c        : Opaque type implementation
+guid.def      : Required file for the implementation on Windows
+Guid.java     : Guid Java object used by QueryGuid.java
+guid.sql      : SQL script used to register the type in a database
+guid_d.sql    : SQL script used to remove the type from a database
+Makefile      : Generic makefile for Unix platforms
+QueryGuid.ec  : Demonstration ESQL/C client program
+QueryGuid.java: Demonstration Java client program
+README        : This file
+runjava.bat   : simple script to run the QueryGuid program
+testit.sql    : Test script to see if the type works
+WinNT.mak     : Makefile for Windows
+
+To compile the code, you require a C compiler on your platform. You must 
+modify the Makefile before using it.
+
+For Unix, Modify line 3 to reflect the appropriate include file. The
+value in the Makefile shows the use of the Linux platform:
+
+TARGET=$(INFORMIXDIR)/incl/dbdk/makeinc.linux
+
+You should have a similar file on your installation with a different
+suffix.
+
+For Unix and Windows, if you are planning to use the the Java programs,
+modify the line:
+
+JAVA_CLASSPATH=-classpath .;/jdbc221jc5/lib/ifxjdbc.jar
+
+To reflect the proper location of your IBM-Informix JDBC driver.
+
+If you are planning to use the ESQL/C program, you may have to change
+the value of INFORMIXDIR before compiling the program.
+
+To build the shared library execute the Makefile.
+  On Unix   : make -f makefile
+  On Windows: nmake -f winnt.mak
+
+Once the guid.bld file is created:
+  1) Create a directory $INFORMIXDIR/extend/guid
+  2) Copy guid.bld to $INFORMIXDIR/extend/guid
+
+To register the type into a database, execute the guid.sql script
+through dbaccess. For example, assuming a database name of "jroy",
+you can execute the command:
+
+  dbaccess -e jroy guid
+
+You can test if the implementation works by executing testit.sql.
+You should expect 2 or 3 errors depending on the platform. See
+the comments in testit.sql for details.
+
+The testit.sql script creates a table named "tab". It is used by
+the client programs. If you want to de-register the Guid type, you
+must first drop the table (DROP TABLE tab), then execute the script
+guid_d.sql:
+
+  dbaccess -e jroy guid_d
+
+To compile the Java Classes:
+  On Unix   : make -f makefile QueryGuid.class
+  On Windows: nmake -f winnt.mak QueryGuid.class
+
+To execute the Java program, you can modify the classpath in runjava.bat
+and then execute that script. Otherwise, if your environment is set
+properly, it should just be a matter of executing:
+
+  java QueryGuid
+
+If you want to try the ESQL/C program, you may have to modify your
+INFORMIXDIR environment variable before executing the makefile
+with:
+  On Unix   : make -f makefile QueryGuid.exe
+  On Windows: nmake -f winnt.mak QueryGuid.exe
+
+I already modified the WinNT.mak file to reflect this since, in my
+environment, I have the client product installed in
+%INFORMIXDIR%\Client-SDK
+
+To execute the ESQL/C program, just type its name at the prompt.
+
